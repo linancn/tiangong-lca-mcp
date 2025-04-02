@@ -1,0 +1,36 @@
+{
+  "name": "@tiangong-lca/mcp-server",
+  "version": "0.0.1",
+  "description": "TianGong LCA MCP Server",
+  "license": "MIT",
+  "author": "Nan LI",
+  "type": "module",
+  "bin": {
+    "mcp-server": "dist/src/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/src/*.js",
+    "start": "npm run build && npx dotenv -e .env -- npx @modelcontextprotocol/inspector node dist/src/index.js",
+    "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "weaviate-client": "^3.4.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/inspector": "^0.7.0",
+    "dotenv-cli": "^8.0.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-organize-imports": "^4.1.0",
+    "shx": "^0.4.0",
+    "supergateway": "^2.5.0",
+    "typescript": "^5.8.2"
+  }
+}
