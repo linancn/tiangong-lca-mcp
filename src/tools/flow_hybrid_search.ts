@@ -4,33 +4,11 @@ import cleanObject from './_shared/clean_object.js';
 import { base_url, supabase_anon_key, x_api_key, x_region } from './_shared/config.js';
 
 const input_schema = {
-  query: z.string().min(1).describe('Queries from user')
+  query: z.string().min(1).describe('Queries from user'),
 };
 
-async function searchEsg({
-  query,
-  topK,
-  extK,
-  metaContains,
-  filter,
-  dateFilter,
-}: {
-  query: string;
-  topK: number;
-  extK: number;
-  metaContains?: string;
-  filter?: {
-    rec_id?: string[];
-    country?: string[];
-  };
-  dateFilter?: {
-    publication_date?: {
-      gte?: number;
-      lte?: number;
-    };
-  };
-}): Promise<string> {
-  const url = `${base_url}/esg_search`;
+async function searchEsg({ query }: { query: string }): Promise<string> {
+  const url = `${base_url}/flow_hybrid_search`;
   // console.error('URL:', url);
   try {
     const response = await fetch(url, {
@@ -44,11 +22,6 @@ async function searchEsg({
       body: JSON.stringify(
         cleanObject({
           query,
-          topK,
-          extK,
-          metaContains,
-          filter,
-          dateFilter,
         }),
       ),
     });
@@ -64,27 +37,17 @@ async function searchEsg({
 }
 
 export function regFlowSearchTool(server: McpServer) {
-  server.tool(
-    'Search_flows_Tool',
-    'Search LCA flows data.',
-    input_schema,
-    async ({ query,  }) => {
-      const result = await searchEsg({
-        query,
-        topK,
-        extK,
-        metaContains,
-        filter,
-        dateFilter,
-      });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: result,
-          },
-        ],
-      };
-    },
-  );
+  server.tool('Search_flows_Tool', 'Search LCA flows data.', input_schema, async ({ query }) => {
+    const result = await searchEsg({
+      query,
+    });
+    return {
+      content: [
+        {
+          type: 'text',
+          text: result,
+        },
+      ],
+    };
+  });
 }

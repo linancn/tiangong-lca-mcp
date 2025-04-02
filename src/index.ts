@@ -2,7 +2,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { regFlowSearchTool } from './tools/flow_search.js';
+import { regFlowSearchTool } from './tools/flow_hybrid_search.js';
 
 const server = new McpServer({
   name: 'TianGong-MCP-Server',
