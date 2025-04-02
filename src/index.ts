@@ -2,16 +2,14 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { regESGTool } from './tools/esg.js';
-import { regWeaviateTool } from './tools/weaviate.js';
+import { regFlowSearchTool } from './tools/flow_search.js';
 
 const server = new McpServer({
   name: 'TianGong-MCP-Server',
   version: '1.0.0',
 });
 
-regWeaviateTool(server);
-regESGTool(server);
+regFlowSearchTool(server);
 
 async function runServer() {
   const transport = new StdioServerTransport();
