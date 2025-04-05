@@ -7,7 +7,7 @@ const input_schema = {
   query: z.string().min(1).describe('Queries from user'),
 };
 
-async function searchEsg({ query }: { query: string }): Promise<string> {
+async function searchFlows({ query }: { query: string }): Promise<string> {
   const url = `${base_url}/flow_hybrid_search`;
   // console.error('URL:', url);
   try {
@@ -38,7 +38,7 @@ async function searchEsg({ query }: { query: string }): Promise<string> {
 
 export function regFlowSearchTool(server: McpServer) {
   server.tool('Search_flows_Tool', 'Search LCA flows data.', input_schema, async ({ query }) => {
-    const result = await searchEsg({
+    const result = await searchFlows({
       query,
     });
     return {
