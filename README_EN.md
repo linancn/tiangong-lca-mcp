@@ -75,7 +75,7 @@ npm run lint
 
 ```bash
 # Launch the STDIO Server using MCP Inspector
-npm run start
+npm start
 ```
 
 #### SSE Server
