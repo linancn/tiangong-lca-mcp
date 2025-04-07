@@ -30,7 +30,7 @@
     "prettier": "^3.5.3",
     "prettier-plugin-organize-imports": "^4.1.0",
     "shx": "^0.4.0",
-    "supergateway": "^2.5.0",
-    "typescript": "^5.8.2"
+    "supergateway": "^2.6.0",
+    "typescript": "^5.8.3"
   }
 }
