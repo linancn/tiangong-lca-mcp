@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import cleanObject from './_shared/clean_object.js';
-import { base_url, supabase_anon_key, x_api_key, x_region } from './_shared/config.js';
+import cleanObject from '../_shared/clean_object.js';
+import { base_url, supabase_anon_key, x_api_key, x_region } from '../_shared/config.js';
 
 const input_schema = {
   query: z.string().min(1).describe('Queries from user'),
