@@ -23,7 +23,7 @@ npm install -g supergateway
 
 npx dotenv -e .env -- \
 npx -y supergateway \
-    --stdio "npx -y @tiangong-lca/mcp-server" \
+    --stdio "npx -y -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio" \
     --port 3001 \
     --ssePath /sse --messagePath /message
 ```
@@ -90,7 +90,7 @@ npm install -g supergateway
 # Launch the SSE Server (If the parameter --baseUrl is configured, it should be set to a valid IP address or domain name)
 npx dotenv -e .env -- \
 npx -y supergateway \
-    --stdio "npx -y tiangong-lca-mcp-server-0.0.1.tgz" \
+    --stdio "npx -y -p tiangong-lca-mcp-server-0.0.1.tgz tiangong-lca-mcp-stdio" \
     --port 3001 \
     --ssePath /sse \
     --messagePath /message

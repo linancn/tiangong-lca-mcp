@@ -6,7 +6,8 @@
   "author": "Nan LI",
   "type": "module",
   "bin": {
-    "mcp-server": "dist/src/index.js"
+    "tiangong-lca-mcp-stdio": "dist/src/index.js",
+    "tiangong-lca-mcp-http": "dist/src/index_server.js"
   },
   "files": [
     "dist"
