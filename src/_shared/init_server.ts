@@ -14,4 +14,6 @@ export function initializeServer(): McpServer {
   return server;
 }
 
-export const server = initializeServer();
+export function getServer() {
+  return initializeServer();
+}

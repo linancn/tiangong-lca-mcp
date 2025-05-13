@@ -2,7 +2,7 @@
 
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { Request, Response } from 'express';
-import { server } from './_shared/init_server.js';
+import { getServer } from './_shared/init_server.js';
 
 const app = express();
 app.use(express.json());
@@ -13,6 +13,7 @@ app.post('/mcp', async (req: Request, res: Response) => {
     // console.log('Request body:', req.body);
     // console.log('Request headers:', req.headers);
     // console.log('Request method:', req.method);
+    const server = getServer();
     const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
