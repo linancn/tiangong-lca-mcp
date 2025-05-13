@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@types/express": "^5.0.1",
-    "@modelcontextprotocol/sdk": "^1.11.1",
+    "@modelcontextprotocol/sdk": "^1.11.2",
     "@supabase/supabase-js": "^2.49.4",
     "zod": "^3.24.4"
   },

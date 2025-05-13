@@ -37,17 +37,22 @@ async function searchProcesses({ query }: { query: string }): Promise<string> {
 }
 
 export function regProcessSearchTool(server: McpServer) {
-  server.tool('Search_processes_Tool', 'Search LCA processes data.', input_schema, async ({ query }) => {
-    const result = await searchProcesses({
-      query,
-    });
-    return {
-      content: [
-        {
-          type: 'text',
-          text: result,
-        },
-      ],
-    };
-  });
+  server.tool(
+    'Search_processes_Tool',
+    'Search LCA processes data.',
+    input_schema,
+    async ({ query }) => {
+      const result = await searchProcesses({
+        query,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: result,
+          },
+        ],
+      };
+    },
+  );
 }
