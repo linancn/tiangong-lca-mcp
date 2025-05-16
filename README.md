@@ -84,13 +84,10 @@ npm start
 # 打包当前项目
 npm run build && npm pack
 
-# 如果需要可以全局安装 supergateway（可选）
-npm install -g supergateway
-
 # 启动 SSE 服务器，如配置了参数 --baseUrl ，应设置为有效的 IP 地址或域名
 npx dotenv -e .env -- \
 npx -y supergateway \
-    --stdio "npx -y tiangong-lca-mcp-server-0.0.1.tgz" \
+    --stdio "npx -y -p tiangong-lca-mcp-server-0.0.2.tgz tiangong-lca-mcp-stdio" \
     --port 3001 \
     --ssePath /sse \
     --messagePath /message
