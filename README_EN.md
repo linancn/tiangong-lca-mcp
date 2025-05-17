@@ -2,7 +2,7 @@
 
 [中文](./README.md) | [English](./README_EN.md)
 
-TianGong AI Model Context Protocol (MCP) Server supports both STDIO and SSE protocols.
+TianGong AI Model Context Protocol (MCP) Server supports STDIO, SSE and StreamableHttp protocols.
 
 ## Starting MCP Server
 
@@ -90,7 +90,7 @@ npm install -g supergateway
 # Launch the SSE Server (If the parameter --baseUrl is configured, it should be set to a valid IP address or domain name)
 npx dotenv -e .env -- \
 npx -y supergateway \
-    --stdio "npx -y -p tiangong-lca-mcp-server-0.0.1.tgz tiangong-lca-mcp-stdio" \
+    --stdio "npx -y -p tiangong-lca-mcp-server-0.0.3.tgz tiangong-lca-mcp-stdio" \
     --port 3001 \
     --ssePath /sse \
     --messagePath /message
