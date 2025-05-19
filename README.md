@@ -12,7 +12,7 @@ TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO、 SSE 和 Streama
 npm install -g @tiangong-lca/mcp-server
 
 npx dotenv -e .env -- \
-npx @tiangong-lca/mcp-server
+npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
 ```
 
 ### 远程 SSE 服务器

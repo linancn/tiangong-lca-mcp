@@ -12,7 +12,7 @@ TianGong AI Model Context Protocol (MCP) Server supports STDIO, SSE and Streamab
 npm install -g @tiangong-lca/mcp-server
 
 npx dotenv -e .env -- \
-npx @tiangong-lca/mcp-server
+npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
 ```
 
 ### Remote SSE Server
