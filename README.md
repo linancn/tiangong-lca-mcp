@@ -1,5 +1,6 @@
 # TianGong-LCA-MCP
 
+[![smithery badge](https://smithery.ai/badge/@linancn/tiangong-lca)](https://smithery.ai/server/@linancn/tiangong-lca) 
 [中文](./README.md) | [English](./README_EN.md)
 
 TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO、 SSE 和 StreamableHttp 三种协议。
@@ -9,21 +10,21 @@ TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO、 SSE 和 Streama
 ### 客户端 STDIO 服务器
 
 ```bash
-npm install -g @tiangong-lca/mcp-server
+npm install -g @linancn/tiangong-lca
 
 npx dotenv -e .env -- \
-npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
+npx -p @linancn/tiangong-lca tiangong-lca-mcp-stdio
 ```
 
 ### 远程 SSE 服务器
 
 ```bash
-npm install -g @tiangong-lca/mcp-server
+npm install -g @linancn/tiangong-lca
 npm install -g supergateway
 
 npx dotenv -e .env -- \
 npx -y supergateway \
-    --stdio "npx -y -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio" \
+    --stdio "npx -y -p @linancn/tiangong-lca tiangong-lca-mcp-stdio" \
     --port 3001 \
     --ssePath /sse --messagePath /message
 ```
@@ -87,7 +88,7 @@ npm run build && npm pack
 # 启动 SSE 服务器，如配置了参数 --baseUrl ，应设置为有效的 IP 地址或域名
 npx dotenv -e .env -- \
 npx -y supergateway \
-    --stdio "npx -y -p tiangong-lca-mcp-server-0.0.3.tgz tiangong-lca-mcp-stdio" \
+    --stdio "npx -y -p tiangong-lca-mcp-server-latest.tgz tiangong-lca-mcp-stdio" \
     --port 3001 \
     --ssePath /sse \
     --messagePath /message
