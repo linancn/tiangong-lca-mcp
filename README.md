@@ -106,3 +106,9 @@ npm login
 
 npm run build && npm publish
 ```
+
+### scaffold
+
+```bash
+npx tsx src/tools/openlca_ipc.ts
+```
