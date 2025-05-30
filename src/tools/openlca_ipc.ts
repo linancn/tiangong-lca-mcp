@@ -1,84 +1,87 @@
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as o from 'olca-ipc';
+import { z } from 'zod';
 
-// async function main() {
-//   const client = o.IpcClient.on('http://192.168.1.108:8080');
-//   const flows = await client.getDescriptors(o.RefType.Flow);
-//   for (const flow of flows) {
-//     console.log(`${flow.id} :: ${flow.name} :: ${flow.category}`);
-//   }
-// }
+const input_schema = {
+  systemProcess: z.string().min(1).describe('OpenLCA product system ID'),
+  impactMethod: z.string().min(1).describe('OpenLCA impact method ID'),
+  serverUrl: z.string().default('http://localhost:8080').describe('OpenLCA IPC server URL'),
+};
 
-// async function main() {
-//   const client = o.IpcClient.on('http://192.168.1.108:8080');
-//   const process = await client.get(o.RefType.Process,'d7422217-03c8-44d8-abb3-681a47904eaf');
-//   // console.log(`${process.id} :: ${process.name} :: ${process.category}`);
-//   console.log(`  ${process?.toJson()}`);
-
-// }
-
-async function main() {
-  // we can use a client for the REST or IPC (JSON-RPC) protocol
-  // both clients implement the same interface
-  const protocol: 'REST' | 'IPC' = 'IPC';
-  const client =
-    protocol === 'IPC'
-      ? o.IpcClient.on('http://192.168.1.108:8080')
-      : o.RestClient.on('http://192.168.1.108:8080');
-
-  // select a product system
-  const systems = await client.getDescriptors(o.RefType.ProductSystem);
-  if (systems.length === 0) {
-    console.log('error: no product systems found');
-    return;
+async function calculateLcaImpacts({
+  systemProcess,
+  impactMethod,
+  serverUrl = 'http://localhost:8080',
+}: {
+  systemProcess: string;
+  impactMethod: string;
+  serverUrl?: string;
+}): Promise<string> {
+  if (!systemProcess) {
+    throw new Error('No systemProcess provided');
   }
 
-  // console.log('可用的产品系统:');
-  // systems.forEach((sys, index) => {
-  //   console.log(`${index}: ${sys.name} (${sys.id})`);
-  // });
-
-  const system = systems[1];
-  console.log(`calculate system: ${system.name}`);
-
-  // select an impact assessment method, if available
-  const methods = await client.getDescriptors(o.RefType.ImpactMethod);
-  for (const method of methods) {
-    console.log(`  ${method.id} :: ${method.name}`);
+  if (!impactMethod) {
+    throw new Error('No impactMethod provided');
   }
 
-  // const method = methods.length >= 0 ? methods[4] : null;
-  // if (!method) {
-  //   console.log('  no LCIA method available');
-  // } else {
-  //   console.log(`  using LCIA method: ${method.name}`);
-  // }
+  const client = o.IpcClient.on(serverUrl);
 
-  const method = await client.get(o.RefType.ImpactMethod, '2618fc94-ddc7-4ebb-8b73-2ac22f1d06c5');
+  const selectedSystemProcess = await client.get(o.RefType.ProductSystem, systemProcess);
+  if (!selectedSystemProcess) throw new Error('Product system not found');
 
-  // calculate the system
-  console.log('  ... calculating ...');
+  // Get impact method
+  const selectedMethod = await client.get(o.RefType.ImpactMethod, impactMethod);
+  if (!selectedMethod) throw new Error('Impact method not found');
+
+  // Calculate the system
+  console.log('Calculating LCA impacts...');
   const setup = o.CalculationSetup.of({
-    target: system,
-    impactMethod: method,
+    target: selectedSystemProcess as o.Ref,
+    impactMethod: selectedMethod as o.Ref,
   });
+
   const result = await client.calculate(setup);
   const state = await result.untilReady();
+
   if (state.error) {
-    throw new Error(`calculation failed: ${state.error}`);
+    throw new Error(`Calculation failed: ${state.error}`);
   }
-  console.log('  done');
 
-  // query the result
+  // Query the result
   const impacts = await result.getTotalImpacts();
-  console.log('LCIA Results:');
-  for (const impact of impacts) {
-    const name = impact.impactCategory?.name;
-    const unit = impact.impactCategory?.refUnit;
-    console.log(`  ${name}: ${impact.amount?.toExponential(2)} ${unit}`);
-  }
+  const resultsObj = impacts.map((impact) => ({
+    name: impact.impactCategory?.name,
+    value: impact.amount,
+    unit: impact.impactCategory?.refUnit,
+  }));
 
-  // finally, dispose the result
+  // Dispose the result
   result.dispose();
+
+  return JSON.stringify(resultsObj);
 }
 
-main();
+export function regOpenLcaTool(server: McpServer) {
+  server.tool(
+    'OpenLCA_Impact_Assessment_Tool',
+    'Calculate life cycle impact assessment using OpenLCA.',
+    input_schema,
+    async ({ systemProcess, impactMethod, serverUrl }) => {
+      const result = await calculateLcaImpacts({
+        systemProcess: systemProcess,
+        impactMethod: impactMethod,
+        serverUrl: serverUrl,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: result,
+          },
+        ],
+      };
+    },
+  );
+}
