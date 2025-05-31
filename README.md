@@ -110,5 +110,5 @@ npm run build && npm publish
 ### scaffold
 
 ```bash
-npx tsx src/tools/openlca_ipc.ts
+npx tsx src/tools/openlca_ipc_test.ts
 ```
