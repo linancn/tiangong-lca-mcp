@@ -62,7 +62,7 @@ async function calculateLcaImpacts({
   return JSON.stringify(resultsObj);
 }
 
-export function regOpenLcaTool(server: McpServer) {
+export function regOpenLcaLciaTool(server: McpServer) {
   server.tool(
     'OpenLCA_Impact_Assessment_Tool',
     'Calculate life cycle impact assessment using OpenLCA.',

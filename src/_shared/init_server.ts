@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { regBomCalculationTool } from '../tools/bom_calculation.js';
 import { regFlowSearchTool } from '../tools/flow_hybrid_search.js';
-import { regOpenLcaTool } from '../tools/openlca_ipc.js';
+import { regOpenLcaLciaTool } from '../tools/openlca_ipc_lcia.js';
 import { regProcessSearchTool } from '../tools/process_hybrid_search.js';
 
 export function initializeServer(): McpServer {
@@ -13,7 +13,7 @@ export function initializeServer(): McpServer {
   regFlowSearchTool(server);
   regProcessSearchTool(server);
   regBomCalculationTool(server);
-  regOpenLcaTool(server);
+  regOpenLcaLciaTool(server);
 
   return server;
 }
