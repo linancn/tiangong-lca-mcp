@@ -107,5 +107,5 @@ npm run build && npm publish
 ### 测试脚手架
 
 ```bash
-npx tsx src/tools/openlca_ipc.ts
+npx tsx src/tools/openlca_ipc_test.ts
 ```
