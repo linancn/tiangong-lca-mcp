@@ -42,7 +42,7 @@ docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.0.1
+    linancn/tiangong-lca-mcp-server:0.0.5
 ```
 
 ## 开发
@@ -87,7 +87,7 @@ npm run build && npm pack
 # 启动 SSE 服务器，如配置了参数 --baseUrl ，应设置为有效的 IP 地址或域名
 npx dotenv -e .env -- \
 npx -y supergateway \
-    --stdio "npx -y -p tiangong-lca-mcp-server-0.0.3.tgz tiangong-lca-mcp-stdio" \
+    --stdio "npx -y -p tiangong-lca-mcp-server-0.0.5.tgz tiangong-lca-mcp-stdio" \
     --port 3001 \
     --ssePath /sse \
     --messagePath /message
