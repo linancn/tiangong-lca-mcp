@@ -32,10 +32,10 @@ npx -y supergateway \
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.0.1 .
+docker build -t linancn/tiangong-lca-mcp-server:0.0.5 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.0.1
+docker pull linancn/tiangong-lca-mcp-server:0.0.5
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
