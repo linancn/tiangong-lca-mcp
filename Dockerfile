@@ -1,9 +1,7 @@
-FROM node:22
+FROM node:22-alpine
 
-# Install required Node.js packages
 RUN npm install -g @tiangong-lca/mcp-server@latest
 
-# Expose ports
-EXPOSE 80
+EXPOSE 9278
 
-CMD [""]
+CMD ["npx", "-p", "tiangong-lca-mcp-server" "tiangong-lca-mcp-http"]
