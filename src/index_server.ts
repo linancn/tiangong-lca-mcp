@@ -1,13 +1,52 @@
 #!/usr/bin/env node
 
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import { getServer } from './_shared/init_server.js';
+
+const BEARER_KEY: string | undefined = process.env.BEARER_KEY;
+
+const authenticateBearer = (req: Request, res: Response, next: NextFunction): void => {
+  if (!BEARER_KEY) {
+    next();
+    return;
+  }
+
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32001,
+        message: 'Missing or invalid authorization header',
+      },
+      id: null,
+    });
+    return;
+  }
+
+  const token = authHeader.substring(7);
+
+  if (token !== BEARER_KEY) {
+    res.status(403).json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32002,
+        message: 'Invalid bearer token',
+      },
+      id: null,
+    });
+    return;
+  }
+
+  next();
+};
 
 const app = express();
 app.use(express.json());
 
-app.post('/mcp', async (req: Request, res: Response) => {
+app.post('/mcp', authenticateBearer, async (req: Request, res: Response) => {
   try {
     // console.log('Received POST MCP request');
     // console.log('Request body:', req.body);
