@@ -40,7 +40,7 @@ docker pull linancn/tiangong-lca-mcp-server:0.0.1
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
-    --publish 3001:80 \
+    --publish 9278:9278 \
     --env-file .env \
     linancn/tiangong-lca-mcp-server:0.0.1
 ```
