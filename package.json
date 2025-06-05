@@ -25,16 +25,16 @@
     "olca-ipc": "^2.2.1",
     "@types/express": "^5.0.2",
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "@supabase/supabase-js": "^2.49.8",
-    "zod": "^3.25.42"
+    "@supabase/supabase-js": "^2.49.10",
+    "zod": "^3.25.51"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "^0.13.0",
+    "@modelcontextprotocol/inspector": "^0.14.0",
     "dotenv-cli": "^8.0.0",
     "prettier": "^3.5.3",
     "prettier-plugin-organize-imports": "^4.1.0",
     "shx": "^0.4.0",
-    "supergateway": "^3.0.1",
+    "supergateway": "^3.1.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }

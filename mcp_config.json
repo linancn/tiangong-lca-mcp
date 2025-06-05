@@ -1,0 +1,9 @@
+{
+  "tiangong_lca": {
+    "transport": "streamable_http",
+    "url": "http://host.docker.internal:9278/mcp",
+    "headers": {
+      "Accept": "application/json, text/event-stream"
+    }
+  }
+}
