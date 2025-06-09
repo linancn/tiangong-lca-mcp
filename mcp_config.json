@@ -3,7 +3,8 @@
     "transport": "streamable_http",
     "url": "http://host.docker.internal:9278/mcp",
     "headers": {
-      "Accept": "application/json, text/event-stream"
+      "Accept": "application/json, text/event-stream",
+      "Authorization": "Bearer YOUR_TOKEN_HERE"
     }
   }
 }
