@@ -2,11 +2,16 @@
 
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { NextFunction, Request, Response } from 'express';
+import { authenticateRequest } from './_shared/auth_middleware.js';
 import { getServer } from './_shared/init_server.js';
 
 const BEARER_KEY: string | undefined = process.env.BEARER_KEY;
 
-const authenticateBearer = (req: Request, res: Response, next: NextFunction): void => {
+const authenticateBearer = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   if (!BEARER_KEY) {
     next();
     return;
@@ -26,14 +31,14 @@ const authenticateBearer = (req: Request, res: Response, next: NextFunction): vo
     return;
   }
 
-  const token = authHeader.substring(7);
+  const authResult = await authenticateRequest(authHeader.substring(7));
 
-  if (token !== BEARER_KEY) {
+  if (!authResult || !authResult.isAuthenticated) {
     res.status(403).json({
       jsonrpc: '2.0',
       error: {
         code: -32002,
-        message: 'Invalid bearer token',
+        message: authResult?.response || 'Forbidden',
       },
       id: null,
     });
