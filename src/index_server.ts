@@ -5,18 +5,11 @@ import express, { NextFunction, Request, Response } from 'express';
 import { authenticateRequest } from './_shared/auth_middleware.js';
 import { getServer } from './_shared/init_server.js';
 
-const BEARER_KEY: string | undefined = process.env.BEARER_KEY;
-
 const authenticateBearer = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
-  if (!BEARER_KEY) {
-    next();
-    return;
-  }
-
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
