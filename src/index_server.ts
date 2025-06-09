@@ -5,8 +5,12 @@ import express, { NextFunction, Request, Response } from 'express';
 import { authenticateRequest } from './_shared/auth_middleware.js';
 import { getServer } from './_shared/init_server.js';
 
+interface AuthenticatedRequest extends Request {
+  bearerKey?: string;
+}
+
 const authenticateBearer = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
@@ -24,7 +28,8 @@ const authenticateBearer = async (
     return;
   }
 
-  const authResult = await authenticateRequest(authHeader.substring(7));
+  const bearerKey = authHeader.substring(7).trim();
+  const authResult = await authenticateRequest(bearerKey);
 
   if (!authResult || !authResult.isAuthenticated) {
     res.status(403).json({
@@ -38,19 +43,20 @@ const authenticateBearer = async (
     return;
   }
 
+  req.bearerKey = bearerKey;
   next();
 };
 
 const app = express();
 app.use(express.json());
 
-app.post('/mcp', authenticateBearer, async (req: Request, res: Response) => {
+app.post('/mcp', authenticateBearer, async (req: AuthenticatedRequest, res: Response) => {
   try {
     // console.log('Received POST MCP request');
     // console.log('Request body:', req.body);
     // console.log('Request headers:', req.headers);
     // console.log('Request method:', req.method);
-    const server = getServer();
+    const server = getServer(req.bearerKey);
     const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });

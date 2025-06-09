@@ -1,13 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import cleanObject from '../_shared/clean_object.js';
-import { supabase_anon_key, supabase_base_url, x_api_key, x_region } from '../_shared/config.js';
+import { supabase_anon_key, supabase_base_url, x_region } from '../_shared/config.js';
 
 const input_schema = {
   query: z.string().min(1).describe('Queries from user'),
 };
 
-async function searchProcesses({ query }: { query: string }): Promise<string> {
+async function searchProcesses({ query }: { query: string }, bearerKey?: string): Promise<string> {
   const url = `${supabase_base_url}/functions/v1/process_hybrid_search`;
   // console.error('URL:', url);
   try {
@@ -16,7 +16,7 @@ async function searchProcesses({ query }: { query: string }): Promise<string> {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${supabase_anon_key}`,
-        'x-api-key': x_api_key,
+        ...(bearerKey && { 'x-api-key': bearerKey }),
         'x-region': x_region,
       },
       body: JSON.stringify(
@@ -36,15 +36,18 @@ async function searchProcesses({ query }: { query: string }): Promise<string> {
   }
 }
 
-export function regProcessSearchTool(server: McpServer) {
+export function regProcessSearchTool(server: McpServer, bearerKey?: string) {
   server.tool(
     'Search_processes_Tool',
     'Search LCA processes data.',
     input_schema,
     async ({ query }) => {
-      const result = await searchProcesses({
-        query,
-      });
+      const result = await searchProcesses(
+        {
+          query,
+        },
+        bearerKey,
+      );
       return {
         content: [
           {

@@ -6,14 +6,14 @@ import { regOpenLcaListLCIAMethodsTool } from '../tools/openlca_ipc_lcia_methods
 import { regOpenLcaListSystemProcessTool } from '../tools/openlca_ipc_process_list.js';
 import { regProcessSearchTool } from '../tools/process_hybrid_search.js';
 
-export function initializeServer(): McpServer {
+export function initializeServer(bearerKey?: string): McpServer {
   const server = new McpServer({
     name: 'TianGong-MCP-Server',
     version: '1.0.0',
   });
 
-  regFlowSearchTool(server);
-  regProcessSearchTool(server);
+  regFlowSearchTool(server, bearerKey);
+  regProcessSearchTool(server, bearerKey);
   regBomCalculationTool(server);
   regOpenLcaLciaTool(server);
   regOpenLcaListSystemProcessTool(server);
@@ -22,6 +22,6 @@ export function initializeServer(): McpServer {
   return server;
 }
 
-export function getServer() {
-  return initializeServer();
+export function getServer(bearerKey?: string) {
+  return initializeServer(bearerKey);
 }

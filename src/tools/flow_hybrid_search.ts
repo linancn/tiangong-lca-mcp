@@ -7,7 +7,7 @@ const input_schema = {
   query: z.string().min(1).describe('Queries from user'),
 };
 
-async function searchFlows({ query }: { query: string }): Promise<string> {
+async function searchFlows({ query }: { query: string }, bearerKey?: string): Promise<string> {
   const url = `${supabase_base_url}/functions/v1/flow_hybrid_search`;
   // console.error('URL:', url);
   try {
@@ -16,7 +16,7 @@ async function searchFlows({ query }: { query: string }): Promise<string> {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${supabase_anon_key}`,
-        'x-api-key': x_api_key,
+        ...(bearerKey && { 'x-api-key': bearerKey }),
         'x-region': x_region,
       },
       body: JSON.stringify(
@@ -36,11 +36,14 @@ async function searchFlows({ query }: { query: string }): Promise<string> {
   }
 }
 
-export function regFlowSearchTool(server: McpServer) {
+export function regFlowSearchTool(server: McpServer, bearerKey?: string) {
   server.tool('Search_flows_Tool', 'Search LCA flows data.', input_schema, async ({ query }) => {
-    const result = await searchFlows({
-      query,
-    });
+    const result = await searchFlows(
+      {
+        query,
+      },
+      bearerKey,
+    );
     return {
       content: [
         {
