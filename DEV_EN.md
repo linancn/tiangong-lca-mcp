@@ -1,12 +1,12 @@
-# TianGong-LCA-MCP
+# TianGong-AI-MCP
 
-[中文](./README.md) | [English](./README_EN.md)
+[中文](https://github.com/linancn/tiangong-lca-mcp/blob/main/README_CN.md) | [English](https://github.com/linancn/tiangong-lca-mcp/blob/main/README.md)
 
-TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO、 SSE 和 StreamableHttp 三种协议。
+TianGong AI Model Context Protocol (MCP) Server supports STDIO, SSE and StreamableHttp protocols.
 
-## 启动 MCP 服务器
+## Starting MCP Server
 
-### 客户端 STDIO 服务器
+### Client STDIO Server
 
 ```bash
 npm install -g @tiangong-lca/mcp-server
@@ -15,7 +15,7 @@ npx dotenv -e .env -- \
 npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
 ```
 
-### 远程 SSE 服务器
+### Remote SSE Server
 
 ```bash
 npm install -g @tiangong-lca/mcp-server
@@ -28,16 +28,16 @@ npx -y supergateway \
     --ssePath /sse --messagePath /message
 ```
 
-### 使用 Docker
+### Using Docker
 
 ```bash
-# 使用 Dockerfile 构建 MCP 服务器镜像（可选）
+# Build MCP server image using Dockerfile (optional)
 docker build -t linancn/tiangong-lca-mcp-server:0.0.5 .
 
-# 拉取 MCP 服务器镜像
+# Pull MCP server image
 docker pull linancn/tiangong-lca-mcp-server:0.0.5
 
-# 使用 Docker 启动 MCP 服务器
+# Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
@@ -45,46 +45,49 @@ docker run -d \
     linancn/tiangong-lca-mcp-server:0.0.5
 ```
 
-## 开发
+## Development
 
-### 环境设置
+### Environment Setup
 
 ```bash
-# 安装 Node.js
+# Install Node.js
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
 nvm install 22
 nvm use
 
-# 安装依赖
+# Install dependencies
 npm install
 
-# 更新依赖
+# Update dependencies
 npm update && npm ci
 ```
 
-### 代码格式化
+### Code Formatting
 
 ```bash
-# 使用代码检查工具格式化代码
+# Format code using the linter
 npm run lint
 ```
 
-### 本地测试
+### Local Testing
 
-#### STDIO 服务器
+#### STDIO Server
 
 ```bash
-# 使用 MCP Inspector 启动 STDIO 服务器
+# Launch the STDIO Server using MCP Inspector
 npm start
 ```
 
-#### SSE 服务器
+#### SSE Server
 
 ```bash
-# 打包当前项目
+# Build and package the project
 npm run build && npm pack
 
-# 启动 SSE 服务器，如配置了参数 --baseUrl ，应设置为有效的 IP 地址或域名
+# Optionally, install supergateway globally
+npm install -g supergateway
+
+# Launch the SSE Server (If the parameter --baseUrl is configured, it should be set to a valid IP address or domain name)
 npx dotenv -e .env -- \
 npx -y supergateway \
     --stdio "npx -y -p tiangong-lca-mcp-server-0.0.5.tgz tiangong-lca-mcp-stdio" \
@@ -92,11 +95,11 @@ npx -y supergateway \
     --ssePath /sse \
     --messagePath /message
 
-# 启动 MCP Inspector
+# Launch MCP Inspector
 npx @modelcontextprotocol/inspector
 ```
 
-### 发布
+### Publishing
 
 ```bash
 npm login
@@ -104,13 +107,13 @@ npm login
 npm run build && npm publish
 ```
 
-### 测试脚手架
+### scaffold
 
 ```bash
 npx tsx src/tools/openlca_ipc_test.ts
 ```
 
-### 发布
+### Deployment
 
 ```bash
 docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.6 .

@@ -112,7 +112,7 @@ app.delete('/mcp', async (req: Request, res: Response) => {
 
 app.get('/health', async (req: Request, res: Response) => {
   res.status(200).json({
-    status: 'ok'
+    status: 'ok',
   });
 });
 
