@@ -3,7 +3,7 @@
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { NextFunction, Request, Response } from 'express';
 import { authenticateRequest } from './_shared/auth_middleware.js';
-import { getServer } from './_shared/init_server.js';
+import { getServer } from './_shared/init_server_http.js';
 
 interface AuthenticatedRequest extends Request {
   bearerKey?: string;
