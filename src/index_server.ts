@@ -110,6 +110,14 @@ app.delete('/mcp', async (req: Request, res: Response) => {
   );
 });
 
+app.get('/health', async (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 // Start the server
 const PORT = Number(process.env.PORT ?? 9278);
 const HOST = process.env.HOST ?? '0.0.0.0';
