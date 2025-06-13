@@ -24,10 +24,10 @@
   "dependencies": {
     "olca-ipc": "^2.2.1",
     "@types/express": "^5.0.3",
-    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@modelcontextprotocol/sdk": "^1.12.2",
     "@supabase/supabase-js": "^2.50.0",
     "@upstash/redis": "^1.35.0",
-    "zod": "^3.25.57"
+    "zod": "^3.25.64"
   },
   "devDependencies": {
     "@modelcontextprotocol/inspector": "^0.14.0",
@@ -36,7 +36,7 @@
     "prettier-plugin-organize-imports": "^4.1.0",
     "shx": "^0.4.0",
     "supergateway": "^3.1.0",
-    "tsx": "^4.19.4",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   }
 }
