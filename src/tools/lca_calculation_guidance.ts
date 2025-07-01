@@ -9,14 +9,18 @@ async function getLcaCalculationGuidance() {
 }
 
 export function regLcaCalculationGuidanceTool(server: McpServer) {
-  server.tool('LCA_Calculation_Guidance_Tool', 'Get the workflow, which should be followed for Life Cycle Assessment (LCA) Calculations to Obtain Life Cycle Impact Assessment (LCIA) Results', async () => {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: await getLcaCalculationGuidance(),
-        },
-      ],
-    };
-  });
+  server.tool(
+    'LCA_Calculation_Guidance_Tool',
+    'Get the workflow, which should be followed for Life Cycle Assessment (LCA) Calculations to Obtain Life Cycle Impact Assessment (LCIA) Results',
+    async () => {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: await getLcaCalculationGuidance(),
+          },
+        ],
+      };
+    },
+  );
 }
