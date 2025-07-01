@@ -1,6 +1,6 @@
 # TianGong-LCA-MCP
 
-[中文](./README.md) | [English](./README_EN.md)
+[中文](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_CN.md) | [English](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_EN.md)
 
 TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO、 SSE 和 StreamableHttp 三种协议。
 

@@ -1,6 +1,6 @@
 # TianGong-AI-MCP
 
-[中文](https://github.com/linancn/tiangong-lca-mcp/blob/main/README_CN.md) | [English](https://github.com/linancn/tiangong-lca-mcp/blob/main/README.md)
+[中文](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_CN.md) | [English](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_EN.md)
 
 TianGong AI Model Context Protocol (MCP) Server supports STDIO, SSE and StreamableHttp protocols.
 
