@@ -119,5 +119,5 @@ aws ecr get-login-password --region us-east-1  | docker login --username AWS --p
 
 docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.6
 
-docker run -d -p 80:80 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.6
+docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.6
 ```
