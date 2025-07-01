@@ -1,14 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
+import { redis_token, redis_url, supabase_anon_key, supabase_base_url } from './config.js';
 import decodeApiKey from './decode_api_key.js';
 
-const supabase_base_url = process.env.SUPABASE_BASE_URL ?? '';
-const supabase_anon_key = process.env.SUPABASE_ANON_KEY ?? '';
-
 const supabase = createClient(supabase_base_url, supabase_anon_key);
-
-const redis_url = process.env.UPSTASH_REDIS_URL ?? '';
-const redis_token = process.env.UPSTASH_REDIS_TOKEN ?? '';
 
 const redis = new Redis({
   url: redis_url,
