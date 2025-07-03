@@ -2,7 +2,7 @@
 
 [中文](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_CN.md) | [English](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_EN.md)
 
-TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO、 SSE 和 StreamableHttp 三种协议。
+TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO 和 StreamableHttp 两种协议。
 
 ## 启动 MCP 服务器
 
@@ -13,19 +13,6 @@ npm install -g @tiangong-lca/mcp-server
 
 npx dotenv -e .env -- \
 npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
-```
-
-### 远程 SSE 服务器
-
-```bash
-npm install -g @tiangong-lca/mcp-server
-npm install -g supergateway
-
-npx dotenv -e .env -- \
-npx -y supergateway \
-    --stdio "npx -y -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio" \
-    --port 3001 \
-    --ssePath /sse --messagePath /message
 ```
 
 ### 使用 Docker
@@ -71,28 +58,9 @@ npm run lint
 
 ### 本地测试
 
-#### STDIO 服务器
+#### 启动 MCP Inspector
 
 ```bash
-# 使用 MCP Inspector 启动 STDIO 服务器
-npm start
-```
-
-#### SSE 服务器
-
-```bash
-# 打包当前项目
-npm run build && npm pack
-
-# 启动 SSE 服务器，如配置了参数 --baseUrl ，应设置为有效的 IP 地址或域名
-npx dotenv -e .env -- \
-npx -y supergateway \
-    --stdio "npx -y -p tiangong-lca-mcp-server-0.0.5.tgz tiangong-lca-mcp-stdio" \
-    --port 3001 \
-    --ssePath /sse \
-    --messagePath /message
-
-# 启动 MCP Inspector
 npx @modelcontextprotocol/inspector
 ```
 

@@ -2,7 +2,7 @@
 
 [中文](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_CN.md) | [English](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_EN.md)
 
-TianGong AI Model Context Protocol (MCP) Server supports STDIO, SSE and StreamableHttp protocols.
+TianGong AI Model Context Protocol (MCP) Server supports STDIO and StreamableHttp protocols.
 
 ## Starting MCP Server
 
@@ -13,19 +13,6 @@ npm install -g @tiangong-lca/mcp-server
 
 npx dotenv -e .env -- \
 npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
-```
-
-### Remote SSE Server
-
-```bash
-npm install -g @tiangong-lca/mcp-server
-npm install -g supergateway
-
-npx dotenv -e .env -- \
-npx -y supergateway \
-    --stdio "npx -y -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio" \
-    --port 3001 \
-    --ssePath /sse --messagePath /message
 ```
 
 ### Using Docker
@@ -78,24 +65,9 @@ npm run lint
 npm start
 ```
 
-#### SSE Server
+#### Launch MCP Inspector
 
 ```bash
-# Build and package the project
-npm run build && npm pack
-
-# Optionally, install supergateway globally
-npm install -g supergateway
-
-# Launch the SSE Server (If the parameter --baseUrl is configured, it should be set to a valid IP address or domain name)
-npx dotenv -e .env -- \
-npx -y supergateway \
-    --stdio "npx -y -p tiangong-lca-mcp-server-0.0.5.tgz tiangong-lca-mcp-stdio" \
-    --port 3001 \
-    --ssePath /sse \
-    --messagePath /message
-
-# Launch MCP Inspector
 npx @modelcontextprotocol/inspector
 ```
 
