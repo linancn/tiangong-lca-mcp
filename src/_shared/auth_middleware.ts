@@ -25,7 +25,6 @@ export async function authenticateRequest(bearerKey: string): Promise<AuthResult
         email: email,
         password: password,
       });
-      console.error(email, password, data, error);
       if (error) {
         return {
           isAuthenticated: false,
