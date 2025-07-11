@@ -50,5 +50,5 @@ npm run start:server
 ### Launch MCP Inspector
 
 ```bash
-npx @modelcontextprotocol/inspector
+DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector
 ```
