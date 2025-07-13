@@ -1,49 +1,10 @@
 #!/usr/bin/env node
 
-import { ProxyOAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/providers/proxyProvider.js';
-import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { NextFunction, Request, Response } from 'express';
 import { authenticateCognitoToken } from './_shared/cognito_auth.js';
-import { COGNITO_BASE_URL, COGNITO_CLIENT_ID, COGNITO_ISSUER } from './_shared/config.js';
 import { getServer } from './_shared/init_server_http.js';
-
-const proxyProvider = new ProxyOAuthServerProvider({
-  endpoints: {
-    authorizationUrl: `${COGNITO_BASE_URL}/oauth2/authorize`,
-    tokenUrl: `${COGNITO_BASE_URL}/oauth2/token`,
-    revocationUrl: `${COGNITO_BASE_URL}/oauth2/revoke`,
-  },
-  verifyAccessToken: async (token) => {
-    const authResult = await authenticateCognitoToken(token);
-    if (!authResult.isAuthenticated) {
-      throw new Error('Invalid token');
-    }
-    return {
-      token,
-      clientId: COGNITO_CLIENT_ID,
-      scopes: ['openid', 'email', 'profile'],
-    };
-  },
-  getClient: async (client_id) => {
-    return {
-      client_id,
-      redirect_uris: ['https://mcp.tiangong.world/oauth/callback'],
-      response_types: ['code'],
-      grant_types: ['authorization_code'],
-      token_endpoint_auth_method: 'none',
-      code_challenge_methods_supported: ['S256'],
-      scope: 'openid email profile',
-      // // Cognito specific configuration
-      // id_token_signed_response_alg: 'RS256',
-      // userinfo_signed_response_alg: 'RS256',
-      // // OAuth 2.0 standard configuration
-      // require_auth_time: false,
-      // default_max_age: 86400,
-      // token_endpoint_auth_signing_alg: 'RS256',
-    };
-  },
-});
+import authApp from './auth_app.js';
 
 interface AuthenticatedRequest extends Request {
   bearerKey?: string;
@@ -154,15 +115,7 @@ app.get('/health', async (req: Request, res: Response) => {
   });
 });
 
-app.use(
-  '/oauth',
-  mcpAuthRouter({
-    provider: proxyProvider,
-    issuerUrl: new URL(COGNITO_ISSUER),
-    baseUrl: new URL('https://mcp.tiangong.world'),
-    serviceDocumentationUrl: new URL('https://docs.aws.amazon.com/cognito/'),
-  }),
-);
+app.use('/oauth', authApp);
 
 // Start the server
 const PORT = Number(process.env.PORT ?? 9278);
