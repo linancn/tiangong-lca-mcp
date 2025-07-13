@@ -90,7 +90,7 @@ const response = await fetch('YOUR_COGNITO_DOMAIN/oauth2/token', {
 #### 使用 Token 调用 API
 
 ```javascript
-const response = await fetch('http://localhost:9278/mcp', {
+const response = await fetch('https://mcp.tiangong.world/mcp', {
   method: 'POST',
   headers: {
     Authorization: `Bearer ${accessToken}`,

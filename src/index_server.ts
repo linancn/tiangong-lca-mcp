@@ -22,18 +22,18 @@ const proxyProvider = new ProxyOAuthServerProvider({
     return {
       token,
       clientId: COGNITO_CLIENT_ID,
-      scopes: ['openid', 'email', 'profile'],
+      scopes: ['openid', 'email', 'profile'], // 现在可以使用了，因为 Cognito 已配置
     };
   },
   getClient: async (client_id) => {
     return {
       client_id,
-      redirect_uris: ['http://localhost:9278/callback'],
+      redirect_uris: ['https://mcp.tiangong.world/callback'],
       response_types: ['code'],
       grant_types: ['authorization_code'],
       token_endpoint_auth_method: 'none',
-      require_auth_time: false,
       code_challenge_methods_supported: ['S256'],
+      scope: 'openid email profile',
     };
   },
 });
@@ -81,6 +81,8 @@ const authenticateBearer = async (
 };
 
 const app = express();
+// Trust proxy for load balancers/reverse proxies - restrict to first hop only
+app.set('trust proxy', 1);
 app.use(express.json());
 
 app.post('/mcp', authenticateBearer, async (req: AuthenticatedRequest, res: Response) => {
@@ -154,7 +156,7 @@ app.use(
   mcpAuthRouter({
     provider: proxyProvider,
     issuerUrl: new URL(COGNITO_ISSUER),
-    baseUrl: new URL('http://localhost:9278'),
+    baseUrl: new URL('https://mcp.tiangong.world'),
     serviceDocumentationUrl: new URL('https://docs.aws.amazon.com/cognito/'),
   }),
 );

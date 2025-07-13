@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
     <title>Cognito OAuth Test</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; }
@@ -48,7 +49,7 @@
     </div>
 
     <script>
-        const BASE_URL = 'http://localhost:9278';
+        const BASE_URL = 'https://mcp.tiangong.world';
         
         // PKCE 相关函数
         function generateCodeVerifier() {
@@ -86,7 +87,7 @@
                 authUrl.searchParams.append('client_id', '3p182unuqch7rahbp0trs1sprv');
                 authUrl.searchParams.append('response_type', 'code');
                 authUrl.searchParams.append('scope', 'openid email profile');
-                authUrl.searchParams.append('redirect_uri', 'http://localhost:9278/callback');
+                authUrl.searchParams.append('redirect_uri', 'https://mcp.tiangong.world/callback');
                 authUrl.searchParams.append('code_challenge', codeChallenge);
                 authUrl.searchParams.append('code_challenge_method', 'S256');
                 
@@ -228,7 +229,7 @@
                         grant_type: 'authorization_code',
                         client_id: '3p182unuqch7rahbp0trs1sprv',
                         code: code,
-                        redirect_uri: 'http://localhost:9278/callback',
+                        redirect_uri: 'https://mcp.tiangong.world/callback',
                         code_verifier: codeVerifier,
                     }),
                 });

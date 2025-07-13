@@ -22,8 +22,8 @@
     "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\""
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.15.0",
-    "@supabase/supabase-js": "^2.50.4",
+    "@modelcontextprotocol/sdk": "^1.15.1",
+    "@supabase/supabase-js": "^2.50.5",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@upstash/redis": "^1.35.1",
@@ -33,7 +33,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "^0.16.0",
+    "@modelcontextprotocol/inspector": "^0.16.1",
     "dotenv-cli": "^8.0.0",
     "prettier": "^3.6.2",
     "prettier-plugin-organize-imports": "^4.1.0",
