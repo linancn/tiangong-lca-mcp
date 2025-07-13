@@ -5,14 +5,14 @@ import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { NextFunction, Request, Response } from 'express';
 import { authenticateCognitoToken } from './_shared/cognito_auth.js';
-import { COGNITO_CLIENT_ID, COGNITO_ISSUER } from './_shared/config.js';
+import { COGNITO_BASE_URL, COGNITO_CLIENT_ID, COGNITO_ISSUER } from './_shared/config.js';
 import { getServer } from './_shared/init_server_http.js';
 
 const proxyProvider = new ProxyOAuthServerProvider({
   endpoints: {
-    authorizationUrl: `${COGNITO_ISSUER}/oauth2/authorize`,
-    tokenUrl: `${COGNITO_ISSUER}/oauth2/token`,
-    revocationUrl: `${COGNITO_ISSUER}/oauth2/revoke`,
+    authorizationUrl: `${COGNITO_BASE_URL}/oauth2/authorize`,
+    tokenUrl: `${COGNITO_BASE_URL}/oauth2/token`,
+    revocationUrl: `${COGNITO_BASE_URL}/oauth2/revoke`,
   },
   verifyAccessToken: async (token) => {
     const authResult = await authenticateCognitoToken(token);
@@ -22,18 +22,25 @@ const proxyProvider = new ProxyOAuthServerProvider({
     return {
       token,
       clientId: COGNITO_CLIENT_ID,
-      scopes: ['openid', 'email', 'profile'], // 现在可以使用了，因为 Cognito 已配置
+      scopes: ['openid', 'email', 'profile'],
     };
   },
   getClient: async (client_id) => {
     return {
       client_id,
-      redirect_uris: ['https://mcp.tiangong.world/callback'],
+      redirect_uris: ['https://mcp.tiangong.world/oauth/callback'],
       response_types: ['code'],
       grant_types: ['authorization_code'],
       token_endpoint_auth_method: 'none',
       code_challenge_methods_supported: ['S256'],
       scope: 'openid email profile',
+      // // Cognito specific configuration
+      // id_token_signed_response_alg: 'RS256',
+      // userinfo_signed_response_alg: 'RS256',
+      // // OAuth 2.0 standard configuration
+      // require_auth_time: false,
+      // default_max_age: 86400,
+      // token_endpoint_auth_signing_alg: 'RS256',
     };
   },
 });
@@ -87,10 +94,6 @@ app.use(express.json());
 
 app.post('/mcp', authenticateBearer, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // console.log('Received POST MCP request');
-    // console.log('Request body:', req.body);
-    // console.log('Request headers:', req.headers);
-    // console.log('Request method:', req.method);
     const server = getServer(req.bearerKey);
     const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,

@@ -79,33 +79,33 @@
                 const codeVerifier = generateCodeVerifier();
                 const codeChallenge = await generateCodeChallenge(codeVerifier);
                 
-                // 保存 code_verifier 到 localStorage，稍后交换 token 时需要
+                // Save code_verifier to localStorage for later token exchange
                 localStorage.setItem('code_verifier', codeVerifier);
                 
-                // 构建授权 URL
-                const authUrl = new URL(`${BASE_URL}/oauth/authorize`);
+                // Build authorization URL - directly use Cognito domain
+                const authUrl = new URL('https://us-east-1snsyimond.auth.us-east-1.amazoncognito.com/oauth2/authorize');
                 authUrl.searchParams.append('client_id', '3p182unuqch7rahbp0trs1sprv');
                 authUrl.searchParams.append('response_type', 'code');
                 authUrl.searchParams.append('scope', 'openid email profile');
-                authUrl.searchParams.append('redirect_uri', 'https://mcp.tiangong.world/callback');
+                authUrl.searchParams.append('redirect_uri', 'https://mcp.tiangong.world/oauth/callback');
                 authUrl.searchParams.append('code_challenge', codeChallenge);
                 authUrl.searchParams.append('code_challenge_method', 'S256');
                 
                 resultDiv.innerHTML = `
-                    <p>正在重定向到授权页面...</p>
-                    <p><strong>授权 URL:</strong> ${authUrl.toString()}</p>
-                    <p><em>注意：这会在新窗口中打开 Cognito 登录页面</em></p>
+                    <p>Redirecting to authorization page...</p>
+                    <p><strong>Authorization URL:</strong> ${authUrl.toString()}</p>
+                    <p><em>Note: This will open the Cognito login page in a new window</em></p>
                     <p><strong>Code Verifier:</strong> ${codeVerifier}</p>
                     <p><strong>Code Challenge:</strong> ${codeChallenge}</p>
                 `;
                 
-                // 在新窗口中打开授权页面
+                // Open authorization page in new window
                 window.open(authUrl.toString(), '_blank');
             } catch (error) {
                 resultDiv.innerHTML = `
                     <div class="error">
-                        <p><strong>生成 PKCE 参数失败</strong></p>
-                        <p>错误: ${error.message}</p>
+                        <p><strong>Failed to generate PKCE parameters</strong></p>
+                        <p>Error: ${error.message}</p>
                     </div>
                 `;
             }
@@ -116,7 +116,7 @@
             const resultDiv = document.getElementById('token-result');
             
             if (!token) {
-                resultDiv.innerHTML = '<div class="error">请输入 access token</div>';
+                resultDiv.innerHTML = '<div class="error">Please enter access token</div>';
                 return;
             }
             
@@ -131,7 +131,7 @@
                     const data = await response.json();
                     resultDiv.innerHTML = `
                         <div class="success">
-                            <p><strong>Token 验证成功！</strong></p>
+                            <p><strong>Token validation successful!</strong></p>
                             <p>Health check 响应: ${JSON.stringify(data)}</p>
                         </div>
                     `;
@@ -139,8 +139,8 @@
                     const error = await response.json();
                     resultDiv.innerHTML = `
                         <div class="error">
-                            <p><strong>Token 验证失败</strong></p>
-                            <p>错误: ${JSON.stringify(error)}</p>
+                            <p><strong>Token validation failed</strong></p>
+                            <p>Error: ${JSON.stringify(error)}</p>
                         </div>
                     `;
                 }
@@ -229,7 +229,7 @@
                         grant_type: 'authorization_code',
                         client_id: '3p182unuqch7rahbp0trs1sprv',
                         code: code,
-                        redirect_uri: 'https://mcp.tiangong.world/callback',
+                        redirect_uri: 'https://mcp.tiangong.world/oauth/callback',
                         code_verifier: codeVerifier,
                     }),
                 });
