@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cognito OAuth Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        .result { background-color: #f0f0f0; padding: 10px; margin: 10px 0; }
+        .error { background-color: #ffebee; color: #c62828; }
+        .success { background-color: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cognito OAuth Test</h1>
+        
+        <div class="section">
+            <h2>1. OAuth Authorization</h2>
+            <p>点击按钮开始 OAuth 授权流程：</p>
+            <button onclick="startOAuthFlow()">Start OAuth Flow</button>
+            <div id="oauth-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>2. Test Access Token</h2>
+            <p>如果您已经有 access token，可以在这里测试：</p>
+            <input type="text" id="access-token" placeholder="粘贴您的 access token" style="width: 400px;">
+            <button onclick="testAccessToken()">Test Token</button>
+            <div id="token-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>3. Test MCP Endpoint</h2>
+            <p>使用 access token 测试 MCP 端点：</p>
+            <button onclick="testMCPEndpoint()">Test MCP</button>
+            <div id="mcp-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>4. Exchange Code for Token</h2>
+            <p>使用授权码交换 access token：</p>
+            <input type="text" id="auth-code" placeholder="粘贴授权码" style="width: 400px;">
+            <button onclick="exchangeCodeForToken()">Exchange Token</button>
+            <div id="exchange-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:9278';
+        
+        // PKCE 相关函数
+        function generateCodeVerifier() {
+            const array = new Uint8Array(32);
+            crypto.getRandomValues(array);
+            return btoa(String.fromCharCode(...array))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+        
+        async function generateCodeChallenge(codeVerifier) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(codeVerifier);
+            const digest = await crypto.subtle.digest('SHA-256', data);
+            return btoa(String.fromCharCode(...new Uint8Array(digest)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+        
+        async function startOAuthFlow() {
+            const resultDiv = document.getElementById('oauth-result');
+            
+            try {
+                // 生成 PKCE 参数
+                const codeVerifier = generateCodeVerifier();
+                const codeChallenge = await generateCodeChallenge(codeVerifier);
+                
+                // 保存 code_verifier 到 localStorage，稍后交换 token 时需要
+                localStorage.setItem('code_verifier', codeVerifier);
+                
+                // 构建授权 URL
+                const authUrl = new URL(`${BASE_URL}/oauth/authorize`);
+                authUrl.searchParams.append('client_id', '3p182unuqch7rahbp0trs1sprv');
+                authUrl.searchParams.append('response_type', 'code');
+                authUrl.searchParams.append('scope', 'openid email profile');
+                authUrl.searchParams.append('redirect_uri', 'http://localhost:9278/callback');
+                authUrl.searchParams.append('code_challenge', codeChallenge);
+                authUrl.searchParams.append('code_challenge_method', 'S256');
+                
+                resultDiv.innerHTML = `
+                    <p>正在重定向到授权页面...</p>
+                    <p><strong>授权 URL:</strong> ${authUrl.toString()}</p>
+                    <p><em>注意：这会在新窗口中打开 Cognito 登录页面</em></p>
+                    <p><strong>Code Verifier:</strong> ${codeVerifier}</p>
+                    <p><strong>Code Challenge:</strong> ${codeChallenge}</p>
+                `;
+                
+                // 在新窗口中打开授权页面
+                window.open(authUrl.toString(), '_blank');
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p><strong>生成 PKCE 参数失败</strong></p>
+                        <p>错误: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testAccessToken() {
+            const token = document.getElementById('access-token').value;
+            const resultDiv = document.getElementById('token-result');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="error">请输入 access token</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BASE_URL}/health`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <p><strong>Token 验证成功！</strong></p>
+                            <p>Health check 响应: ${JSON.stringify(data)}</p>
+                        </div>
+                    `;
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <p><strong>Token 验证失败</strong></p>
+                            <p>错误: ${JSON.stringify(error)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p><strong>请求失败</strong></p>
+                        <p>错误: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testMCPEndpoint() {
+            const token = document.getElementById('access-token').value;
+            const resultDiv = document.getElementById('mcp-result');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="error">请先输入 access token</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BASE_URL}/mcp`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'tools/list',
+                        id: 1
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <p><strong>MCP 请求成功！</strong></p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <p><strong>MCP 请求失败</strong></p>
+                            <p>错误: ${JSON.stringify(error, null, 2)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p><strong>请求失败</strong></p>
+                        <p>错误: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function exchangeCodeForToken() {
+            const code = document.getElementById('auth-code').value;
+            const resultDiv = document.getElementById('exchange-result');
+            const codeVerifier = localStorage.getItem('code_verifier');
+            
+            if (!code) {
+                resultDiv.innerHTML = '<div class="error">请输入授权码</div>';
+                return;
+            }
+            
+            if (!codeVerifier) {
+                resultDiv.innerHTML = '<div class="error">未找到 code verifier，请重新开始 OAuth 流程</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BASE_URL}/oauth/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        client_id: '3p182unuqch7rahbp0trs1sprv',
+                        code: code,
+                        redirect_uri: 'http://localhost:9278/callback',
+                        code_verifier: codeVerifier,
+                    }),
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <p><strong>Token 交换成功！</strong></p>
+                            <p><strong>Access Token:</strong> ${data.access_token}</p>
+                            <p><strong>Token Type:</strong> ${data.token_type}</p>
+                            <p><strong>Expires In:</strong> ${data.expires_in} 秒</p>
+                            ${data.refresh_token ? `<p><strong>Refresh Token:</strong> ${data.refresh_token}</p>` : ''}
+                            <p><em>您可以复制 access token 到上面的测试区域</em></p>
+                        </div>
+                    `;
+                    
+                    // 自动填充 access token 到测试区域
+                    document.getElementById('access-token').value = data.access_token;
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <p><strong>Token 交换失败</strong></p>
+                            <p>错误: ${JSON.stringify(error, null, 2)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p><strong>请求失败</strong></p>
+                        <p>错误: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 检查 URL 参数中是否有授权码或错误
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const error = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+            
+            if (error) {
+                document.getElementById('oauth-result').innerHTML = `
+                    <div class="error">
+                        <p><strong>OAuth 授权失败</strong></p>
+                        <p>错误: ${error}</p>
+                        <p>描述: ${decodeURIComponent(errorDescription || '')}</p>
+                    </div>
+                `;
+            } else if (code) {
+                const codeVerifier = localStorage.getItem('code_verifier');
+                document.getElementById('oauth-result').innerHTML = `
+                    <div class="success">
+                        <p><strong>收到授权码！</strong></p>
+                        <p>Code: ${code}</p>
+                        <p>Code Verifier: ${codeVerifier}</p>
+                        <p>现在您需要使用这个授权码和 code_verifier 交换 access token</p>
+                    </div>
+                `;
+                
+                // 自动填充授权码
+                document.getElementById('auth-code').value = code;
+            }
+        });
+    </script>
+</body>
+</html>
