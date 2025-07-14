@@ -4,12 +4,7 @@ import { ProxyOAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/
 import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import express from 'express';
 import { authenticateCognitoToken } from './_shared/cognito_auth.js';
-import {
-  COGNITO_BASE_URL,
-  COGNITO_CLIENT_ID,
-  COGNITO_CLIENT_SECRET,
-  COGNITO_ISSUER,
-} from './_shared/config.js';
+import { COGNITO_BASE_URL, COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET } from './_shared/config.js';
 
 const proxyProvider = new ProxyOAuthServerProvider({
   endpoints: {

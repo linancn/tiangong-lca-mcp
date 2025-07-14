@@ -2,7 +2,7 @@
 
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { NextFunction, Request, Response } from 'express';
-import { authenticateCognitoToken } from './_shared/cognito_auth.js';
+import { authenticateRequest } from './_shared/auth_middleware.js';
 import { getServer } from './_shared/init_server_http.js';
 import authApp from './auth_app.js';
 
@@ -30,7 +30,7 @@ const authenticateBearer = async (
   }
 
   const bearerKey = authHeader.substring(7).trim();
-  const authResult = await authenticateCognitoToken(bearerKey);
+  const authResult = await authenticateRequest(bearerKey);
 
   if (!authResult || !authResult.isAuthenticated) {
     res.status(403).json({
