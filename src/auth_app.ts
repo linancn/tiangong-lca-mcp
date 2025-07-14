@@ -4,7 +4,12 @@ import { ProxyOAuthServerProvider } from '@modelcontextprotocol/sdk/server/auth/
 import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
 import express from 'express';
 import { authenticateCognitoToken } from './_shared/cognito_auth.js';
-import { COGNITO_BASE_URL, COGNITO_CLIENT_ID, COGNITO_ISSUER } from './_shared/config.js';
+import {
+  COGNITO_BASE_URL,
+  COGNITO_CLIENT_ID,
+  COGNITO_CLIENT_SECRET,
+  COGNITO_ISSUER,
+} from './_shared/config.js';
 
 const proxyProvider = new ProxyOAuthServerProvider({
   endpoints: {
@@ -21,15 +26,17 @@ const proxyProvider = new ProxyOAuthServerProvider({
       token,
       clientId: COGNITO_CLIENT_ID,
       scopes: ['openid', 'email', 'profile'],
+      // Accept the user pool as the valid audience for this MCP server
+      audience: COGNITO_CLIENT_ID,
     };
   },
   getClient: async (client_id) => {
     return {
       client_id,
-      redirect_uris: ['https://mcp.tiangong.world/oauth/callback'],
+      redirect_uris: ['https://mcp.tiangong.world/callback'],
       response_types: ['code'],
-      grant_types: ['authorization_code'],
-      token_endpoint_auth_method: 'none',
+      grant_types: ['authorization_code', 'refresh_token'],
+      token_endpoint_auth_method: 'client_secret_post',
       code_challenge_methods_supported: ['S256'],
       scope: 'openid email profile',
       // // Cognito specific configuration
@@ -47,10 +54,27 @@ const authApp = express();
 // Trust proxy for load balancers/reverse proxies - restrict to first hop only
 authApp.set('trust proxy', 1);
 authApp.use(express.json());
+authApp.use(express.urlencoded({ extended: true })); // Add support for URL-encoded form data
+
+// Add CORS headers for OAuth endpoints
+authApp.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+
+  next();
+});
 
 // Add OAuth callback endpoint to handle authorization code from Cognito
 authApp.get('/callback', async (req, res) => {
   const { code, state, error, error_description } = req.query;
+
+  console.log('OAuth callback received:', { code: !!code, state, error, error_description });
 
   if (error) {
     console.error('OAuth error:', error, error_description);
@@ -58,52 +82,181 @@ authApp.get('/callback', async (req, res) => {
   }
 
   if (!code) {
+    console.error('Missing authorization code in callback');
     return res.status(400).send('Missing authorization code');
   }
 
+  // Since we're using PKCE, the token exchange should be done client-side
+  // where the code_verifier is available. Just return the authorization code.
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Authentication Successful</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .success { color: #28a745; }
+        .code { background: #f8f9fa; padding: 15px; border-radius: 4px; border-left: 4px solid #007bff; margin: 15px 0; font-family: monospace; word-break: break-all; }
+        .button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px 5px 0 0; }
+        .button:hover { background: #0056b3; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2 class="success">✅ Authentication Successful!</h2>
+        <p>Your authorization code is:</p>
+        <div class="code">${code}</div>
+        <p>You can now exchange this code for an access token using the code verifier that was stored during the authorization flow.</p>
+        <button class="button" onclick="window.close()">Close Window</button>
+        <a href="/" class="button">Return to Main Page</a>
+      </div>
+      <script>
+        // Try to communicate with parent window if in popup
+        if (window.opener) {
+          window.opener.postMessage({ 
+            type: 'oauth_success', 
+            code: '${code}',
+            state: '${state || ''}'
+          }, '*');
+        }
+      </script>
+    </body>
+    </html>
+  `);
+});
+
+// Add token exchange endpoint that handles PKCE
+authApp.post('/token', async (req, res) => {
+  console.log(`Token endpoint hit: ${req.method} ${req.path} -> ${req.originalUrl}`);
+  console.log('Request body:', req.body);
+
+  const { grant_type, client_id, code, redirect_uri, code_verifier } = req.body;
+
+  console.log('Token exchange request received:', {
+    grant_type,
+    client_id,
+    code: !!code,
+    redirect_uri,
+    code_verifier: !!code_verifier,
+  });
+
+  // Validate required parameters
+  if (!grant_type || grant_type !== 'authorization_code') {
+    return res
+      .status(400)
+      .json({ error: 'invalid_request', error_description: 'Invalid or missing grant_type' });
+  }
+
+  if (!client_id || client_id !== COGNITO_CLIENT_ID) {
+    return res
+      .status(400)
+      .json({ error: 'invalid_client', error_description: 'Invalid or missing client_id' });
+  }
+
+  if (!code) {
+    return res
+      .status(400)
+      .json({ error: 'invalid_request', error_description: 'Missing authorization code' });
+  }
+
+  if (!redirect_uri || redirect_uri !== 'https://mcp.tiangong.world/callback') {
+    return res
+      .status(400)
+      .json({ error: 'invalid_request', error_description: 'Invalid redirect_uri' });
+  }
+
+  if (!code_verifier) {
+    return res
+      .status(400)
+      .json({ error: 'invalid_request', error_description: 'Missing code_verifier for PKCE' });
+  }
+
   try {
-    // Exchange authorization code for tokens
+    // Exchange authorization code for tokens with PKCE
+    const tokenParams = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: COGNITO_CLIENT_ID,
+      code: code,
+      redirect_uri: redirect_uri,
+      code_verifier: code_verifier,
+    });
+
+    console.log('Cognito token exchange request:', {
+      url: `${COGNITO_BASE_URL}/oauth2/token`,
+      params: Object.fromEntries(tokenParams.entries()),
+      hasClientSecret: !!COGNITO_CLIENT_SECRET,
+    });
+
+    // Prepare headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json',
+    };
+
+    // Add authentication based on client type
+    if (COGNITO_CLIENT_SECRET) {
+      // Confidential client - use Basic Auth with client secret
+      const credentials = Buffer.from(`${COGNITO_CLIENT_ID}:${COGNITO_CLIENT_SECRET}`).toString(
+        'base64',
+      );
+      headers['Authorization'] = `Basic ${credentials}`;
+    }
+    // For public clients, no authentication header is needed
+
     const tokenResponse = await fetch(`${COGNITO_BASE_URL}/oauth2/token`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: COGNITO_CLIENT_ID,
-        code: code as string,
-        redirect_uri: 'https://mcp.tiangong.world/oauth/callback',
-      }),
+      headers,
+      body: tokenParams,
+    });
+
+    const responseText = await tokenResponse.text();
+    console.log('Cognito token exchange response:', {
+      status: tokenResponse.status,
+      statusText: tokenResponse.statusText,
+      body: responseText,
     });
 
     if (!tokenResponse.ok) {
-      throw new Error(`Token exchange failed: ${tokenResponse.statusText}`);
+      console.error('Token exchange failed:', responseText);
+      return res.status(tokenResponse.status).json({
+        error: 'invalid_grant',
+        error_description: `Token exchange failed: ${responseText}`,
+      });
     }
 
-    const tokens = await tokenResponse.json();
+    const tokens = JSON.parse(responseText);
 
-    // You can customize this response based on your needs:
-    // - Store tokens in a session/database
-    // - Redirect to a success page
-    // - Return tokens to the client
-    res.json({
-      success: true,
-      message: 'Authentication successful',
-      // Optionally include tokens (be careful about security)
+    // Return tokens to client
+    const response = {
       access_token: tokens.access_token,
       token_type: tokens.token_type,
       expires_in: tokens.expires_in,
+      ...(tokens.refresh_token && { refresh_token: tokens.refresh_token }),
+      ...(tokens.id_token && { id_token: tokens.id_token }),
+    };
+
+    console.log('Sending success response to client:', {
+      hasAccessToken: !!response.access_token,
+      hasRefreshToken: !!response.refresh_token,
+      tokenType: response.token_type,
+      expiresIn: response.expires_in,
     });
+
+    res.json(response);
   } catch (error) {
     console.error('Token exchange error:', error);
-    res.status(500).send('Internal server error during token exchange');
+    res.status(500).json({
+      error: 'server_error',
+      error_description: 'Internal server error during token exchange',
+    });
   }
 });
 
 authApp.use(
   mcpAuthRouter({
     provider: proxyProvider,
-    issuerUrl: new URL(COGNITO_ISSUER),
+    issuerUrl: new URL('https://mcp.tiangong.world'),
     baseUrl: new URL('https://mcp.tiangong.world'),
     serviceDocumentationUrl: new URL('https://docs.aws.amazon.com/cognito/'),
   }),

@@ -87,7 +87,7 @@
                 authUrl.searchParams.append('client_id', '3p182unuqch7rahbp0trs1sprv');
                 authUrl.searchParams.append('response_type', 'code');
                 authUrl.searchParams.append('scope', 'openid email profile');
-                authUrl.searchParams.append('redirect_uri', 'https://mcp.tiangong.world/oauth/callback');
+                authUrl.searchParams.append('redirect_uri', 'https://mcp.tiangong.world/callback');
                 authUrl.searchParams.append('code_challenge', codeChallenge);
                 authUrl.searchParams.append('code_challenge_method', 'S256');
                 
@@ -121,26 +121,47 @@
             }
             
             try {
-                const response = await fetch(`${BASE_URL}/health`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                // Test unauthenticated health endpoint first
+                console.log('Testing health endpoint...');
+                const healthResponse = await fetch(`${BASE_URL}/health`);
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    resultDiv.innerHTML = `
-                        <div class="success">
-                            <p><strong>Token validation successful!</strong></p>
-                            <p>Health check 响应: ${JSON.stringify(data)}</p>
-                        </div>
-                    `;
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
+                    console.log('Health check successful:', healthData);
+                    
+                    // Test authenticated endpoint
+                    console.log('Testing authenticated endpoint...');
+                    const authResponse = await fetch(`${BASE_URL}/auth-test`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (authResponse.ok) {
+                        const authData = await authResponse.json();
+                        resultDiv.innerHTML = `
+                            <div class="success">
+                                <p><strong>Token validation successful!</strong></p>
+                                <p>Health check: ${JSON.stringify(healthData)}</p>
+                                <p>Auth test: ${JSON.stringify(authData)}</p>
+                            </div>
+                        `;
+                    } else {
+                        const authError = await authResponse.text();
+                        resultDiv.innerHTML = `
+                            <div class="error">
+                                <p><strong>Token validation failed</strong></p>
+                                <p>Health check: ✅ OK</p>
+                                <p>Auth test: ❌ ${authResponse.status} - ${authError}</p>
+                            </div>
+                        `;
+                    }
                 } else {
-                    const error = await response.json();
+                    const healthError = await healthResponse.text();
                     resultDiv.innerHTML = `
                         <div class="error">
-                            <p><strong>Token validation failed</strong></p>
-                            <p>Error: ${JSON.stringify(error)}</p>
+                            <p><strong>Connection failed</strong></p>
+                            <p>Health check failed: ${healthResponse.status} - ${healthError}</p>
                         </div>
                     `;
                 }
@@ -149,6 +170,7 @@
                     <div class="error">
                         <p><strong>请求失败</strong></p>
                         <p>错误: ${error.message}</p>
+                        <p>这可能是 CORS 或网络连接问题</p>
                     </div>
                 `;
             }
@@ -220,7 +242,7 @@
             }
             
             try {
-                const response = await fetch(`${BASE_URL}/oauth/token`, {
+                const response = await fetch(`${BASE_URL}/token`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -229,7 +251,7 @@
                         grant_type: 'authorization_code',
                         client_id: '3p182unuqch7rahbp0trs1sprv',
                         code: code,
-                        redirect_uri: 'https://mcp.tiangong.world/oauth/callback',
+                        redirect_uri: 'https://mcp.tiangong.world/callback',
                         code_verifier: codeVerifier,
                     }),
                 });

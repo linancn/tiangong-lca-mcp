@@ -53,6 +53,20 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(express.json());
 
+// Add CORS headers for all routes
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+
+  next();
+});
+
 app.post('/mcp', authenticateBearer, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const server = getServer(req.bearerKey);
@@ -110,12 +124,14 @@ app.delete('/mcp', async (req: Request, res: Response) => {
 });
 
 app.get('/health', async (req: Request, res: Response) => {
+  console.log('Health check requested');
   res.status(200).json({
     status: 'ok',
+    timestamp: new Date().toISOString(),
   });
 });
 
-app.use('/oauth', authApp);
+app.use(authApp);
 
 // Start the server
 const PORT = Number(process.env.PORT ?? 9278);
