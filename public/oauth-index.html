@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Tiangong LCA MCP Server</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            background-color: #f5f5f5; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #333;
+        }
+        .section { 
+            margin: 30px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px;
+            background-color: #fafafa;
+        }
+        .endpoint {
+            font-family: monospace;
+            background: #e3f2fd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .method {
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .link {
+            color: #1976d2;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .available { background-color: #c8e6c9; color: #2e7d32; }
+        .auth-required { background-color: #fff3e0; color: #f57c00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Tiangong LCA MCP Server</h1>
+            <p>Model Context Protocol Server for Life Cycle Assessment</p>
+        </div>
+        
+        <div class="section">
+            <h2>📋 Available Endpoints</h2>
+            
+            <h3>🔍 Health & Status</h3>
+            <div class="endpoint">
+                <span class="method">GET</span> /health
+                <span class="status available">Available</span>
+            </div>
+            <p>Check server health status</p>
+            
+            <h3>🔐 OAuth Authentication</h3>
+            <div class="endpoint">
+                <span class="method">GET</span> /oauth/demo
+                <span class="status available">Available</span>
+            </div>
+            <p><a href="/oauth/demo" class="link">OAuth Demo Interface</a> - Interactive Cognito OAuth flow demonstration</p>
+            
+            <div class="endpoint">
+                <span class="method">GET</span> /oauth/authorize
+                <span class="status available">Available</span>
+            </div>
+            <p>OAuth authorization endpoint</p>
+            
+            <div class="endpoint">
+                <span class="method">GET</span> /oauth/callback
+                <span class="status available">Available</span>
+            </div>
+            <p>OAuth callback endpoint</p>
+            
+            <div class="endpoint">
+                <span class="method">POST</span> /oauth/token
+                <span class="status available">Available</span>
+            </div>
+            <p>Token exchange endpoint (PKCE supported)</p>
+            
+            <h3>🤖 MCP Protocol</h3>
+            <div class="endpoint">
+                <span class="method">POST</span> /mcp
+                <span class="status auth-required">Auth Required</span>
+            </div>
+            <p>Main MCP endpoint for tool interactions (requires Bearer token)</p>
+        </div>
+        
+        <div class="section">
+            <h2>🚀 Quick Start</h2>
+            <ol>
+                <li>Visit <a href="/oauth/demo" class="link">/oauth/demo</a> to test OAuth authentication</li>
+                <li>Complete the OAuth flow to get an access token</li>
+                <li>Use the access token to make requests to the <code>/mcp</code> endpoint</li>
+            </ol>
+        </div>
+        
+        <div class="section">
+            <h2>📖 Documentation</h2>
+            <p>For more information about the Model Context Protocol, visit the <a href="https://modelcontextprotocol.io" class="link" target="_blank">official documentation</a>.</p>
+        </div>
+        
+        <div class="section">
+            <h2>🔧 Available Pages</h2>
+            <p>Main OAuth authentication interface: <a href="/oauth/index" class="link">/oauth/index</a></p>
+            <p>OAuth demo interface: <a href="/oauth/demo" class="link">/oauth/demo</a></p>
+        </div>
+    </div>
+</body>
+</html>

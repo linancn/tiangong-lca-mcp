@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>OAuth Authentication Demo - Tiangong LCA MCP</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            background-color: #f5f5f5; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #333;
+        }
+        .section { 
+            margin: 30px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px;
+            background-color: #fafafa;
+        }
+        .section h3 {
+            color: #1976d2;
+            margin-top: 0;
+        }
+        button { 
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input[type="text"] {
+            width: 100%;
+            max-width: 500px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .result { 
+            background-color: #e3f2fd;
+            padding: 15px; 
+            margin: 15px 0;
+            border-radius: 4px;
+            border-left: 4px solid #1976d2;
+        }
+        .error { 
+            background-color: #ffebee; 
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+        .success { 
+            background-color: #e8f5e8; 
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+        .code-display {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .back-link {
+            color: #1976d2;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 OAuth Authentication Demo</h1>
+            <p>Interactive demonstration of AWS Cognito OAuth flow for Tiangong LCA MCP Server</p>
+            <a href="/oauth/index" class="back-link">← Back to Main Page</a>
+        </div>
+        
+        <div class="section">
+            <h2>📋 Authentication Workflow</h2>
+            
+            <h3>🔄 Step 1: Start OAuth Authorization Flow</h3>
+            <p>Initiate the OAuth process and redirect to AWS Cognito hosted UI</p>
+            
+            <h3>🔑 Step 2: Complete Login on Cognito</h3>
+            <p>Sign in using your credentials on the secure Cognito login page</p>
+            
+            <h3>🔄 Step 3: Exchange Authorization Code</h3>
+            <p>Trade the authorization code for an access token using PKCE</p>
+        </div>
+        
+        <div class="section">
+            <h2>🚀 Quick Start</h2>
+            <ol>
+                <li>Click "Start OAuth Flow" below to begin authentication</li>
+                <li>Complete login on the Cognito hosted UI</li>
+                <li>Return here and paste the authorization code to get your access token</li>
+            </ol>
+        </div>
+        
+        <div class="section">
+            <h3>🚀 Start OAuth Authorization</h3>
+            <p>Click the button below to begin the OAuth authorization process. This will redirect you to the AWS Cognito hosted login page.</p>
+            <button onclick="startOAuthFlow()">Start OAuth Flow</button>
+            <div id="oauth-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h3>🔄 Exchange Authorization Code</h3>
+            <p>After completing the OAuth flow, paste the authorization code here to exchange it for an access token:</p>
+            <input type="text" id="auth-code" placeholder="Paste your authorization code here">
+            <br>
+            <button onclick="exchangeCodeForToken()">Exchange for Token</button>
+            <div id="exchange-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://mcp.tiangong.world';
+        
+        // PKCE helper functions
+        function generateCodeVerifier() {
+            const array = new Uint8Array(32);
+            crypto.getRandomValues(array);
+            return btoa(String.fromCharCode(...array))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+        
+        async function generateCodeChallenge(codeVerifier) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(codeVerifier);
+            const digest = await crypto.subtle.digest('SHA-256', data);
+            return btoa(String.fromCharCode(...new Uint8Array(digest)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+        
+        async function startOAuthFlow() {
+            const resultDiv = document.getElementById('oauth-result');
+            resultDiv.style.display = 'block';
+            
+            try {
+                // Generate PKCE parameters
+                const codeVerifier = generateCodeVerifier();
+                const codeChallenge = await generateCodeChallenge(codeVerifier);
+                
+                // Save code_verifier to localStorage for later token exchange
+                localStorage.setItem('code_verifier', codeVerifier);
+                
+                // Build authorization URL - directly use Cognito domain
+                const authUrl = new URL('https://us-east-1snsyimond.auth.us-east-1.amazoncognito.com/oauth2/authorize');
+                authUrl.searchParams.append('client_id', '3p182unuqch7rahbp0trs1sprv');
+                authUrl.searchParams.append('response_type', 'code');
+                authUrl.searchParams.append('scope', 'openid email profile');
+                authUrl.searchParams.append('redirect_uri', 'https://mcp.tiangong.world/oauth/callback');
+                authUrl.searchParams.append('code_challenge', codeChallenge);
+                authUrl.searchParams.append('code_challenge_method', 'S256');
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>✅ Redirecting to authorization page...</strong></p>
+                        <p>Opening Cognito login page in a new window</p>
+                        <div class="info-box">
+                            <p><strong>Generated PKCE Parameters:</strong></p>
+                            <div class="code-display">Code Verifier: ${codeVerifier}</div>
+                            <div class="code-display">Code Challenge: ${codeChallenge}</div>
+                        </div>
+                        <p><em>💡 Tip: Complete the login process in the new window, then return here to exchange your authorization code.</em></p>
+                    </div>
+                `;
+                
+                // Open authorization page in new window
+                setTimeout(() => {
+                    window.open(authUrl.toString(), '_blank');
+                }, 1000);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p><strong>❌ Failed to generate PKCE parameters</strong></p>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function exchangeCodeForToken() {
+            const code = document.getElementById('auth-code').value;
+            const resultDiv = document.getElementById('exchange-result');
+            const codeVerifier = localStorage.getItem('code_verifier');
+            
+            resultDiv.style.display = 'block';
+            
+            if (!code.trim()) {
+                resultDiv.innerHTML = '<div class="error"><p><strong>❌ Please enter the authorization code</strong></p></div>';
+                return;
+            }
+            
+            if (!codeVerifier) {
+                resultDiv.innerHTML = '<div class="error"><p><strong>❌ Code verifier not found</strong></p><p>Please restart the OAuth flow first.</p></div>';
+                return;
+            }
+            
+            // Show loading state
+            resultDiv.innerHTML = '<div class="result"><p>🔄 Exchanging authorization code for access token...</p></div>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/oauth/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        client_id: '3p182unuqch7rahbp0trs1sprv',
+                        code: code.trim(),
+                        redirect_uri: 'https://mcp.tiangong.world/oauth/callback',
+                        code_verifier: codeVerifier,
+                    }),
+                });
+                
+                const contentType = response.headers.get('content-type');
+                
+                if (response.ok) {
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        resultDiv.innerHTML = `
+                            <div class="success">
+                                <p><strong>🎉 Token exchange successful!</strong></p>
+                                <div class="info-box">
+                                    <p><strong>Access Token:</strong></p>
+                                    <div class="code-display">${data.access_token}</div>
+                                    <p><strong>Token Type:</strong> ${data.token_type}</p>
+                                    <p><strong>Expires In:</strong> ${data.expires_in} seconds</p>
+                                    ${data.refresh_token ? `<p><strong>Refresh Token:</strong></p><div class="code-display">${data.refresh_token}</div>` : ''}
+                                </div>
+                                <p><em>💡 You can now use this access token to make authenticated requests to the MCP endpoint.</em></p>
+                            </div>
+                        `;
+                        
+                        // Clear the stored code verifier
+                        localStorage.removeItem('code_verifier');
+                        
+                    } else {
+                        const text = await response.text();
+                        resultDiv.innerHTML = `
+                            <div class="error">
+                                <p><strong>❌ Unexpected response format</strong></p>
+                                <p>Status: ${response.status}</p>
+                                <p>Content-Type: ${contentType}</p>
+                                <div class="code-display">${text.substring(0, 500)}${text.length > 500 ? '...' : ''}</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    const text = await response.text();
+                    let errorMessage = text;
+                    
+                    // Try to parse as JSON
+                    try {
+                        const errorJson = JSON.parse(text);
+                        errorMessage = JSON.stringify(errorJson, null, 2);
+                    } catch {
+                        // If not JSON, keep original text
+                    }
+                    
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <p><strong>❌ Token exchange failed</strong></p>
+                            <p>Status: ${response.status}</p>
+                            <div class="code-display">${errorMessage.substring(0, 500)}${errorMessage.length > 500 ? '...' : ''}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p><strong>❌ Request failed</strong></p>
+                        <p>Error: ${error.message}</p>
+                        <p>This might be a network connectivity issue or CORS configuration problem.</p>
+                        <p><em>💡 Check the browser developer tools Network tab for detailed error information.</em></p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Check URL parameters for authorization code or error on page load
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const error = urlParams.get('error');
+            const errorDescription = urlParams.get('error_description');
+            
+            if (error) {
+                const resultDiv = document.getElementById('oauth-result');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <p><strong>❌ OAuth authorization failed</strong></p>
+                        <p>Error: ${error}</p>
+                        <p>Description: ${decodeURIComponent(errorDescription || '')}</p>
+                    </div>
+                `;
+            } else if (code) {
+                const codeVerifier = localStorage.getItem('code_verifier');
+                const resultDiv = document.getElementById('oauth-result');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>✅ Authorization code received!</strong></p>
+                        <div class="info-box">
+                            <p><strong>Authorization Code:</strong></p>
+                            <div class="code-display">${code}</div>
+                            ${codeVerifier ? `<p><strong>Code Verifier:</strong></p><div class="code-display">${codeVerifier}</div>` : ''}
+                        </div>
+                        <p><em>💡 The authorization code has been automatically filled in the exchange form below.</em></p>
+                    </div>
+                `;
+                
+                // Auto-fill the authorization code
+                document.getElementById('auth-code').value = code;
+                
+                // Scroll to the exchange section
+                document.querySelector('[onclick="exchangeCodeForToken()"]').scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html>

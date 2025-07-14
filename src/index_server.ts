@@ -2,9 +2,14 @@
 
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express, { NextFunction, Request, Response } from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { authenticateRequest } from './_shared/auth_middleware.js';
 import { getServer } from './_shared/init_server_http.js';
 import authApp from './auth_app.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface AuthenticatedRequest extends Request {
   bearerKey?: string;
@@ -52,6 +57,9 @@ const app = express();
 // Trust proxy for load balancers/reverse proxies - restrict to first hop only
 app.set('trust proxy', 1);
 app.use(express.json());
+
+// Define public path for HTML files
+const publicPath = path.join(__dirname, '..', 'public');
 
 // Add CORS headers for all routes
 app.use((req, res, next) => {
@@ -132,6 +140,24 @@ app.get('/health', async (req: Request, res: Response) => {
 });
 
 app.use('/oauth', authApp);
+
+// Add root path route - redirect to oauth index
+app.get('/', async (req: Request, res: Response) => {
+  // console.log('Root page requested - redirecting to /oauth/index');
+  res.redirect('/oauth/index');
+});
+
+// Add OAuth index page route
+app.get('/oauth/index', async (req: Request, res: Response) => {
+  // console.log('OAuth index page requested');
+  res.sendFile(path.join(publicPath, 'oauth-index.html'));
+});
+
+// Add OAuth test page route
+app.get('/oauth/demo', async (req: Request, res: Response) => {
+  // console.log('OAuth demo page requested');
+  res.sendFile(path.join(publicPath, 'oauth-demo.html'));
+});
 
 // Start the server
 const PORT = Number(process.env.PORT ?? 9278);

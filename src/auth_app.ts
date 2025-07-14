@@ -87,25 +87,119 @@ authApp.get('/callback', async (req, res) => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Authentication Successful</title>
+      <meta charset="utf-8">
+      <title>Authentication Successful - Tiangong LCA MCP</title>
       <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .success { color: #28a745; }
-        .code { background: #f8f9fa; padding: 15px; border-radius: 4px; border-left: 4px solid #007bff; margin: 15px 0; font-family: monospace; word-break: break-all; }
-        .button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px 5px 0 0; }
-        .button:hover { background: #0056b3; }
+        body { 
+          font-family: Arial, sans-serif; 
+          margin: 40px; 
+          background-color: #f5f5f5; 
+        }
+        .container { 
+          max-width: 800px; 
+          margin: 0 auto; 
+          background: white; 
+          padding: 30px; 
+          border-radius: 8px; 
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 40px;
+          color: #333;
+        }
+        .section { 
+          margin: 30px 0; 
+          padding: 20px; 
+          border: 1px solid #ddd; 
+          border-radius: 6px;
+          background-color: #fafafa;
+        }
+        .success { 
+          color: #2e7d32; 
+          background-color: #e8f5e8;
+          padding: 15px;
+          border-radius: 4px;
+          border-left: 4px solid #2e7d32;
+          margin: 15px 0;
+        }
+        .code-display { 
+          background: #f5f5f5; 
+          padding: 15px; 
+          border-radius: 4px; 
+          border-left: 4px solid #1976d2; 
+          margin: 15px 0; 
+          font-family: monospace; 
+          word-break: break-all; 
+        }
+        .link {
+          color: #1976d2;
+          text-decoration: none;
+          font-weight: bold;
+          background: #1976d2;
+          color: white;
+          padding: 12px 24px;
+          border-radius: 4px;
+          display: inline-block;
+          margin: 10px 10px 0 0;
+          transition: background-color 0.3s;
+        }
+        .link:hover {
+          background: #1565c0;
+          text-decoration: none;
+        }
+        button {
+          background: #1976d2;
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: bold;
+          margin: 10px 10px 0 0;
+          transition: background-color 0.3s;
+        }
+        button:hover {
+          background: #1565c0;
+        }
       </style>
     </head>
     <body>
       <div class="container">
-        <h2 class="success">✅ Authentication Successful!</h2>
-        <p>Your authorization code is:</p>
-        <div class="code">${code}</div>
-        <p>You can now exchange this code for an access token using the code verifier that was stored during the authorization flow.</p>
-        <button class="button" onclick="window.close()">Close Window</button>
-        <a href="/" class="button">Return to Main Page</a>
+        <div class="header">
+          <h1>🎉 Authentication Successful!</h1>
+          <p>Your OAuth authorization has been completed successfully</p>
+        </div>
+        
+        <div class="success">
+          <p><strong>✅ Authorization Code Received</strong></p>
+          <p>You can now exchange this code for an access token using PKCE.</p>
+        </div>
+        
+        <div class="section">
+          <h3>🔑 Your Authorization Code</h3>
+          <div class="code-display">${code}</div>
+          <p>Use this code along with your stored code verifier to exchange for an access token in the demo interface.</p>
+        </div>
+        
+        <div class="section">
+          <h3>🚀 Next Steps</h3>
+          <ol>
+            <li>Copy the authorization code above</li>
+            <li>Return to the OAuth demo page</li>
+            <li>Paste the code in the "Exchange Authorization Code" section</li>
+            <li>Click "Exchange for Token" to get your access token</li>
+          </ol>
+        </div>
+        
+        <div class="section">
+          <button onclick="window.close()">Close Window</button>
+          <a href="/oauth/demo" class="link">Back to OAuth Demo</a>
+          <a href="/oauth/index" class="link">Return to Main Page</a>
+        </div>
       </div>
+      
       <script>
         // Try to communicate with parent window if in popup
         if (window.opener) {
