@@ -78,22 +78,3 @@ export async function authenticateRequest(bearerKey: string): Promise<AuthResult
     response: authData.user.id,
   };
 }
-
-/**
- * 混合认证函数 - 支持 Cognito JWT 和 Supabase 认证
- * @param bearerKey - Bearer token 或 API key
- * @returns AuthResult
- */
-export async function authenticateHybridRequest(bearerKey: string): Promise<AuthResult> {
-  // 首先尝试作为 Cognito JWT token 验证
-  if (bearerKey.includes('.') && bearerKey.split('.').length === 3) {
-    // 看起来像是 JWT token
-    const cognitoResult = await authenticateCognitoToken(bearerKey);
-    if (cognitoResult.isAuthenticated) {
-      return cognitoResult;
-    }
-  }
-
-  // 如果 Cognito 验证失败，回退到原有的 Supabase 认证
-  return authenticateRequest(bearerKey);
-}
