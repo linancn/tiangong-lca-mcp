@@ -155,7 +155,7 @@
     </div>
 
     <script>
-        const BASE_URL = 'https://mcp.tiangong.world';
+        const BASE_URL = 'https://lcamcp.tiangong.earth';
         
         // PKCE helper functions
         function generateCodeVerifier() {
@@ -194,7 +194,7 @@
                 authUrl.searchParams.append('client_id', '3p182unuqch7rahbp0trs1sprv');
                 authUrl.searchParams.append('response_type', 'code');
                 authUrl.searchParams.append('scope', 'openid email profile');
-                authUrl.searchParams.append('redirect_uri', 'https://mcp.tiangong.world/oauth/callback');
+                authUrl.searchParams.append('redirect_uri', 'https://lcamcp.tiangong.earth/oauth/callback');
                 authUrl.searchParams.append('code_challenge', codeChallenge);
                 authUrl.searchParams.append('code_challenge_method', 'S256');
                 
@@ -256,7 +256,7 @@
                         grant_type: 'authorization_code',
                         client_id: '3p182unuqch7rahbp0trs1sprv',
                         code: code.trim(),
-                        redirect_uri: 'https://mcp.tiangong.world/oauth/callback',
+                        redirect_uri: 'https://lcamcp.tiangong.earth/oauth/callback',
                         code_verifier: codeVerifier,
                     }),
                 });
