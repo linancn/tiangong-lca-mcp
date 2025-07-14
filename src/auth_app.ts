@@ -33,7 +33,7 @@ const proxyProvider = new ProxyOAuthServerProvider({
   getClient: async (client_id) => {
     return {
       client_id,
-      redirect_uris: ['https://mcp.tiangong.world/callback'],
+      redirect_uris: ['https://mcp.tiangong.world/oauth/callback'],
       response_types: ['code'],
       grant_types: ['authorization_code', 'refresh_token'],
       token_endpoint_auth_method: 'client_secret_post',
@@ -160,7 +160,7 @@ authApp.post('/token', async (req, res) => {
       .json({ error: 'invalid_request', error_description: 'Missing authorization code' });
   }
 
-  if (!redirect_uri || redirect_uri !== 'https://mcp.tiangong.world/callback') {
+  if (!redirect_uri || redirect_uri !== 'https://mcp.tiangong.world/oauth/callback') {
     return res
       .status(400)
       .json({ error: 'invalid_request', error_description: 'Invalid redirect_uri' });
@@ -256,8 +256,8 @@ authApp.post('/token', async (req, res) => {
 authApp.use(
   mcpAuthRouter({
     provider: proxyProvider,
-    issuerUrl: new URL('https://mcp.tiangong.world'),
-    baseUrl: new URL('https://mcp.tiangong.world'),
+    issuerUrl: new URL('https://mcp.tiangong.world/oauth'),
+    baseUrl: new URL('https://mcp.tiangong.world/oauth'),
     serviceDocumentationUrl: new URL('https://docs.aws.amazon.com/cognito/'),
   }),
 );

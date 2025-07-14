@@ -87,7 +87,7 @@
                 authUrl.searchParams.append('client_id', '3p182unuqch7rahbp0trs1sprv');
                 authUrl.searchParams.append('response_type', 'code');
                 authUrl.searchParams.append('scope', 'openid email profile');
-                authUrl.searchParams.append('redirect_uri', 'https://mcp.tiangong.world/callback');
+                authUrl.searchParams.append('redirect_uri', 'https://mcp.tiangong.world/oauth/callback');
                 authUrl.searchParams.append('code_challenge', codeChallenge);
                 authUrl.searchParams.append('code_challenge_method', 'S256');
                 
@@ -226,69 +226,101 @@
             }
         }
         
-        async function exchangeCodeForToken() {
-            const code = document.getElementById('auth-code').value;
-            const resultDiv = document.getElementById('exchange-result');
-            const codeVerifier = localStorage.getItem('code_verifier');
-            
-            if (!code) {
-                resultDiv.innerHTML = '<div class="error">请输入授权码</div>';
-                return;
-            }
-            
-            if (!codeVerifier) {
-                resultDiv.innerHTML = '<div class="error">未找到 code verifier，请重新开始 OAuth 流程</div>';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${BASE_URL}/token`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        grant_type: 'authorization_code',
-                        client_id: '3p182unuqch7rahbp0trs1sprv',
-                        code: code,
-                        redirect_uri: 'https://mcp.tiangong.world/callback',
-                        code_verifier: codeVerifier,
-                    }),
-                });
+async function exchangeCodeForToken() {
+    const code = document.getElementById('auth-code').value;
+    const resultDiv = document.getElementById('exchange-result');
+    const codeVerifier = localStorage.getItem('code_verifier');
+    
+    if (!code) {
+        resultDiv.innerHTML = '<div class="error">请输入授权码</div>';
+        return;
+    }
+    
+    if (!codeVerifier) {
+        resultDiv.innerHTML = '<div class="error">未找到 code verifier，请重新开始 OAuth 流程</div>';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${BASE_URL}/oauth/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                grant_type: 'authorization_code',
+                client_id: '3p182unuqch7rahbp0trs1sprv',
+                code: code,
+                redirect_uri: 'https://mcp.tiangong.world/oauth/callback',
+                code_verifier: codeVerifier,
+            }),
+        });
+        
+        // 检查响应内容类型
+        const contentType = response.headers.get('content-type');
+        console.log('Response status:', response.status);
+        console.log('Response content-type:', contentType);
+        
+        if (response.ok) {
+            // 检查是否是JSON响应
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>Token 交换成功！</strong></p>
+                        <p><strong>Access Token:</strong> ${data.access_token}</p>
+                        <p><strong>Token Type:</strong> ${data.token_type}</p>
+                        <p><strong>Expires In:</strong> ${data.expires_in} 秒</p>
+                        ${data.refresh_token ? `<p><strong>Refresh Token:</strong> ${data.refresh_token}</p>` : ''}
+                        <p><em>您可以复制 access token 到上面的测试区域</em></p>
+                    </div>
+                `;
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    resultDiv.innerHTML = `
-                        <div class="success">
-                            <p><strong>Token 交换成功！</strong></p>
-                            <p><strong>Access Token:</strong> ${data.access_token}</p>
-                            <p><strong>Token Type:</strong> ${data.token_type}</p>
-                            <p><strong>Expires In:</strong> ${data.expires_in} 秒</p>
-                            ${data.refresh_token ? `<p><strong>Refresh Token:</strong> ${data.refresh_token}</p>` : ''}
-                            <p><em>您可以复制 access token 到上面的测试区域</em></p>
-                        </div>
-                    `;
-                    
-                    // 自动填充 access token 到测试区域
-                    document.getElementById('access-token').value = data.access_token;
-                } else {
-                    const error = await response.json();
-                    resultDiv.innerHTML = `
-                        <div class="error">
-                            <p><strong>Token 交换失败</strong></p>
-                            <p>错误: ${JSON.stringify(error, null, 2)}</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
+                // 自动填充 access token 到测试区域
+                document.getElementById('access-token').value = data.access_token;
+            } else {
+                const text = await response.text();
                 resultDiv.innerHTML = `
                     <div class="error">
-                        <p><strong>请求失败</strong></p>
-                        <p>错误: ${error.message}</p>
+                        <p><strong>意外的响应格式</strong></p>
+                        <p>Status: ${response.status}</p>
+                        <p>Content-Type: ${contentType}</p>
+                        <p>Response: ${text.substring(0, 500)}${text.length > 500 ? '...' : ''}</p>
                     </div>
                 `;
             }
+        } else {
+            const text = await response.text();
+            let errorMessage = text;
+            
+            // 尝试解析为JSON
+            try {
+                const errorJson = JSON.parse(text);
+                errorMessage = JSON.stringify(errorJson, null, 2);
+            } catch {
+                // 如果不是JSON，保持原文本
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="error">
+                    <p><strong>Token 交换失败</strong></p>
+                    <p>Status: ${response.status}</p>
+                    <p>Content-Type: ${contentType}</p>
+                    <p>错误: ${errorMessage.substring(0, 500)}${errorMessage.length > 500 ? '...' : ''}</p>
+                </div>
+            `;
         }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="error">
+                <p><strong>请求失败</strong></p>
+                <p>错误: ${error.message}</p>
+                <p>这可能是网络连接问题或CORS配置问题</p>
+                <p><em>建议：检查浏览器开发者工具的Network标签查看详细错误信息</em></p>
+            </div>
+        `;
+    }
+}
         
         // 检查 URL 参数中是否有授权码或错误
         window.addEventListener('load', function() {

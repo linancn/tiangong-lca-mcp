@@ -51,39 +51,39 @@ export async function authenticateCognitoToken(token: string): Promise<AuthResul
   }
 }
 
-/**
- * Authenticate Cognito ID token (contains more user information than access token)
- * @param idToken - Cognito ID token
- * @returns AuthResult containing authentication status and user information
- */
-export async function authenticateCognitoIdToken(idToken: string): Promise<AuthResult> {
-  try {
-    // Create separate verifier for ID token
-    const idVerifier = CognitoJwtVerifier.create({
-      userPoolId: COGNITO_USER_POOL_ID,
-      tokenUse: 'id',
-      clientId: COGNITO_CLIENT_ID,
-    });
+// /**
+//  * Authenticate Cognito ID token (contains more user information than access token)
+//  * @param idToken - Cognito ID token
+//  * @returns AuthResult containing authentication status and user information
+//  */
+// export async function authenticateCognitoIdToken(idToken: string): Promise<AuthResult> {
+//   try {
+//     // Create separate verifier for ID token
+//     const idVerifier = CognitoJwtVerifier.create({
+//       userPoolId: COGNITO_USER_POOL_ID,
+//       tokenUse: 'id',
+//       clientId: COGNITO_CLIENT_ID,
+//     });
 
-    // Verify ID token with AWS Cognito
-    const payload = await idVerifier.verify(idToken);
+//     // Verify ID token with AWS Cognito
+//     const payload = await idVerifier.verify(idToken);
 
-    // Extract user information from ID token payload
-    const userId = payload.sub as string;
-    const email = payload.email as string;
-    const name = payload.name as string;
+//     // Extract user information from ID token payload
+//     const userId = payload.sub as string;
+//     const email = payload.email as string;
+//     const name = payload.name as string;
 
-    return {
-      isAuthenticated: true,
-      response: userId,
-      userId,
-      email,
-    };
-  } catch (error) {
-    console.error('Cognito ID token verification failed:', error);
-    return {
-      isAuthenticated: false,
-      response: error instanceof Error ? error.message : 'ID token verification failed',
-    };
-  }
-}
+//     return {
+//       isAuthenticated: true,
+//       response: userId,
+//       userId,
+//       email,
+//     };
+//   } catch (error) {
+//     console.error('Cognito ID token verification failed:', error);
+//     return {
+//       isAuthenticated: false,
+//       response: error instanceof Error ? error.message : 'ID token verification failed',
+//     };
+//   }
+// }

@@ -131,7 +131,7 @@ app.get('/health', async (req: Request, res: Response) => {
   });
 });
 
-app.use(authApp);
+app.use('/oauth', authApp);
 
 // Start the server
 const PORT = Number(process.env.PORT ?? 9278);
