@@ -69,7 +69,7 @@ authApp.use((req, res, next) => {
 authApp.get('/callback', async (req, res) => {
   const { code, state, error, error_description } = req.query;
 
-  console.log('OAuth callback received:', { code: !!code, state, error, error_description });
+  // console.log('OAuth callback received:', { code: !!code, state, error, error_description });
 
   if (error) {
     console.error('OAuth error:', error, error_description);
@@ -301,18 +301,18 @@ authApp.get('/callback', async (req, res) => {
 
 // Add token exchange endpoint that handles PKCE
 authApp.post('/token', async (req, res) => {
-  console.log(`Token endpoint hit: ${req.method} ${req.path} -> ${req.originalUrl}`);
-  console.log('Request body:', req.body);
+  // console.log(`Token endpoint hit: ${req.method} ${req.path} -> ${req.originalUrl}`);
+  // console.log('Request body:', req.body);
 
   const { grant_type, client_id, code, redirect_uri, code_verifier } = req.body;
 
-  console.log('Token exchange request received:', {
-    grant_type,
-    client_id,
-    code: !!code,
-    redirect_uri,
-    code_verifier: !!code_verifier,
-  });
+  // console.log('Token exchange request received:', {
+  //   grant_type,
+  //   client_id,
+  //   code: !!code,
+  //   redirect_uri,
+  //   code_verifier: !!code_verifier,
+  // });
 
   // Validate required parameters
   if (!grant_type || grant_type !== 'authorization_code') {
@@ -355,11 +355,11 @@ authApp.post('/token', async (req, res) => {
       code_verifier: code_verifier,
     });
 
-    console.log('Cognito token exchange request:', {
-      url: `${COGNITO_BASE_URL}/oauth2/token`,
-      params: Object.fromEntries(tokenParams.entries()),
-      hasClientSecret: !!COGNITO_CLIENT_SECRET,
-    });
+    // console.log('Cognito token exchange request:', {
+    //   url: `${COGNITO_BASE_URL}/oauth2/token`,
+    //   params: Object.fromEntries(tokenParams.entries()),
+    //   hasClientSecret: !!COGNITO_CLIENT_SECRET,
+    // });
 
     // Prepare headers
     const headers: Record<string, string> = {
@@ -384,11 +384,11 @@ authApp.post('/token', async (req, res) => {
     });
 
     const responseText = await tokenResponse.text();
-    console.log('Cognito token exchange response:', {
-      status: tokenResponse.status,
-      statusText: tokenResponse.statusText,
-      body: responseText,
-    });
+    // console.log('Cognito token exchange response:', {
+    //   status: tokenResponse.status,
+    //   statusText: tokenResponse.statusText,
+    //   body: responseText,
+    // });
 
     if (!tokenResponse.ok) {
       console.error('Token exchange failed:', responseText);
@@ -409,12 +409,12 @@ authApp.post('/token', async (req, res) => {
       ...(tokens.id_token && { id_token: tokens.id_token }),
     };
 
-    console.log('Sending success response to client:', {
-      hasAccessToken: !!response.access_token,
-      hasRefreshToken: !!response.refresh_token,
-      tokenType: response.token_type,
-      expiresIn: response.expires_in,
-    });
+    // console.log('Sending success response to client:', {
+    //   hasAccessToken: !!response.access_token,
+    //   hasRefreshToken: !!response.refresh_token,
+    //   tokenType: response.token_type,
+    //   expiresIn: response.expires_in,
+    // });
 
     res.json(response);
   } catch (error) {
