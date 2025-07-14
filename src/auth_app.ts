@@ -165,6 +165,33 @@ authApp.get('/callback', async (req, res) => {
         button:hover {
           background: #1565c0;
         }
+        .copy-button {
+          background: #28a745;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: bold;
+          margin-left: 10px;
+          transition: background-color 0.3s;
+        }
+        .copy-button:hover {
+          background: #218838;
+        }
+        .copy-button:active {
+          background: #1e7e34;
+        }
+        .code-container {
+          position: relative;
+        }
+        .code-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 10px;
+        }
       </style>
     </head>
     <body>
@@ -180,9 +207,14 @@ authApp.get('/callback', async (req, res) => {
         </div>
         
         <div class="section">
-          <h3>🔑 Your Authorization Code</h3>
-          <div class="code-display">${code}</div>
-          <p>Use this code along with your stored code verifier to exchange for an access token in the demo interface.</p>
+          <div class="code-container">
+            <div class="code-header">
+              <h3>🔑 Your Authorization Code</h3>
+              <button class="copy-button" onclick="copyAuthCode()">📋 Copy Code</button>
+            </div>
+            <div class="code-display" id="auth-code">${code}</div>
+            <p>Use this code along with your stored code verifier to exchange for an access token in the demo interface.</p>
+          </div>
         </div>
         
         <div class="section">
@@ -197,11 +229,62 @@ authApp.get('/callback', async (req, res) => {
         
         <div class="section">
           <button onclick="window.close()">Close Window</button>
-          <a href="/oauth/demo" class="link">Back to OAuth Demo</a>
         </div>
       </div>
       
       <script>
+        // Copy authorization code to clipboard
+        function copyAuthCode() {
+          const codeElement = document.getElementById('auth-code');
+          const code = codeElement.textContent;
+          
+          if (navigator.clipboard && window.isSecureContext) {
+            // Use modern clipboard API
+            navigator.clipboard.writeText(code).then(() => {
+              showCopySuccess();
+            }).catch(() => {
+              fallbackCopy(code);
+            });
+          } else {
+            // Fallback for older browsers or non-secure contexts
+            fallbackCopy(code);
+          }
+        }
+        
+        function fallbackCopy(text) {
+          // Create a temporary textarea element
+          const textArea = document.createElement('textarea');
+          textArea.value = text;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          
+          try {
+            document.execCommand('copy');
+            showCopySuccess();
+          } catch (err) {
+            console.error('Failed to copy text: ', err);
+            alert('Failed to copy code to clipboard. Please copy manually.');
+          }
+          
+          document.body.removeChild(textArea);
+        }
+        
+        function showCopySuccess() {
+          const button = document.querySelector('.copy-button');
+          const originalText = button.textContent;
+          button.textContent = '✅ Copied!';
+          button.style.background = '#28a745';
+          
+          setTimeout(() => {
+            button.textContent = originalText;
+            button.style.background = '#28a745';
+          }, 2000);
+        }
+        
         // Try to communicate with parent window if in popup
         if (window.opener) {
           window.opener.postMessage({ 
