@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.15.1",
-    "@supabase/supabase-js": "^2.50.5",
+    "@supabase/supabase-js": "^2.51.0",
     "@types/express": "^5.0.3",
     "@upstash/redis": "^1.35.1",
     "aws-jwt-verify": "^5.1.0",
