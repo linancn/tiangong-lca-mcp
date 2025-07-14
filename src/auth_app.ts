@@ -159,6 +159,8 @@ authApp.get('/callback', async (req, res) => {
           font-weight: bold;
           margin: 10px 10px 0 0;
           transition: background-color 0.3s;
+          text-decoration: none;
+          display: inline-block;
         }
         button:hover {
           background: #1565c0;
@@ -196,7 +198,6 @@ authApp.get('/callback', async (req, res) => {
         <div class="section">
           <button onclick="window.close()">Close Window</button>
           <a href="/oauth/demo" class="link">Back to OAuth Demo</a>
-          <a href="/oauth/index" class="link">Return to Main Page</a>
         </div>
       </div>
       
