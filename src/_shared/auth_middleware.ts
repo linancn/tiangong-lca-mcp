@@ -23,7 +23,7 @@ export interface AuthResult {
  * @param bearerKey - Bearer token
  * @returns 'cognito' | 'supabase' | 'api_key'
  */
-function getTokenType(bearerKey: string): 'cognito' | 'supabase' | 'api_key' {
+export function getTokenType(bearerKey: string): 'cognito' | 'supabase' | 'api_key' {
   // Cognito JWT token 通常是三部分用点分隔的格式 (header.payload.signature)
   const jwtPattern = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 

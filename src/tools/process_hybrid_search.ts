@@ -7,7 +7,11 @@ const input_schema = {
   query: z.string().min(1).describe('Queries from user'),
 };
 
-async function searchProcesses({ query }: { query: string }, bearerKey?: string): Promise<string> {
+async function searchProcesses(
+  { query }: { query: string },
+  bearerKey?: string,
+  xApiKey?: string,
+): Promise<string> {
   const url = `${supabase_base_url}/functions/v1/process_hybrid_search`;
   // console.error('URL:', url);
   try {
@@ -15,8 +19,8 @@ async function searchProcesses({ query }: { query: string }, bearerKey?: string)
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${supabase_anon_key}`,
-        ...(bearerKey && { 'x-api-key': bearerKey }),
+        Authorization: `Bearer ${bearerKey || supabase_anon_key}`,
+        ...(xApiKey && { 'x-api-key': xApiKey }),
         'x-region': x_region,
       },
       body: JSON.stringify(
@@ -36,7 +40,11 @@ async function searchProcesses({ query }: { query: string }, bearerKey?: string)
   }
 }
 
-export function regProcessSearchTool(server: McpServer, bearerKey?: string) {
+export function regProcessSearchTool(
+  server: McpServer,
+  bearerKey?: string,
+  xApiKey?: string,
+): void {
   server.tool(
     'Search_processes_Tool',
     'Search LCA processes data.',
@@ -47,6 +55,7 @@ export function regProcessSearchTool(server: McpServer, bearerKey?: string) {
           query,
         },
         bearerKey,
+        xApiKey,
       );
       return {
         content: [
