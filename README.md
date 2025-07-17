@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/linancn-tiangong-lca-mcp-badge.png)](https://mseep.ai/app/linancn-tiangong-lca-mcp)
+
 # TianGong-LCA-MCP
 
 [中文](./README.md) | [English](./README_EN.md)
