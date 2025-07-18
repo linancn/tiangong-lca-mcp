@@ -14,14 +14,14 @@ async function searchFlows(
 ): Promise<string> {
   const url = `${supabase_base_url}/functions/v1/flow_hybrid_search`;
   // console.error('URL:', url);
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${bearerKey || supabase_anon_key}`,
-    ...(xApiKey && { 'x-api-key': xApiKey }),
-    'x-region': x_region,
-  };
+  // const headers = {
+  //   'Content-Type': 'application/json',
+  //   Authorization: `Bearer ${bearerKey || supabase_anon_key}`,
+  //   ...(xApiKey && { 'x-api-key': xApiKey }),
+  //   'x-region': x_region,
+  // };
 
-  console.error('Headers:', headers);
+  // console.error('Headers:', headers);
   try {
     const response = await fetch(url, {
       method: 'POST',

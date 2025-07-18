@@ -19,7 +19,7 @@ export function initializeServer(bearerKey?: string, xApiKey?: string): McpServe
 
 export function getServer(bearerKey?: string): McpServer {
   const tokenType = bearerKey ? getTokenType(bearerKey) : '';
-  console.log('Token type:', tokenType);
+  // console.log('Token type:', tokenType);
   return initializeServer(
     tokenType !== 'supabase' ? undefined : bearerKey,
     tokenType !== 'supabase' ? bearerKey : undefined,
