@@ -1,56 +1,10 @@
 #!/usr/bin/env node
 
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import express, { NextFunction, Request, Response } from 'express';
-import { authenticateRequest } from './_shared/auth_middleware.js';
+import express, { Request, Response } from 'express';
 import { getServer } from './_shared/init_server_http_local.js';
 
-interface AuthenticatedRequest extends Request {
-  bearerKey?: string;
-}
-
-const authenticateBearer = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({
-      jsonrpc: '2.0',
-      error: {
-        code: -32001,
-        message: 'Missing or invalid authorization header',
-      },
-      id: null,
-    });
-    return;
-  }
-
-  const bearerKey = authHeader.substring(7).trim();
-  const authResult = await authenticateRequest(bearerKey);
-
-  if (!authResult || !authResult.isAuthenticated) {
-    res.status(403).json({
-      jsonrpc: '2.0',
-      error: {
-        code: -32002,
-        message: authResult?.response || 'Forbidden',
-      },
-      id: null,
-    });
-    return;
-  }
-
-  req.bearerKey = bearerKey;
-  next();
-};
-
 const app = express();
-// Trust proxy for load balancers/reverse proxies - restrict to first hop only
-app.set('trust proxy', 1);
-app.use(express.json());
 
 // Add CORS headers for all routes
 app.use((req, res, next) => {
@@ -66,9 +20,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post('/mcp', authenticateBearer, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/mcp', async (req: Request, res: Response) => {
   try {
-    const server = getServer(req.bearerKey);
+    const server = getServer();
     const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
