@@ -47,6 +47,12 @@ npm start
 npm run start:server
 ```
 
+#### Streamable Http Local Server
+
+```bash
+npm run start:server-local
+```
+
 ### Launch MCP Inspector
 
 ```bash

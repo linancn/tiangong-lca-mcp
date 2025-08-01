@@ -7,7 +7,8 @@
   "type": "module",
   "bin": {
     "tiangong-lca-mcp-stdio": "dist/src/index.js",
-    "tiangong-lca-mcp-http": "dist/src/index_server.js"
+    "tiangong-lca-mcp-http": "dist/src/index_server.js",
+    "tiangong-lca-mcp-http-local": "dist/src/index_server_local.js"
   },
   "files": [
     "dist"
@@ -20,6 +21,7 @@
     "build:clean": "shx rm -rf dist",
     "start": "npm run build && npx dotenv -e .env -- npx @modelcontextprotocol/inspector node dist/src/index.js",
     "start:server": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
+    "start:server-local": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server_local.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
     "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\""
   },
   "dependencies": {
