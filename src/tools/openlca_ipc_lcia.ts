@@ -27,8 +27,8 @@ async function calculateLcaImpacts({
 
   const client = o.IpcClient.on(serverUrl);
 
-  const selectedSystemProcess = await client.get(o.RefType.ProductSystem, productSystem);
-  if (!selectedSystemProcess) throw new Error('Product system not found');
+  const selectedProductSystem = await client.get(o.RefType.ProductSystem, productSystem);
+  if (!selectedProductSystem) throw new Error('Product system not found');
 
   // Get impact method
   const selectedMethod = await client.get(o.RefType.ImpactMethod, impactMethod);
@@ -37,7 +37,7 @@ async function calculateLcaImpacts({
   // Calculate the system
   console.log('Calculating LCA impacts...');
   const setup = o.CalculationSetup.of({
-    target: selectedSystemProcess as o.Ref,
+    target: selectedProductSystem as o.Ref,
     impactMethod: selectedMethod as o.Ref,
   });
 
