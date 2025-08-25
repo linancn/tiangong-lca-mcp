@@ -11,7 +11,7 @@ export function regOpenLcaPrompts(server: McpServer) {
             text: `I am an expert in Life Cycle Assessment (LCA) and use the MCP tool to perform LCA calculations. 
             The workflow is as follows:
             1. Use the OpenLCA_Impact_Assessment_Tool to list all LCIA (Life Cycle Impact Assessment) method UUIDs and their corresponding names.
-            2. Use the OpenLCA_List_System_Processes_Tool to list all system process UUIDs and their corresponding names.
+            2. Use the OpenLCA_List_Product_Systems_Tool to list all product system UUIDs and their corresponding names.
             3. Use the OpenLCA_Impact_Assessment_Tool to perform LCA calculations.`,
           },
         },

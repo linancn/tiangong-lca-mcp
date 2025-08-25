@@ -6,7 +6,7 @@ import { regFlowSearchTool } from '../tools/flow_hybrid_search.js';
 import { regLcaCalculationGuidanceTool } from '../tools/lca_calculation_guidance.js';
 import { regOpenLcaLciaTool } from '../tools/openlca_ipc_lcia.js';
 import { regOpenLcaListLCIAMethodsTool } from '../tools/openlca_ipc_lcia_methods_list.js';
-import { regOpenLcaListSystemProcessTool } from '../tools/openlca_ipc_process_list.js';
+import { regOpenLcaListProductSystemsTool } from '../tools/openlca_ipc_process_list.js';
 import { regProcessSearchTool } from '../tools/process_hybrid_search.js';
 
 export function initializeServer(bearerKey?: string): McpServer {
@@ -22,7 +22,7 @@ export function initializeServer(bearerKey?: string): McpServer {
   regProcessSearchTool(server, bearerKey);
   regBomCalculationTool(server);
   regOpenLcaLciaTool(server);
-  regOpenLcaListSystemProcessTool(server);
+  regOpenLcaListProductSystemsTool(server);
   regOpenLcaListLCIAMethodsTool(server);
   regOpenLcaPrompts(server);
   regOpenLcaResources(server);
