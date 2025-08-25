@@ -22,11 +22,13 @@
     "start": "npm run build && npx dotenv -e .env -- npx @modelcontextprotocol/inspector node dist/src/index.js",
     "start:server": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
     "start:server-local": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server_local.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
-    "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\""
+    "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\"",
+    "ncu": "npx npm-check-updates",
+    "ncu:update": "npx npm-check-updates -u"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.1",
-    "@supabase/supabase-js": "^2.53.0",
+    "@modelcontextprotocol/sdk": "^1.17.2",
+    "@supabase/supabase-js": "^2.55.0",
     "@types/express": "^5.0.3",
     "@upstash/redis": "^1.35.3",
     "aws-jwt-verify": "^5.1.0",
@@ -34,12 +36,13 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "^0.16.2",
-    "dotenv-cli": "^8.0.0",
+    "@modelcontextprotocol/inspector": "^0.16.3",
+    "dotenv-cli": "^10.0.0",
+    "npm-check-updates": "^18.0.2",
     "prettier": "^3.6.2",
-    "prettier-plugin-organize-imports": "^4.1.0",
+    "prettier-plugin-organize-imports": "^4.2.0",
     "shx": "^0.4.0",
-    "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2"
   }
 }
