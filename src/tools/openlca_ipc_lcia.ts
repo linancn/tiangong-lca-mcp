@@ -3,22 +3,22 @@ import * as o from 'olca-ipc';
 import { z } from 'zod';
 
 const input_schema = {
-  systemProcess: z.string().min(1).describe('OpenLCA product system ID'),
+  productSystem: z.string().min(1).describe('OpenLCA product system ID'),
   impactMethod: z.string().min(1).describe('OpenLCA impact method ID'),
   serverUrl: z.string().default('http://localhost:8080').describe('OpenLCA IPC server URL'),
 };
 
 async function calculateLcaImpacts({
-  systemProcess,
+  productSystem,
   impactMethod,
   serverUrl = 'http://localhost:8080',
 }: {
-  systemProcess: string;
+  productSystem: string;
   impactMethod: string;
   serverUrl?: string;
 }): Promise<string> {
-  if (!systemProcess) {
-    throw new Error('No systemProcess provided');
+  if (!productSystem) {
+    throw new Error('No productSystem provided');
   }
 
   if (!impactMethod) {
@@ -27,8 +27,8 @@ async function calculateLcaImpacts({
 
   const client = o.IpcClient.on(serverUrl);
 
-  const selectedSystemProcess = await client.get(o.RefType.ProductSystem, systemProcess);
-  if (!selectedSystemProcess) throw new Error('Product system not found');
+  const selectedProductSystem = await client.get(o.RefType.ProductSystem, productSystem);
+  if (!selectedProductSystem) throw new Error('Product system not found');
 
   // Get impact method
   const selectedMethod = await client.get(o.RefType.ImpactMethod, impactMethod);
@@ -37,7 +37,7 @@ async function calculateLcaImpacts({
   // Calculate the system
   console.log('Calculating LCA impacts...');
   const setup = o.CalculationSetup.of({
-    target: selectedSystemProcess as o.Ref,
+    target: selectedProductSystem as o.Ref,
     impactMethod: selectedMethod as o.Ref,
   });
 
@@ -67,9 +67,9 @@ export function regOpenLcaLciaTool(server: McpServer) {
     'OpenLCA_Impact_Assessment_Tool',
     'Calculate life cycle impact assessment using OpenLCA.',
     input_schema,
-    async ({ systemProcess, impactMethod, serverUrl }) => {
+    async ({ productSystem, impactMethod, serverUrl }) => {
       const result = await calculateLcaImpacts({
-        systemProcess: systemProcess,
+        productSystem: productSystem,
         impactMethod: impactMethod,
         serverUrl: serverUrl,
       });
