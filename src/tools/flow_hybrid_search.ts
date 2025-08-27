@@ -1,25 +1,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import cleanObject from '../_shared/clean_object.js';
-import { supabase_anon_key, supabase_base_url, x_region } from '../_shared/config.js';
+import { supabase_base_url, x_region } from '../_shared/config.js';
 
 const input_schema = {
   query: z.string().min(1).describe('Queries from user'),
 };
 
-async function searchFlows(
-  { query }: { query: string },
-  bearerKey?: string,
-  xApiKey?: string,
-): Promise<string> {
+async function searchFlows({ query }: { query: string }, bearerKey?: string): Promise<string> {
   const url = `${supabase_base_url}/functions/v1/flow_hybrid_search`;
-  // console.error('URL:', url);
-  // const headers = {
-  //   'Content-Type': 'application/json',
-  //   Authorization: `Bearer ${bearerKey || supabase_anon_key}`,
-  //   ...(xApiKey && { 'x-api-key': xApiKey }),
-  //   'x-region': x_region,
-  // };
 
   // console.error('Headers:', headers);
   try {
@@ -27,8 +16,7 @@ async function searchFlows(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${bearerKey || supabase_anon_key}`,
-        ...(xApiKey && { 'x-api-key': xApiKey }),
+        Authorization: `Bearer ${bearerKey}`,
         'x-region': x_region,
       },
       body: JSON.stringify(
@@ -48,14 +36,13 @@ async function searchFlows(
   }
 }
 
-export function regFlowSearchTool(server: McpServer, bearerKey?: string, xApiKey?: string): void {
+export function regFlowSearchTool(server: McpServer, bearerKey?: string): void {
   server.tool('Search_flows_Tool', 'Search LCA flows data.', input_schema, async ({ query }) => {
     const result = await searchFlows(
       {
         query,
       },
       bearerKey,
-      xApiKey,
     );
     return {
       content: [

@@ -10,9 +10,8 @@ export const COGNITO_BASE_URL = 'https://us-east-1snsyimond.auth.us-east-1.amazo
 // Legacy Supabase Configuration (可以考虑移除)
 export const supabase_base_url =
   process.env.SUPABASE_BASE_URL ?? 'https://qgzvkongdjqiiamzbbts.supabase.co';
-export const supabase_anon_key =
-  process.env.SUPABASE_ANON_KEY ??
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnenZrb25nZGpxaWlhbXpiYnRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzNjUyMzQsImV4cCI6MjA1NTk0MTIzNH0.PsZIcjAqexpqIg-91twpKjALyw9big6Bn4WRLLoCzTo';
+export const supabase_publishable_key =
+  process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_EFWH4E61tpAtf82WQ37xTA_Fxa5OPyg';
 export const x_region = process.env.X_REGION ?? 'us-east-1';
 
 export const redis_url = process.env.UPSTASH_REDIS_URL ?? '';

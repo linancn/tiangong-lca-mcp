@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
 import { authenticateCognitoToken } from './cognito_auth.js';
-import { redis_token, redis_url, supabase_anon_key, supabase_base_url } from './config.js';
+import { redis_token, redis_url, supabase_base_url, supabase_publishable_key } from './config.js';
 import decodeApiKey from './decode_api_key.js';
 
-const supabase = createClient(supabase_base_url, supabase_anon_key);
+const supabase = createClient(supabase_base_url, supabase_publishable_key);
 
 const redis = new Redis({
   url: redis_url,

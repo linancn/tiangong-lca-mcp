@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import cleanObject from '../_shared/clean_object.js';
-import { supabase_anon_key, supabase_base_url, x_region } from '../_shared/config.js';
+import { supabase_base_url, x_region } from '../_shared/config.js';
 
 const input_schema = {
   query: z.string().min(1).describe('Queries from user'),
@@ -10,7 +10,6 @@ const input_schema = {
 async function searchProcesses(
   { query }: { query: string },
   bearerKey?: string,
-  xApiKey?: string,
 ): Promise<string> {
   const url = `${supabase_base_url}/functions/v1/process_hybrid_search`;
   // console.error('URL:', url);
@@ -19,8 +18,7 @@ async function searchProcesses(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${bearerKey || supabase_anon_key}`,
-        ...(xApiKey && { 'x-api-key': xApiKey }),
+        Authorization: `Bearer ${bearerKey}`,
         'x-region': x_region,
       },
       body: JSON.stringify(
@@ -43,7 +41,6 @@ async function searchProcesses(
 export function regProcessSearchTool(
   server: McpServer,
   bearerKey?: string,
-  xApiKey?: string,
 ): void {
   server.tool(
     'Search_processes_Tool',
@@ -55,7 +52,6 @@ export function regProcessSearchTool(
           query,
         },
         bearerKey,
-        xApiKey,
       );
       return {
         content: [
