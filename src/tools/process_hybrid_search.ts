@@ -7,10 +7,7 @@ const input_schema = {
   query: z.string().min(1).describe('Queries from user'),
 };
 
-async function searchProcesses(
-  { query }: { query: string },
-  bearerKey?: string,
-): Promise<string> {
+async function searchProcesses({ query }: { query: string }, bearerKey?: string): Promise<string> {
   const url = `${supabase_base_url}/functions/v1/process_hybrid_search`;
   // console.error('URL:', url);
   try {
@@ -38,10 +35,7 @@ async function searchProcesses(
   }
 }
 
-export function regProcessSearchTool(
-  server: McpServer,
-  bearerKey?: string,
-): void {
+export function regProcessSearchTool(server: McpServer, bearerKey?: string): void {
   server.tool(
     'Search_processes_Tool',
     'Search LCA processes data.',

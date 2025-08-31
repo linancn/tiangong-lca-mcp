@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.4",
-    "@supabase/supabase-js": "^2.56.0",
+    "@supabase/supabase-js": "^2.56.1",
     "@types/express": "^5.0.3",
     "@upstash/redis": "^1.35.3",
     "aws-jwt-verify": "^5.1.0",
@@ -38,7 +38,7 @@
   "devDependencies": {
     "@modelcontextprotocol/inspector": "^0.16.5",
     "dotenv-cli": "^10.0.0",
-    "npm-check-updates": "^18.0.2",
+    "npm-check-updates": "^18.0.3",
     "prettier": "^3.6.2",
     "prettier-plugin-organize-imports": "^4.2.0",
     "shx": "^0.4.0",
