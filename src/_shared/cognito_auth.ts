@@ -6,6 +6,10 @@ export interface AuthResult {
   response?: string;
   userId?: string;
   email?: string;
+  supabaseSession?: {
+    access_token: string;
+    refresh_token?: string | null;
+  };
 }
 
 // Create Cognito JWT verifier for access tokens

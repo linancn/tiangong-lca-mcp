@@ -16,7 +16,20 @@ export interface AuthResult {
   response?: string;
   userId?: string;
   email?: string;
+  supabaseSession?: SupabaseSessionPayload;
 }
+
+export interface SupabaseSessionPayload {
+  access_token: string;
+  refresh_token?: string | null;
+}
+
+type CachedAuthPayload =
+  | string
+  | {
+      userId?: string;
+      session?: SupabaseSessionPayload | null;
+    };
 
 /**
  * 判断 token 类型
@@ -85,41 +98,104 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
   const credentials = decodeApiKey(bearerKey);
   if (credentials) {
     const { email = '', password = '' } = credentials;
-    const userIdFromRedis = await redis.get('lca_' + email);
+    const cacheKey = 'lca_' + email;
+    const cachedPayload = (await redis.get(cacheKey)) as CachedAuthPayload | null;
 
-    if (!userIdFromRedis) {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
+    let cachedUserId: string | undefined;
+    let cachedSession: SupabaseSessionPayload | undefined;
 
-      if (error) {
-        return {
-          isAuthenticated: false,
-          response: 'Unauthorized',
-        };
-      }
-
-      if (data.user.role !== 'authenticated') {
-        return {
-          isAuthenticated: false,
-          response: 'You are not an authenticated user.',
-        };
-      } else {
-        await redis.setex('lca_' + email, 3600, data.user.id);
-        return {
-          isAuthenticated: true,
-          response: data.user.id,
-          userId: data.user.id,
-          email: data.user.email,
-        };
+    if (cachedPayload) {
+      if (typeof cachedPayload === 'string') {
+        try {
+          const parsed = JSON.parse(cachedPayload) as CachedAuthPayload;
+          if (parsed && typeof parsed === 'object') {
+            if (typeof parsed.userId === 'string') {
+              cachedUserId = parsed.userId;
+            }
+            if (parsed.session && typeof parsed.session === 'object') {
+              const { access_token, refresh_token } = parsed.session;
+              if (typeof access_token === 'string' && access_token.length > 0) {
+                cachedSession = {
+                  access_token,
+                  refresh_token: typeof refresh_token === 'string' ? refresh_token : null,
+                };
+              }
+            }
+          }
+        } catch (_error) {
+          cachedUserId = cachedPayload;
+        }
+      } else if (typeof cachedPayload === 'object') {
+        if (typeof cachedPayload.userId === 'string') {
+          cachedUserId = cachedPayload.userId;
+        }
+        if (cachedPayload.session && typeof cachedPayload.session === 'object') {
+          const { access_token, refresh_token } = cachedPayload.session;
+          if (typeof access_token === 'string' && access_token.length > 0) {
+            cachedSession = {
+              access_token,
+              refresh_token: typeof refresh_token === 'string' ? refresh_token : null,
+            };
+          }
+        }
       }
     }
 
+    if (cachedUserId && cachedSession) {
+      try {
+        await redis.expire(cacheKey, 3600);
+      } catch (error) {
+        console.warn('Failed to refresh Redis TTL for cached Supabase session:', error);
+      }
+
+      return {
+        isAuthenticated: true,
+        response: cachedUserId,
+        userId: cachedUserId,
+        email,
+        supabaseSession: cachedSession,
+      };
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error || !data.user) {
+      return {
+        isAuthenticated: false,
+        response: 'Unauthorized',
+      };
+    }
+
+    if (data.user.role !== 'authenticated') {
+      return {
+        isAuthenticated: false,
+        response: 'You are not an authenticated user.',
+      };
+    }
+
+    const sessionTokens: SupabaseSessionPayload | undefined = data.session?.access_token
+      ? {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token ?? null,
+        }
+      : undefined;
+
+    const cacheValue: CachedAuthPayload = {
+      userId: data.user.id,
+      session: sessionTokens ?? null,
+    };
+
+    await redis.setex(cacheKey, 3600, JSON.stringify(cacheValue));
+
     return {
       isAuthenticated: true,
-      response: String(userIdFromRedis),
-      userId: String(userIdFromRedis),
+      response: data.user.id,
+      userId: data.user.id,
+      email: data.user.email ?? email,
+      supabaseSession: sessionTokens,
     };
   }
 
@@ -133,8 +209,6 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
  * 使用 Supabase 认证
  */
 async function authenticateSupabaseRequest(bearerKey: string): Promise<AuthResult> {
-  console.log(bearerKey);
-
   const { data: authData } = await supabase.auth.getUser(bearerKey);
 
   if (authData.user?.role === 'authenticated') {
@@ -143,6 +217,9 @@ async function authenticateSupabaseRequest(bearerKey: string): Promise<AuthResul
       response: authData.user?.id,
       userId: authData.user?.id,
       email: authData.user?.email,
+      supabaseSession: {
+        access_token: bearerKey,
+      },
     };
   }
 
@@ -165,5 +242,8 @@ async function authenticateSupabaseRequest(bearerKey: string): Promise<AuthResul
     response: authData.user.id,
     userId: authData.user.id,
     email: authData.user.email,
+    supabaseSession: {
+      access_token: bearerKey,
+    },
   };
 }

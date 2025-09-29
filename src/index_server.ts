@@ -4,7 +4,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import express, { NextFunction, Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { authenticateRequest } from './_shared/auth_middleware.js';
+import { authenticateRequest, SupabaseSessionPayload } from './_shared/auth_middleware.js';
 import { getServer } from './_shared/init_server_http.js';
 import authApp from './auth_app.js';
 
@@ -13,6 +13,7 @@ const __dirname = path.dirname(__filename);
 
 interface AuthenticatedRequest extends Request {
   bearerKey?: string;
+  supabaseSession?: SupabaseSessionPayload;
 }
 
 const authenticateBearer = async (
@@ -50,6 +51,7 @@ const authenticateBearer = async (
   }
 
   req.bearerKey = bearerKey;
+  req.supabaseSession = authResult.supabaseSession;
   next();
 };
 
@@ -77,7 +79,7 @@ app.use((req, res, next) => {
 
 app.post('/mcp', authenticateBearer, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const server = getServer(req.bearerKey);
+    const server = getServer(req.bearerKey, req.supabaseSession);
     const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
