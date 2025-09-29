@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { regBomCalculationTool } from '../tools/bom_calculation.js';
+import { regCrudTool } from '../tools/db_crud.js';
 import { regFlowSearchTool } from '../tools/flow_hybrid_search.js';
 import { regProcessSearchTool } from '../tools/process_hybrid_search.js';
 
@@ -12,6 +13,7 @@ export function initializeServer(bearerKey?: string): McpServer {
   regFlowSearchTool(server, bearerKey);
   regProcessSearchTool(server, bearerKey);
   regBomCalculationTool(server);
+  regCrudTool(server, bearerKey);
 
   return server;
 }

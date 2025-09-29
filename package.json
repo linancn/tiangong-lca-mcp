@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/inspector": "^0.16.8",
+    "@tiangong-lca/tidas-sdk": "^0.1.16",
     "dotenv-cli": "^10.0.0",
     "npm-check-updates": "^19.0.0",
     "prettier": "^3.6.2",
