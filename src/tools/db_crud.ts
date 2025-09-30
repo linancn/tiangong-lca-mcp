@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -5,70 +7,265 @@ import { supabase_base_url, supabase_publishable_key } from '../_shared/config.j
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
 import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
 
-const input_schema = {
-  query: z.number().min(1).describe('Queries from user'),
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+type FilterValue = string | number | boolean | null;
+type Filters = Record<string, FilterValue>;
+
+const allowedTables = ['contacts', 'flows', 'lifecyclemodels', 'processes', 'sources'] as const;
+type AllowedTable = (typeof allowedTables)[number];
+const tableSchema = z.enum(allowedTables);
+
+const tablePrimaryKey: Record<AllowedTable, string> = {
+  contacts: 'id',
+  flows: 'id',
+  lifecyclemodels: 'id',
+  processes: 'id',
+  sources: 'id',
 };
 
-async function insert(
-  { query }: { query: number },
+function getPrimaryKeyColumn(table: AllowedTable): string {
+  return tablePrimaryKey[table] ?? 'id';
+}
+
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(jsonValueSchema),
+  ]),
+);
+
+const filterValueSchema: z.ZodType<FilterValue> = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+]);
+const filtersSchema: z.ZodType<Filters> = z.record(filterValueSchema);
+
+const toolParamsSchema = {
+  operation: z
+    .enum(['select', 'insert', 'update', 'delete'])
+    .describe(
+      'CRUD operation to perform: select optionally accepts limit/id/filters, insert requires jsonOrdered (id auto-generated), update requires id and jsonOrdered, delete requires id.',
+    ),
+  table: tableSchema.describe(
+    'Target table for the operation; must be one of contacts, flows, lifecyclemodels, processes, or sources.',
+  ),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Maximum number of records to return (select only).'),
+  id: z
+    .string()
+    .uuid()
+    .optional()
+    .describe(
+      'UUID string stored in the `id` column (required for update/delete, optional filter for select).',
+    ),
+  filters: filtersSchema
+    .optional()
+    .describe('Equality filters such as { "name": "Example" } (select only).'),
+  jsonOrdered: jsonValueSchema
+    .optional()
+    .describe(
+      'JSON value persisted into json_ordered (required for insert/update; omit for select/delete).',
+    ),
+} as const satisfies z.ZodRawShape;
+
+const refinedInputSchema = z
+  .object(toolParamsSchema)
+  .strict()
+  .superRefine((data, ctx) => {
+    switch (data.operation) {
+      case 'insert':
+        if (data.jsonOrdered === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'jsonOrdered is required for insert operations.',
+            path: ['jsonOrdered'],
+          });
+        }
+        break;
+      case 'update':
+        if (data.id === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'id is required for update operations.',
+            path: ['id'],
+          });
+        }
+        if (data.jsonOrdered === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'jsonOrdered is required for update operations.',
+            path: ['jsonOrdered'],
+          });
+        }
+        break;
+      case 'delete':
+        if (data.id === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'id is required for delete operations.',
+            path: ['id'],
+          });
+        }
+        break;
+      default:
+        break;
+    }
+  });
+
+type CrudInput = z.infer<typeof refinedInputSchema>;
+
+async function createSupabaseClient(bearerKey?: string | SupabaseSessionLike) {
+  const { session: normalizedSession, accessToken: bearerToken } =
+    resolveSupabaseAccessToken(bearerKey);
+
+  const supabase = createClient(supabase_base_url, supabase_publishable_key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: Boolean(normalizedSession?.refresh_token),
+    },
+    ...(bearerToken
+      ? {
+          global: {
+            headers: {
+              Authorization: `Bearer ${bearerToken}`,
+            },
+          },
+        }
+      : {}),
+  });
+
+  if (normalizedSession?.refresh_token) {
+    const { error: setSessionError } = await supabase.auth.setSession({
+      access_token: normalizedSession.access_token,
+      refresh_token: normalizedSession.refresh_token,
+    });
+
+    if (setSessionError) {
+      console.warn('Failed to set Supabase session for CRUD tool:', setSessionError.message);
+    }
+  }
+
+  return supabase;
+}
+
+async function performCrud(
+  input: CrudInput,
   bearerKey?: string | SupabaseSessionLike,
 ): Promise<string> {
   try {
-    const { session: normalizedSession, accessToken: bearerToken } =
-      resolveSupabaseAccessToken(bearerKey);
+    const supabase = await createSupabaseClient(bearerKey);
 
-    const supabase = createClient(supabase_base_url, supabase_publishable_key, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: Boolean(normalizedSession?.refresh_token),
-      },
-      ...(bearerToken
-        ? {
-            global: {
-              headers: {
-                Authorization: `Bearer ${bearerToken}`,
-              },
-            },
+    switch (input.operation) {
+      case 'select': {
+        const { table, limit, id, filters } = input;
+        const keyColumn = getPrimaryKeyColumn(table);
+        let queryBuilder = supabase.from(table).select('*');
+
+        if (filters) {
+          for (const [column, value] of Object.entries(filters)) {
+            queryBuilder = queryBuilder.eq(column, value);
           }
-        : {}),
-    });
+        }
 
-    if (normalizedSession?.refresh_token) {
-      const { error: setSessionError } = await supabase.auth.setSession({
-        access_token: normalizedSession.access_token,
-        refresh_token: normalizedSession.refresh_token,
-      });
+        if (id) {
+          queryBuilder = queryBuilder.eq(keyColumn, id);
+        }
 
-      if (setSessionError) {
-        console.warn('Failed to set Supabase session for CRUD tool:', setSessionError.message);
+        if (limit) {
+          queryBuilder = queryBuilder.limit(limit);
+        }
+
+        const { data, error } = await queryBuilder;
+
+        if (error) {
+          console.error('Error querying the database:', error);
+          throw error;
+        }
+
+        return JSON.stringify({ data: data ?? [], count: data?.length ?? 0 });
+      }
+
+      case 'insert': {
+        const { table, jsonOrdered } = input;
+
+        if (jsonOrdered === undefined) {
+          throw new Error('jsonOrdered is required for insert operations.');
+        }
+
+        const newId = randomUUID();
+        const keyColumn = getPrimaryKeyColumn(table);
+        const { data, error } = await supabase
+          .from(table)
+          .insert([{ [keyColumn]: newId, json_ordered: jsonOrdered }])
+          .select();
+
+        if (error) {
+          console.error('Error inserting into the database:', error);
+          throw error;
+        }
+
+        return JSON.stringify({ id: newId, data: data ?? [] });
+      }
+
+      case 'update': {
+        const { table, id, jsonOrdered } = input;
+
+        if (id === undefined) {
+          throw new Error('id is required for update operations.');
+        }
+
+        if (jsonOrdered === undefined) {
+          throw new Error('jsonOrdered is required for update operations.');
+        }
+
+        const keyColumn = getPrimaryKeyColumn(table);
+        const { data, error } = await supabase
+          .from(table)
+          .update({ json_ordered: jsonOrdered })
+          .eq(keyColumn, id)
+          .select();
+
+        if (error) {
+          console.error('Error updating the database:', error);
+          throw error;
+        }
+
+        return JSON.stringify({ id, data: data ?? [] });
+      }
+
+      case 'delete': {
+        const { table, id } = input;
+
+        if (id === undefined) {
+          throw new Error('id is required for delete operations.');
+        }
+
+        const keyColumn = getPrimaryKeyColumn(table);
+        const { data, error } = await supabase.from(table).delete().eq(keyColumn, id).select();
+
+        if (error) {
+          console.error('Error deleting from the database:', error);
+          throw error;
+        }
+
+        return JSON.stringify({ id, data: data ?? [] });
+      }
+
+      default: {
+        const exhaustiveCheck: never = input.operation;
+        throw new Error(`Unsupported operation: ${exhaustiveCheck}`);
       }
     }
-
-    const { data, error } = await supabase.from('contacts').select('*').limit(query);
-    // const { data, error } = await supabase
-    // .from('contacts')
-    // .insert([
-    //   {
-    //     id: '00000000-0000-0000-0000-000000000001',
-    //     version: '01.00.000',
-    //     json_ordered: {
-    //       contactDataSet: {
-    //         contactInformation: {
-    //           dataSetInformation: { email: 'test@example.com' },
-    //         },
-    //       },
-    //     },
-    //     rule_verification: false,
-    //     reviews: {},
-    //   },
-    // ]);
-
-    if (error) {
-      console.error('Error querying the database:', error);
-      throw error;
-    }
-
-    return JSON.stringify(data ?? []);
   } catch (error) {
     console.error('Error making the request:', error);
     throw error;
@@ -76,20 +273,21 @@ async function insert(
 }
 
 export function regCrudTool(server: McpServer, bearerKey?: string | SupabaseSessionLike): void {
-  server.tool('Database_CRUD_Tool', 'Perform CRUD operations.', input_schema, async ({ query }) => {
-    const result = await insert(
-      {
-        query,
-      },
-      bearerKey,
-    );
-    return {
-      content: [
-        {
-          type: 'text',
-          text: result,
-        },
-      ],
-    };
-  });
+  server.tool(
+    'Database_CRUD_Tool',
+    'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id).',
+    toolParamsSchema,
+    async (rawInput) => {
+      const input = refinedInputSchema.parse(rawInput);
+      const result = await performCrud(input, bearerKey);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: result,
+          },
+        ],
+      };
+    },
+  );
 }
