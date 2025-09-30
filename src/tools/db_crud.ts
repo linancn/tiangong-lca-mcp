@@ -14,6 +14,7 @@ type Filters = Record<string, FilterValue>;
 const allowedTables = ['contacts', 'flows', 'lifecyclemodels', 'processes', 'sources'] as const;
 type AllowedTable = (typeof allowedTables)[number];
 const tableSchema = z.enum(allowedTables);
+const UPDATE_FUNCTION_NAME = 'update_data';
 
 const tablePrimaryKey: Record<AllowedTable, string> = {
   contacts: 'id',
@@ -144,6 +145,34 @@ const refinedInputSchema = z
   });
 
 type CrudInput = z.infer<typeof refinedInputSchema>;
+type SelectInput = CrudInput & { operation: 'select' };
+type InsertInput = CrudInput & { operation: 'insert' };
+type UpdateInput = CrudInput & { operation: 'update' };
+type DeleteInput = CrudInput & { operation: 'delete' };
+type CrudOperationInput = SelectInput | InsertInput | UpdateInput | DeleteInput;
+
+type UpdateFunctionPayload = {
+  data?: JsonValue[] | null;
+  error?: { message?: string } & Record<string, unknown>;
+};
+
+function requireAccessToken(accessToken?: string): string {
+  if (!accessToken) {
+    throw new Error(
+      'An authenticated Supabase session is required for update operations. Provide a valid access token.',
+    );
+  }
+
+  return accessToken;
+}
+
+function ensureRows(rows: unknown, errorMessage: string): JsonValue[] {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(errorMessage);
+  }
+
+  return rows as JsonValue[];
+}
 
 async function createSupabaseClient(
   bearerKey?: string | SupabaseSessionLike,
@@ -181,163 +210,168 @@ async function createSupabaseClient(
   return { supabase, accessToken: normalizedSession?.access_token ?? bearerToken };
 }
 
+async function handleSelect(supabase: SupabaseClient, input: SelectInput): Promise<string> {
+  const { table, limit, id, version, filters } = input;
+  const keyColumn = getPrimaryKeyColumn(table);
+  let queryBuilder = supabase.from(table).select('*');
+
+  if (filters) {
+    for (const [column, value] of Object.entries(filters)) {
+      queryBuilder = queryBuilder.eq(column, value);
+    }
+  }
+
+  if (id) {
+    queryBuilder = queryBuilder.eq(keyColumn, id);
+  }
+
+  if (version) {
+    queryBuilder = queryBuilder.eq('version', version);
+  }
+
+  if (limit) {
+    queryBuilder = queryBuilder.limit(limit);
+  }
+
+  const { data, error } = await queryBuilder;
+
+  if (error) {
+    console.error('Error querying the database:', error);
+    throw error;
+  }
+
+  return JSON.stringify({ data: data ?? [], count: data?.length ?? 0 });
+}
+
+async function handleInsert(supabase: SupabaseClient, input: InsertInput): Promise<string> {
+  const { table, jsonOrdered } = input;
+
+  if (jsonOrdered === undefined) {
+    throw new Error('jsonOrdered is required for insert operations.');
+  }
+
+  const newId = randomUUID();
+  const keyColumn = getPrimaryKeyColumn(table);
+  const { data, error } = await supabase
+    .from(table)
+    .insert([{ [keyColumn]: newId, json_ordered: jsonOrdered }])
+    .select();
+
+  if (error) {
+    console.error('Error inserting into the database:', error);
+    throw error;
+  }
+
+  return JSON.stringify({ id: newId, data: data ?? [] });
+}
+
+async function handleUpdate(
+  supabase: SupabaseClient,
+  accessToken: string | undefined,
+  input: UpdateInput,
+): Promise<string> {
+  const { table, id, version, jsonOrdered } = input;
+
+  if (id === undefined) {
+    throw new Error('id is required for update operations.');
+  }
+
+  if (version === undefined) {
+    throw new Error('version is required for update operations.');
+  }
+
+  if (jsonOrdered === undefined) {
+    throw new Error('jsonOrdered is required for update operations.');
+  }
+
+  const token = requireAccessToken(accessToken);
+
+  const { data: functionPayload, error } = await supabase.functions.invoke(UPDATE_FUNCTION_NAME, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: { id, version, table, data: { json_ordered: jsonOrdered } },
+    region: FunctionRegion.UsEast1,
+  });
+
+  if (error) {
+    console.error('Error invoking update_data function:', error);
+    throw error;
+  }
+
+  const { data: updatedRows, error: functionError } = (functionPayload ??
+    {}) as UpdateFunctionPayload;
+
+  if (functionError) {
+    console.error('Supabase update_data returned an error:', functionError);
+    const message = functionError.message ?? 'Supabase update_data function rejected the request.';
+    throw new Error(message);
+  }
+
+  const keyColumn = getPrimaryKeyColumn(table);
+  const rows = ensureRows(
+    updatedRows,
+    `Update affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${id}) and version (${version}) exist and are accessible.`,
+  );
+
+  return JSON.stringify({ id, version, data: rows });
+}
+
+async function handleDelete(supabase: SupabaseClient, input: DeleteInput): Promise<string> {
+  const { table, id, version } = input;
+
+  if (id === undefined) {
+    throw new Error('id is required for delete operations.');
+  }
+
+  if (version === undefined) {
+    throw new Error('version is required for delete operations.');
+  }
+
+  const keyColumn = getPrimaryKeyColumn(table);
+  const { data, error } = await supabase
+    .from(table)
+    .delete()
+    .eq(keyColumn, id)
+    .eq('version', version)
+    .select();
+
+  if (error) {
+    console.error('Error deleting from the database:', error);
+    throw error;
+  }
+
+  const rows = ensureRows(
+    data,
+    `Delete affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${id}) and version (${version}) exist and are accessible.`,
+  );
+
+  return JSON.stringify({ id, version, data: rows });
+}
+
 async function performCrud(
-  input: CrudInput,
+  input: CrudOperationInput,
   bearerKey?: string | SupabaseSessionLike,
 ): Promise<string> {
   try {
     const { supabase, accessToken } = await createSupabaseClient(bearerKey);
 
     switch (input.operation) {
-      case 'select': {
-        const { table, limit, id, version, filters } = input;
-        const keyColumn = getPrimaryKeyColumn(table);
-        let queryBuilder = supabase.from(table).select('*');
+      case 'select':
+        return handleSelect(supabase, input);
 
-        if (filters) {
-          for (const [column, value] of Object.entries(filters)) {
-            queryBuilder = queryBuilder.eq(column, value);
-          }
-        }
+      case 'insert':
+        return handleInsert(supabase, input);
 
-        if (id) {
-          queryBuilder = queryBuilder.eq(keyColumn, id);
-        }
+      case 'update':
+        return handleUpdate(supabase, accessToken, input);
 
-        if (version) {
-          queryBuilder = queryBuilder.eq('version', version);
-        }
-
-        if (limit) {
-          queryBuilder = queryBuilder.limit(limit);
-        }
-
-        const { data, error } = await queryBuilder;
-
-        if (error) {
-          console.error('Error querying the database:', error);
-          throw error;
-        }
-
-        return JSON.stringify({ data: data ?? [], count: data?.length ?? 0 });
-      }
-
-      case 'insert': {
-        const { table, jsonOrdered } = input;
-
-        if (jsonOrdered === undefined) {
-          throw new Error('jsonOrdered is required for insert operations.');
-        }
-
-        const newId = randomUUID();
-        const keyColumn = getPrimaryKeyColumn(table);
-        const { data, error } = await supabase
-          .from(table)
-          .insert([{ [keyColumn]: newId, json_ordered: jsonOrdered }])
-          .select();
-
-        if (error) {
-          console.error('Error inserting into the database:', error);
-          throw error;
-        }
-
-        return JSON.stringify({ id: newId, data: data ?? [] });
-      }
-
-      case 'update': {
-        const { table, id, version, jsonOrdered } = input;
-
-        if (id === undefined) {
-          throw new Error('id is required for update operations.');
-        }
-
-        if (version === undefined) {
-          throw new Error('version is required for update operations.');
-        }
-
-        if (jsonOrdered === undefined) {
-          throw new Error('jsonOrdered is required for update operations.');
-        }
-
-        if (!accessToken) {
-          throw new Error(
-            'An authenticated Supabase session is required for update operations. Provide a valid access token.',
-          );
-        }
-
-        const { data: functionPayload, error } = await supabase.functions.invoke(
-          'update_data',
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: { id, version, table, data: { json_ordered: jsonOrdered } },
-            region: FunctionRegion.UsEast1,
-          },
-        );
-
-        if (error) {
-          console.error('Error invoking update_data function:', error);
-          throw error;
-        }
-
-        const { data: updatedRows, error: functionError } = (functionPayload ?? {}) as {
-          data?: JsonValue[];
-          error?: { message?: string } & Record<string, unknown>;
-        };
-
-        if (functionError) {
-          console.error('Supabase update_data returned an error:', functionError);
-          const message = functionError.message ?? 'Supabase update_data function rejected the request.';
-          throw new Error(message);
-        }
-
-        if (!updatedRows || updatedRows.length === 0) {
-          const keyColumn = getPrimaryKeyColumn(table);
-          throw new Error(
-            `Update affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${id}) and version (${version}) exist and are accessible.`,
-          );
-        }
-
-        return JSON.stringify({ id, version, data: updatedRows ?? [] });
-      }
-
-      case 'delete': {
-        const { table, id, version } = input;
-
-        if (id === undefined) {
-          throw new Error('id is required for delete operations.');
-        }
-
-        if (version === undefined) {
-          throw new Error('version is required for delete operations.');
-        }
-
-        const keyColumn = getPrimaryKeyColumn(table);
-        const { data, error } = await supabase
-          .from(table)
-          .delete()
-          .eq(keyColumn, id)
-          .eq('version', version)
-          .select();
-
-        if (error) {
-          console.error('Error deleting from the database:', error);
-          throw error;
-        }
-
-        if (!data || data.length === 0) {
-          throw new Error(
-            `Delete affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${id}) and version (${version}) exist and are accessible.`,
-          );
-        }
-
-        return JSON.stringify({ id, version, data: data ?? [] });
-      }
+      case 'delete':
+        return handleDelete(supabase, input);
 
       default: {
-        const exhaustiveCheck: never = input.operation;
-        throw new Error(`Unsupported operation: ${exhaustiveCheck}`);
+        const exhaustiveCheck: never = input;
+        throw new Error('Unsupported operation supplied to CRUD tool.');
       }
     }
   } catch (error) {
@@ -352,7 +386,7 @@ export function regCrudTool(server: McpServer, bearerKey?: string | SupabaseSess
     'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id and version).',
     toolParamsSchema,
     async (rawInput) => {
-      const input = refinedInputSchema.parse(rawInput);
+      const input = refinedInputSchema.parse(rawInput) as CrudOperationInput;
       const result = await performCrud(input, bearerKey);
       return {
         content: [
