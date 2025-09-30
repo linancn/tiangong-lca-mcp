@@ -22,6 +22,7 @@ export interface AuthResult {
 export interface SupabaseSessionPayload {
   access_token: string;
   refresh_token?: string | null;
+  expires_at?: number | null;
 }
 
 type CachedAuthPayload =
@@ -30,6 +31,113 @@ type CachedAuthPayload =
       userId?: string;
       session?: SupabaseSessionPayload | null;
     };
+
+const SESSION_EXPIRY_BUFFER_SECONDS = 30;
+
+function normalizeSupabaseSessionPayload(input: unknown): SupabaseSessionPayload | undefined {
+  if (!input) {
+    return undefined;
+  }
+
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (!trimmed.startsWith('{')) {
+      return undefined;
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      return normalizeSupabaseSessionPayload(parsed);
+    } catch (_error) {
+      return undefined;
+    }
+  }
+
+  if (typeof input !== 'object') {
+    return undefined;
+  }
+
+  const record = input as Record<string, unknown>;
+  const candidateAccessToken = record['access_token'] ?? record['accessToken'];
+  const accessToken = typeof candidateAccessToken === 'string' ? candidateAccessToken : undefined;
+
+  if (!accessToken || accessToken.length === 0) {
+    return undefined;
+  }
+
+  const candidateRefreshToken = record['refresh_token'] ?? record['refreshToken'];
+  const refreshToken =
+    typeof candidateRefreshToken === 'string'
+      ? candidateRefreshToken
+      : candidateRefreshToken === null
+        ? null
+        : undefined;
+
+  const candidateExpiresAt = record['expires_at'] ?? record['expiresAt'];
+  const expiresAt =
+    typeof candidateExpiresAt === 'number'
+      ? candidateExpiresAt
+      : candidateExpiresAt === null
+        ? null
+        : undefined;
+
+  const normalized: SupabaseSessionPayload = {
+    access_token: accessToken,
+  };
+
+  if (refreshToken !== undefined) {
+    normalized.refresh_token = refreshToken;
+  }
+
+  if (expiresAt !== undefined) {
+    normalized.expires_at = expiresAt;
+  }
+
+  return normalized;
+}
+
+function isSupabaseSessionReusable(
+  session?: SupabaseSessionPayload | null,
+): session is SupabaseSessionPayload {
+  if (!session) {
+    return false;
+  }
+
+  if (typeof session.access_token !== 'string' || session.access_token.length === 0) {
+    return false;
+  }
+
+  const expiresAt =
+    typeof session.expires_at === 'number'
+      ? session.expires_at
+      : session.expires_at === null
+        ? null
+        : undefined;
+
+  if (!expiresAt) {
+    return false;
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return expiresAt - nowSeconds > SESSION_EXPIRY_BUFFER_SECONDS;
+}
+
+function calculateCacheTtlSeconds(session: SupabaseSessionPayload): number | null {
+  const expiresAt = typeof session.expires_at === 'number' ? session.expires_at : null;
+
+  if (!expiresAt) {
+    return null;
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const remaining = Math.floor(expiresAt - nowSeconds);
+
+  if (remaining <= 0) {
+    return null;
+  }
+
+  return Math.max(1, Math.min(remaining, 3600));
+}
 
 /**
  * 判断 token 类型
@@ -105,47 +213,41 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
     let cachedSession: SupabaseSessionPayload | undefined;
 
     if (cachedPayload) {
+      const applyCachedObject = (record: Record<string, unknown>) => {
+        const recordUserId = record['userId'];
+        if (typeof recordUserId === 'string') {
+          cachedUserId = recordUserId;
+        }
+
+        if ('session' in record) {
+          const normalized = normalizeSupabaseSessionPayload(record['session']);
+          if (normalized) {
+            cachedSession = normalized;
+          }
+        }
+      };
+
       if (typeof cachedPayload === 'string') {
         try {
-          const parsed = JSON.parse(cachedPayload) as CachedAuthPayload;
-          if (parsed && typeof parsed === 'object') {
-            if (typeof parsed.userId === 'string') {
-              cachedUserId = parsed.userId;
-            }
-            if (parsed.session && typeof parsed.session === 'object') {
-              const { access_token, refresh_token } = parsed.session;
-              if (typeof access_token === 'string' && access_token.length > 0) {
-                cachedSession = {
-                  access_token,
-                  refresh_token: typeof refresh_token === 'string' ? refresh_token : null,
-                };
-              }
-            }
-          }
+          const parsed = JSON.parse(cachedPayload) as Record<string, unknown>;
+          applyCachedObject(parsed);
         } catch (_error) {
           cachedUserId = cachedPayload;
         }
       } else if (typeof cachedPayload === 'object') {
-        if (typeof cachedPayload.userId === 'string') {
-          cachedUserId = cachedPayload.userId;
-        }
-        if (cachedPayload.session && typeof cachedPayload.session === 'object') {
-          const { access_token, refresh_token } = cachedPayload.session;
-          if (typeof access_token === 'string' && access_token.length > 0) {
-            cachedSession = {
-              access_token,
-              refresh_token: typeof refresh_token === 'string' ? refresh_token : null,
-            };
-          }
-        }
+        applyCachedObject(cachedPayload as Record<string, unknown>);
       }
     }
 
-    if (cachedUserId && cachedSession) {
-      try {
-        await redis.expire(cacheKey, 3600);
-      } catch (error) {
-        console.warn('Failed to refresh Redis TTL for cached Supabase session:', error);
+    if (cachedUserId && isSupabaseSessionReusable(cachedSession)) {
+      const ttlSeconds = calculateCacheTtlSeconds(cachedSession);
+
+      if (ttlSeconds) {
+        try {
+          await redis.expire(cacheKey, ttlSeconds);
+        } catch (error) {
+          console.warn('Failed to refresh Redis TTL for cached Supabase session:', error);
+        }
       }
 
       return {
@@ -180,6 +282,7 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
       ? {
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token ?? null,
+          expires_at: typeof data.session.expires_at === 'number' ? data.session.expires_at : null,
         }
       : undefined;
 
@@ -188,7 +291,8 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
       session: sessionTokens ?? null,
     };
 
-    await redis.setex(cacheKey, 3600, JSON.stringify(cacheValue));
+    const cacheTtl = sessionTokens ? (calculateCacheTtlSeconds(sessionTokens) ?? 3600) : 3600;
+    await redis.setex(cacheKey, cacheTtl, JSON.stringify(cacheValue));
 
     return {
       isAuthenticated: true,

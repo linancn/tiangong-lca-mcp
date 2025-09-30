@@ -56,7 +56,9 @@ function normalizeSupabaseSession(input: unknown): NormalizedSupabaseSession | u
 
   if (accessToken) {
     const candidateRefreshToken = record['refreshToken'] ?? record['refresh_token'];
-    const refreshToken = isNonEmptyString(candidateRefreshToken) ? candidateRefreshToken : undefined;
+    const refreshToken = isNonEmptyString(candidateRefreshToken)
+      ? candidateRefreshToken
+      : undefined;
 
     return {
       accessToken,
@@ -84,27 +86,24 @@ async function insert(
 ): Promise<string> {
   try {
     const normalizedSession = normalizeSupabaseSession(bearerKey);
-    const bearerToken = normalizedSession?.accessToken ?? (typeof bearerKey === 'string' ? bearerKey : undefined);
+    const bearerToken =
+      normalizedSession?.accessToken ?? (typeof bearerKey === 'string' ? bearerKey : undefined);
 
-    const supabase = createClient(
-      supabase_base_url,
-      supabase_publishable_key,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: Boolean(normalizedSession?.refreshToken),
-        },
-        ...(bearerToken
-          ? {
-              global: {
-                headers: {
-                  Authorization: `Bearer ${bearerToken}`,
-                },
-              },
-            }
-          : {}),
+    const supabase = createClient(supabase_base_url, supabase_publishable_key, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: Boolean(normalizedSession?.refreshToken),
       },
-    );
+      ...(bearerToken
+        ? {
+            global: {
+              headers: {
+                Authorization: `Bearer ${bearerToken}`,
+              },
+            },
+          }
+        : {}),
+    });
 
     if (normalizedSession?.refreshToken) {
       const { error: setSessionError } = await supabase.auth.setSession({
@@ -149,25 +148,20 @@ async function insert(
 }
 
 export function regCrudTool(server: McpServer, bearerKey?: string | SupabaseSessionLike): void {
-  server.tool(
-    'Database_CRUD_Tool',
-    'Perform CRUD operations.',
-    input_schema,
-    async ({ query }) => {
-      const result = await insert(
+  server.tool('Database_CRUD_Tool', 'Perform CRUD operations.', input_schema, async ({ query }) => {
+    const result = await insert(
+      {
+        query,
+      },
+      bearerKey,
+    );
+    return {
+      content: [
         {
-          query,
+          type: 'text',
+          text: result,
         },
-        bearerKey,
-      );
-      return {
-        content: [
-          {
-            type: 'text',
-            text: result,
-          },
-        ],
-      };
-    },
-  );
+      ],
+    };
+  });
 }
