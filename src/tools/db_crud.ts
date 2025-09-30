@@ -2,97 +2,25 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
+import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
+import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
 
 const input_schema = {
   query: z.number().min(1).describe('Queries from user'),
 };
-
-type SupabaseSessionLike =
-  | {
-      accessToken: string;
-      refreshToken?: string | null;
-    }
-  | {
-      access_token: string;
-      refresh_token?: string | null;
-    };
-
-interface NormalizedSupabaseSession {
-  accessToken: string;
-  refreshToken?: string;
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.length > 0;
-}
-
-function normalizeSupabaseSession(input: unknown): NormalizedSupabaseSession | undefined {
-  if (!input) {
-    return undefined;
-  }
-
-  if (typeof input === 'string') {
-    const trimmed = input.trim();
-    if (!trimmed.startsWith('{')) {
-      return undefined;
-    }
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      return normalizeSupabaseSession(parsed);
-    } catch (_error) {
-      return undefined;
-    }
-  }
-
-  if (typeof input !== 'object') {
-    return undefined;
-  }
-
-  const record = input as Record<string, unknown>;
-
-  const candidateAccessToken = record['accessToken'] ?? record['access_token'];
-  const accessToken = isNonEmptyString(candidateAccessToken) ? candidateAccessToken : undefined;
-
-  if (accessToken) {
-    const candidateRefreshToken = record['refreshToken'] ?? record['refresh_token'];
-    const refreshToken = isNonEmptyString(candidateRefreshToken)
-      ? candidateRefreshToken
-      : undefined;
-
-    return {
-      accessToken,
-      refreshToken,
-    };
-  }
-
-  const nestedSessionKeys = ['session', 'supabaseSession', 'supabaseSessionTokens'];
-  for (const key of nestedSessionKeys) {
-    const nestedValue = record[key];
-    if (nestedValue && nestedValue !== input) {
-      const normalized = normalizeSupabaseSession(nestedValue);
-      if (normalized) {
-        return normalized;
-      }
-    }
-  }
-
-  return undefined;
-}
 
 async function insert(
   { query }: { query: number },
   bearerKey?: string | SupabaseSessionLike,
 ): Promise<string> {
   try {
-    const normalizedSession = normalizeSupabaseSession(bearerKey);
-    const bearerToken =
-      normalizedSession?.accessToken ?? (typeof bearerKey === 'string' ? bearerKey : undefined);
+    const { session: normalizedSession, accessToken: bearerToken } =
+      resolveSupabaseAccessToken(bearerKey);
 
     const supabase = createClient(supabase_base_url, supabase_publishable_key, {
       auth: {
         persistSession: false,
-        autoRefreshToken: Boolean(normalizedSession?.refreshToken),
+        autoRefreshToken: Boolean(normalizedSession?.refresh_token),
       },
       ...(bearerToken
         ? {
@@ -105,10 +33,10 @@ async function insert(
         : {}),
     });
 
-    if (normalizedSession?.refreshToken) {
+    if (normalizedSession?.refresh_token) {
       const { error: setSessionError } = await supabase.auth.setSession({
-        access_token: normalizedSession.accessToken,
-        refresh_token: normalizedSession.refreshToken,
+        access_token: normalizedSession.access_token,
+        refresh_token: normalizedSession.refresh_token,
       });
 
       if (setSessionError) {

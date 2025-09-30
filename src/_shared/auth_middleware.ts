@@ -3,6 +3,10 @@ import { Redis } from '@upstash/redis';
 import { authenticateCognitoToken } from './cognito_auth.js';
 import { redis_token, redis_url, supabase_base_url, supabase_publishable_key } from './config.js';
 import decodeApiKey from './decode_api_key.js';
+import type { SupabaseSessionPayload } from './supabase_session.js';
+import { normalizeSupabaseSession } from './supabase_session.js';
+
+export type { SupabaseSessionPayload } from './supabase_session.js';
 
 const supabase = createClient(supabase_base_url, supabase_publishable_key);
 
@@ -19,12 +23,6 @@ export interface AuthResult {
   supabaseSession?: SupabaseSessionPayload;
 }
 
-export interface SupabaseSessionPayload {
-  access_token: string;
-  refresh_token?: string | null;
-  expires_at?: number | null;
-}
-
 type CachedAuthPayload =
   | string
   | {
@@ -33,68 +31,6 @@ type CachedAuthPayload =
     };
 
 const SESSION_EXPIRY_BUFFER_SECONDS = 30;
-
-function normalizeSupabaseSessionPayload(input: unknown): SupabaseSessionPayload | undefined {
-  if (!input) {
-    return undefined;
-  }
-
-  if (typeof input === 'string') {
-    const trimmed = input.trim();
-    if (!trimmed.startsWith('{')) {
-      return undefined;
-    }
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      return normalizeSupabaseSessionPayload(parsed);
-    } catch (_error) {
-      return undefined;
-    }
-  }
-
-  if (typeof input !== 'object') {
-    return undefined;
-  }
-
-  const record = input as Record<string, unknown>;
-  const candidateAccessToken = record['access_token'] ?? record['accessToken'];
-  const accessToken = typeof candidateAccessToken === 'string' ? candidateAccessToken : undefined;
-
-  if (!accessToken || accessToken.length === 0) {
-    return undefined;
-  }
-
-  const candidateRefreshToken = record['refresh_token'] ?? record['refreshToken'];
-  const refreshToken =
-    typeof candidateRefreshToken === 'string'
-      ? candidateRefreshToken
-      : candidateRefreshToken === null
-        ? null
-        : undefined;
-
-  const candidateExpiresAt = record['expires_at'] ?? record['expiresAt'];
-  const expiresAt =
-    typeof candidateExpiresAt === 'number'
-      ? candidateExpiresAt
-      : candidateExpiresAt === null
-        ? null
-        : undefined;
-
-  const normalized: SupabaseSessionPayload = {
-    access_token: accessToken,
-  };
-
-  if (refreshToken !== undefined) {
-    normalized.refresh_token = refreshToken;
-  }
-
-  if (expiresAt !== undefined) {
-    normalized.expires_at = expiresAt;
-  }
-
-  return normalized;
-}
 
 function isSupabaseSessionReusable(
   session?: SupabaseSessionPayload | null,
@@ -220,7 +156,7 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
         }
 
         if ('session' in record) {
-          const normalized = normalizeSupabaseSessionPayload(record['session']);
+          const normalized = normalizeSupabaseSession(record['session']);
           if (normalized) {
             cachedSession = normalized;
           }
