@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, FunctionRegion, type SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
@@ -50,7 +50,7 @@ const toolParamsSchema = {
   operation: z
     .enum(['select', 'insert', 'update', 'delete'])
     .describe(
-      'CRUD operation to perform: select optionally accepts limit/id/filters, insert requires jsonOrdered (id auto-generated), update requires id and jsonOrdered, delete requires id.',
+      'CRUD operation to perform: select optionally accepts limit/id/version/filters, insert requires jsonOrdered (id auto-generated), update requires id/version/jsonOrdered, delete requires id/version.',
     ),
   table: tableSchema.describe(
     'Target table for the operation; must be one of contacts, flows, lifecyclemodels, processes, or sources.',
@@ -67,6 +67,13 @@ const toolParamsSchema = {
     .optional()
     .describe(
       'UUID string stored in the `id` column (required for update/delete, optional filter for select).',
+    ),
+  version: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'String stored in the `version` column (required for update/delete, optional filter for select).',
     ),
   filters: filtersSchema
     .optional()
@@ -100,6 +107,13 @@ const refinedInputSchema = z
             path: ['id'],
           });
         }
+        if (data.version === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'version is required for update operations.',
+            path: ['version'],
+          });
+        }
         if (data.jsonOrdered === undefined) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -116,6 +130,13 @@ const refinedInputSchema = z
             path: ['id'],
           });
         }
+        if (data.version === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'version is required for delete operations.',
+            path: ['version'],
+          });
+        }
         break;
       default:
         break;
@@ -124,7 +145,9 @@ const refinedInputSchema = z
 
 type CrudInput = z.infer<typeof refinedInputSchema>;
 
-async function createSupabaseClient(bearerKey?: string | SupabaseSessionLike) {
+async function createSupabaseClient(
+  bearerKey?: string | SupabaseSessionLike,
+): Promise<{ supabase: SupabaseClient; accessToken?: string }> {
   const { session: normalizedSession, accessToken: bearerToken } =
     resolveSupabaseAccessToken(bearerKey);
 
@@ -155,7 +178,7 @@ async function createSupabaseClient(bearerKey?: string | SupabaseSessionLike) {
     }
   }
 
-  return supabase;
+  return { supabase, accessToken: normalizedSession?.access_token ?? bearerToken };
 }
 
 async function performCrud(
@@ -163,11 +186,11 @@ async function performCrud(
   bearerKey?: string | SupabaseSessionLike,
 ): Promise<string> {
   try {
-    const supabase = await createSupabaseClient(bearerKey);
+    const { supabase, accessToken } = await createSupabaseClient(bearerKey);
 
     switch (input.operation) {
       case 'select': {
-        const { table, limit, id, filters } = input;
+        const { table, limit, id, version, filters } = input;
         const keyColumn = getPrimaryKeyColumn(table);
         let queryBuilder = supabase.from(table).select('*');
 
@@ -179,6 +202,10 @@ async function performCrud(
 
         if (id) {
           queryBuilder = queryBuilder.eq(keyColumn, id);
+        }
+
+        if (version) {
+          queryBuilder = queryBuilder.eq('version', version);
         }
 
         if (limit) {
@@ -218,47 +245,94 @@ async function performCrud(
       }
 
       case 'update': {
-        const { table, id, jsonOrdered } = input;
+        const { table, id, version, jsonOrdered } = input;
 
         if (id === undefined) {
           throw new Error('id is required for update operations.');
+        }
+
+        if (version === undefined) {
+          throw new Error('version is required for update operations.');
         }
 
         if (jsonOrdered === undefined) {
           throw new Error('jsonOrdered is required for update operations.');
         }
 
-        const keyColumn = getPrimaryKeyColumn(table);
-        const { data, error } = await supabase
-          .from(table)
-          .update({ json_ordered: jsonOrdered })
-          .eq(keyColumn, id)
-          .select();
+        if (!accessToken) {
+          throw new Error(
+            'An authenticated Supabase session is required for update operations. Provide a valid access token.',
+          );
+        }
+
+        const { data: functionPayload, error } = await supabase.functions.invoke(
+          'update_data',
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: { id, version, table, data: { json_ordered: jsonOrdered } },
+            region: FunctionRegion.UsEast1,
+          },
+        );
 
         if (error) {
-          console.error('Error updating the database:', error);
+          console.error('Error invoking update_data function:', error);
           throw error;
         }
 
-        return JSON.stringify({ id, data: data ?? [] });
+        const { data: updatedRows, error: functionError } = (functionPayload ?? {}) as {
+          data?: JsonValue[];
+          error?: { message?: string } & Record<string, unknown>;
+        };
+
+        if (functionError) {
+          console.error('Supabase update_data returned an error:', functionError);
+          const message = functionError.message ?? 'Supabase update_data function rejected the request.';
+          throw new Error(message);
+        }
+
+        if (!updatedRows || updatedRows.length === 0) {
+          const keyColumn = getPrimaryKeyColumn(table);
+          throw new Error(
+            `Update affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${id}) and version (${version}) exist and are accessible.`,
+          );
+        }
+
+        return JSON.stringify({ id, version, data: updatedRows ?? [] });
       }
 
       case 'delete': {
-        const { table, id } = input;
+        const { table, id, version } = input;
 
         if (id === undefined) {
           throw new Error('id is required for delete operations.');
         }
 
+        if (version === undefined) {
+          throw new Error('version is required for delete operations.');
+        }
+
         const keyColumn = getPrimaryKeyColumn(table);
-        const { data, error } = await supabase.from(table).delete().eq(keyColumn, id).select();
+        const { data, error } = await supabase
+          .from(table)
+          .delete()
+          .eq(keyColumn, id)
+          .eq('version', version)
+          .select();
 
         if (error) {
           console.error('Error deleting from the database:', error);
           throw error;
         }
 
-        return JSON.stringify({ id, data: data ?? [] });
+        if (!data || data.length === 0) {
+          throw new Error(
+            `Delete affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${id}) and version (${version}) exist and are accessible.`,
+          );
+        }
+
+        return JSON.stringify({ id, version, data: data ?? [] });
       }
 
       default: {
@@ -275,7 +349,7 @@ async function performCrud(
 export function regCrudTool(server: McpServer, bearerKey?: string | SupabaseSessionLike): void {
   server.tool(
     'Database_CRUD_Tool',
-    'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id).',
+    'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id and version).',
     toolParamsSchema,
     async (rawInput) => {
       const input = refinedInputSchema.parse(rawInput);
