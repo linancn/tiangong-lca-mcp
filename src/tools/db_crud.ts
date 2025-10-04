@@ -85,7 +85,9 @@ const toolParamsSchema = {
     ),
   filters: filtersSchema
     .optional()
-    .describe('Optional equality filters as JSON object, e.g. { "name": "Example" }. Only used for select operations. Leave empty for insert/update/delete operations.'),
+    .describe(
+      'Optional equality filters as JSON object, e.g. { "name": "Example" }. Only used for select operations. Leave empty for insert/update/delete operations.',
+    ),
   jsonOrdered: jsonValueSchema
     .optional()
     .describe(
@@ -227,9 +229,7 @@ function validateJsonOrdered(table: AllowedTable, jsonOrdered: JsonValue): void 
       const errorDetails = validationResult.error?.issues
         ? JSON.stringify(validationResult.error.issues, null, 2)
         : JSON.stringify(validationResult.error);
-      throw new Error(
-        `Validation failed for table "${table}". Errors: ${errorDetails}`,
-      );
+      throw new Error(`Validation failed for table "${table}". Errors: ${errorDetails}`);
     }
   } catch (error) {
     if (error instanceof Error) {
