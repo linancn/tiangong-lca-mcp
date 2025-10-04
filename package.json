@@ -27,23 +27,23 @@
     "ncu:update": "npx npm-check-updates -u"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.2",
+    "@modelcontextprotocol/sdk": "^1.19.1",
     "@supabase/supabase-js": "^2.58.0",
+    "@tiangong-lca/tidas-sdk": "^0.1.16",
     "@types/express": "^5.0.3",
     "@upstash/redis": "^1.35.4",
-    "aws-jwt-verify": "^5.1.0",
+    "aws-jwt-verify": "^5.1.1",
     "olca-ipc": "^2.2.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "^0.16.8",
-    "@tiangong-lca/tidas-sdk": "^0.1.16",
+    "@modelcontextprotocol/inspector": "^0.17.0",
     "dotenv-cli": "^10.0.0",
     "npm-check-updates": "^19.0.0",
     "prettier": "^3.6.2",
     "prettier-plugin-organize-imports": "^4.3.0",
     "shx": "^0.4.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   }
 }
