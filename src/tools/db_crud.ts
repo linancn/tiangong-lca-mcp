@@ -2,6 +2,13 @@ import { randomUUID } from 'node:crypto';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createClient, FunctionRegion, type SupabaseClient } from '@supabase/supabase-js';
+import {
+  createContact,
+  createFlow,
+  createLifeCycleModel,
+  createProcess,
+  createSource,
+} from '@tiangong-lca/tidas-sdk/core';
 import { z } from 'zod';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
@@ -78,7 +85,7 @@ const toolParamsSchema = {
     ),
   filters: filtersSchema
     .optional()
-    .describe('Equality filters such as { "name": "Example" } (select only).'),
+    .describe('Optional equality filters as JSON object, e.g. { "name": "Example" }. Only used for select operations. Leave empty for insert/update/delete operations.'),
   jsonOrdered: jsonValueSchema
     .optional()
     .describe(
@@ -174,6 +181,64 @@ function ensureRows(rows: unknown, errorMessage: string): JsonValue[] {
   return rows as JsonValue[];
 }
 
+/**
+ * Validate jsonOrdered data using tidas-sdk based on table type
+ * @param table - The table name (contacts, flows, lifecyclemodels, processes, sources)
+ * @param jsonOrdered - The JSON data to validate
+ * @throws Error if validation fails
+ */
+function validateJsonOrdered(table: AllowedTable, jsonOrdered: JsonValue): void {
+  try {
+    let validationResult: { success: boolean; error?: any };
+
+    switch (table) {
+      case 'contacts': {
+        const contact = createContact(jsonOrdered as any, { mode: 'strict' });
+        validationResult = contact.validate();
+        break;
+      }
+      case 'flows': {
+        const flow = createFlow(jsonOrdered as any, { mode: 'strict' });
+        validationResult = flow.validate();
+        break;
+      }
+      case 'lifecyclemodels': {
+        const lifecycleModel = createLifeCycleModel(jsonOrdered as any, { mode: 'strict' });
+        validationResult = lifecycleModel.validate();
+        break;
+      }
+      case 'processes': {
+        const process = createProcess(jsonOrdered as any, { mode: 'strict' });
+        validationResult = process.validate();
+        break;
+      }
+      case 'sources': {
+        const source = createSource(jsonOrdered as any, { mode: 'strict' });
+        validationResult = source.validate();
+        break;
+      }
+      default: {
+        const exhaustiveCheck: never = table;
+        throw new Error(`Unsupported table type: ${table}`);
+      }
+    }
+
+    if (!validationResult.success) {
+      const errorDetails = validationResult.error?.issues
+        ? JSON.stringify(validationResult.error.issues, null, 2)
+        : JSON.stringify(validationResult.error);
+      throw new Error(
+        `Validation failed for table "${table}". Errors: ${errorDetails}`,
+      );
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to validate jsonOrdered for table "${table}": ${error.message}`);
+    }
+    throw error;
+  }
+}
+
 async function createSupabaseClient(
   bearerKey?: string | SupabaseSessionLike,
 ): Promise<{ supabase: SupabaseClient; accessToken?: string }> {
@@ -217,7 +282,10 @@ async function handleSelect(supabase: SupabaseClient, input: SelectInput): Promi
 
   if (filters) {
     for (const [column, value] of Object.entries(filters)) {
-      queryBuilder = queryBuilder.eq(column, value);
+      // Only apply filter if value is not null or undefined
+      if (value !== null && value !== undefined) {
+        queryBuilder = queryBuilder.eq(column, value);
+      }
     }
   }
 
@@ -249,6 +317,9 @@ async function handleInsert(supabase: SupabaseClient, input: InsertInput): Promi
   if (jsonOrdered === undefined) {
     throw new Error('jsonOrdered is required for insert operations.');
   }
+
+  // Validate jsonOrdered before inserting
+  validateJsonOrdered(table, jsonOrdered);
 
   const newId = randomUUID();
   const keyColumn = getPrimaryKeyColumn(table);
@@ -283,6 +354,9 @@ async function handleUpdate(
   if (jsonOrdered === undefined) {
     throw new Error('jsonOrdered is required for update operations.');
   }
+
+  // Validate jsonOrdered before updating
+  validateJsonOrdered(table, jsonOrdered);
 
   const token = requireAccessToken(accessToken);
 
