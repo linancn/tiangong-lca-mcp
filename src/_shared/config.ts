@@ -7,7 +7,6 @@ export const COGNITO_ISSUER = `https://cognito-idp.${COGNITO_REGION}.amazonaws.c
 export const COGNITO_JWKS_URL = `${COGNITO_ISSUER}/.well-known/jwks.json`;
 export const COGNITO_BASE_URL = 'https://us-east-1snsyimond.auth.us-east-1.amazoncognito.com';
 
-// Legacy Supabase Configuration (可以考虑移除)
 export const supabase_base_url =
   process.env.SUPABASE_BASE_URL ?? 'https://qgzvkongdjqiiamzbbts.supabase.co';
 export const supabase_publishable_key =
