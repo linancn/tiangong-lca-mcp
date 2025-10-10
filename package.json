@@ -27,8 +27,8 @@
     "ncu:update": "npx npm-check-updates -u"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.19.1",
-    "@supabase/supabase-js": "^2.74.0",
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "@supabase/supabase-js": "^2.75.0",
     "@tiangong-lca/tidas-sdk": "^0.1.16",
     "@types/express": "^5.0.3",
     "@upstash/redis": "^1.35.5",
