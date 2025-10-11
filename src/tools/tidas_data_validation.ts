@@ -181,7 +181,7 @@ export function regTidasValidationTool(server: McpServer): void {
   ).join('\n');
 
   server.tool(
-    'tidas_validate_data',
+    'Tidas_Data_Validate_Tool',
     `Validate LCA data against Tidas SDK schemas.
 
 Supported entity types (8 types):
