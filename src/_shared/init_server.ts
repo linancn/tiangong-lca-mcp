@@ -1,7 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { regOpenLcaPrompts } from '../prompts/lca_calculation.js';
 import { regOpenLcaResources } from '../resources/lca_calculation.js';
-import { regBomCalculationTool } from '../tools/bom_calculation.js';
 import { regFlowSearchTool } from '../tools/flow_hybrid_search.js';
 import { regLcaCalculationGuidanceTool } from '../tools/lca_calculation_guidance.js';
 import { regLifecycleModelSearchTool } from '../tools/life_cycle_model_hybrid_search.js';
@@ -22,7 +21,6 @@ export function initializeServer(bearerKey?: string): McpServer {
   regFlowSearchTool(server, bearerKey);
   regProcessSearchTool(server, bearerKey);
   regLifecycleModelSearchTool(server, bearerKey);
-  regBomCalculationTool(server);
   regOpenLcaLciaTool(server);
   regOpenLcaListProductSystemsTool(server);
   regOpenLcaListLCIAMethodsTool(server);
