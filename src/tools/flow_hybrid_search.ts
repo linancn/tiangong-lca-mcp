@@ -37,7 +37,7 @@ async function searchFlows({ query }: { query: string }, bearerKey?: string): Pr
 }
 
 export function regFlowSearchTool(server: McpServer, bearerKey?: string): void {
-  server.tool('Search_flows_Tool', 'Search LCA flows data.', input_schema, async ({ query }) => {
+  server.tool('Search_Flows_Tool', 'Search LCA flows data.', input_schema, async ({ query }) => {
     const result = await searchFlows(
       {
         query,

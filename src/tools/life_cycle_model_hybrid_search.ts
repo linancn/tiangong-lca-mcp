@@ -41,7 +41,7 @@ async function searchLifecycleModels(
 
 export function regLifecycleModelSearchTool(server: McpServer, bearerKey?: string): void {
   server.tool(
-    'Search_life_cycle_models_Tool',
+    'Search_Life_Cycle_Models_Tool',
     'Search LCA life cycle models data.',
     input_schema,
     async ({ query }) => {

@@ -37,7 +37,7 @@ async function searchProcesses({ query }: { query: string }, bearerKey?: string)
 
 export function regProcessSearchTool(server: McpServer, bearerKey?: string): void {
   server.tool(
-    'Search_processes_Tool',
+    'Search_Processes_Tool',
     'Search LCA processes data.',
     input_schema,
     async ({ query }) => {
