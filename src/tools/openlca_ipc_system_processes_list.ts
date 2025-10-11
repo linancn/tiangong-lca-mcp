@@ -6,19 +6,20 @@ const input_schema = {
   serverUrl: z.string().default('http://localhost:8080').describe('OpenLCA IPC server URL'),
 };
 
-async function listProductSystems({
+async function listSystemProcesses({
   serverUrl = 'http://localhost:8080',
 }: {
   serverUrl?: string;
 }): Promise<string> {
   const client = o.IpcClient.on(serverUrl);
 
-  const productSystems = await client.getDescriptors(o.RefType.ProductSystem);
-  if (productSystems.length === 0) {
-    throw new Error('No product systems found');
+  const processes = await client.getDescriptors(o.RefType.Process);
+  const systemProcesses = processes.filter((proc) => proc.processType === o.ProcessType.LCI_RESULT);
+
+  if (systemProcesses.length === 0) {
+    throw new Error('No system processes found');
   }
-  // console.log(productSystems)
-  const resultsObj = productSystems.map((sys) => {
+  const resultsObj = systemProcesses.map((sys) => {
     // Create full object
     const result: Record<string, any> = {
       id: sys.id,
@@ -45,13 +46,13 @@ async function listProductSystems({
   return JSON.stringify(resultsObj);
 }
 
-export function regOpenLcaListProductSystemsTool(server: McpServer) {
+export function regOpenLcaListSystemProcessesTool(server: McpServer) {
   server.tool(
-    'OpenLCA_List_Product_Systems_Tool',
-    'List all product systems using OpenLCA.',
+    'OpenLCA_List_System_Processes_Tool',
+    'List all system processes using OpenLCA.',
     input_schema,
     async ({ serverUrl }) => {
-      const result = await listProductSystems({
+      const result = await listSystemProcesses({
         serverUrl: serverUrl,
       });
 
