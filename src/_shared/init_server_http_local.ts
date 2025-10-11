@@ -4,6 +4,7 @@ import { regOpenLcaResources } from '../resources/lca_calculation.js';
 import { regOpenLcaLciaTool } from '../tools/openlca_ipc_lcia.js';
 import { regOpenLcaListLCIAMethodsTool } from '../tools/openlca_ipc_lcia_methods_list.js';
 import { regOpenLcaListProductSystemsTool } from '../tools/openlca_ipc_process_list.js';
+import { regTidasValidationTool } from '../tools/tidas_data_validation.js';
 
 export function initializeServer(): McpServer {
   const server = new McpServer({
@@ -14,6 +15,7 @@ export function initializeServer(): McpServer {
   regOpenLcaLciaTool(server);
   regOpenLcaListLCIAMethodsTool(server);
   regOpenLcaListProductSystemsTool(server);
+  regTidasValidationTool(server);
   regOpenLcaPrompts(server);
   regOpenLcaResources(server);
 

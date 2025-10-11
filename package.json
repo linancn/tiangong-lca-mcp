@@ -1,6 +1,6 @@
 {
   "name": "@tiangong-lca/mcp-server",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "TianGong LCA MCP Server",
   "license": "MIT",
   "author": "Nan LI",
@@ -22,6 +22,7 @@
     "start": "npm run build && npx dotenv -e .env -- npx @modelcontextprotocol/inspector node dist/src/index.js",
     "start:server": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
     "start:server-local": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server_local.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
+    "test": "node test/tidas_validation_test.js",
     "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\"",
     "ncu": "npx npm-check-updates",
     "ncu:update": "npx npm-check-updates -u"
