@@ -1,12 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createClient, FunctionRegion, type SupabaseClient } from '@supabase/supabase-js';
-import {
-  createContact,
-  createFlow,
-  createLifeCycleModel,
-  createProcess,
-  createSource,
-} from '@tiangong-lca/tidas-sdk/core';
 import { z } from 'zod';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
@@ -20,6 +13,7 @@ const allowedTables = ['contacts', 'flows', 'lifecyclemodels', 'processes', 'sou
 type AllowedTable = (typeof allowedTables)[number];
 const tableSchema = z.enum(allowedTables);
 const UPDATE_FUNCTION_NAME = 'update_data';
+const MAX_VALIDATION_ERROR_LENGTH = 4_000;
 
 const tablePrimaryKey: Record<AllowedTable, string> = {
   contacts: 'id',
@@ -33,24 +27,13 @@ function getPrimaryKeyColumn(table: AllowedTable): string {
   return tablePrimaryKey[table] ?? 'id';
 }
 
-const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValueSchema),
-    z.record(jsonValueSchema),
-  ]),
-);
-
 const filterValueSchema: z.ZodType<FilterValue> = z.union([
   z.string(),
   z.number(),
   z.boolean(),
   z.null(),
 ]);
-const filtersSchema: z.ZodType<Filters> = z.record(filterValueSchema);
+const filtersSchema: z.ZodType<Filters> = z.record(z.string(), filterValueSchema);
 
 const toolParamsSchema = {
   operation: z
@@ -86,7 +69,8 @@ const toolParamsSchema = {
     .describe(
       'Optional equality filters as JSON object, e.g. { "name": "Example" }. Only used for select operations. Leave empty for insert/update/delete operations.',
     ),
-  jsonOrdered: jsonValueSchema
+  jsonOrdered: z
+    .unknown()
     .optional()
     .describe(
       'JSON value persisted into json_ordered (required for insert/update; omit for select/delete).',
@@ -169,6 +153,47 @@ type UpdateFunctionPayload = {
   data?: JsonValue[] | null;
   error?: { message?: string } & Record<string, unknown>;
 };
+type TidasValidationResult = { success: boolean; error?: unknown };
+type StrictValidatorFactory = (
+  input: unknown,
+  options: { mode: 'strict' },
+) => { validate: () => TidasValidationResult };
+type TidasValidationFactoryMap = Record<AllowedTable, StrictValidatorFactory>;
+
+let tidasValidationFactoryMapPromise: Promise<TidasValidationFactoryMap> | undefined;
+
+function summarizeError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  try {
+    const serialized = JSON.stringify(error);
+    if (!serialized) {
+      return String(error);
+    }
+
+    return serialized.length > MAX_VALIDATION_ERROR_LENGTH
+      ? `${serialized.slice(0, MAX_VALIDATION_ERROR_LENGTH)}...`
+      : serialized;
+  } catch {
+    return String(error);
+  }
+}
+
+async function getTidasValidationFactoryMap(): Promise<TidasValidationFactoryMap> {
+  if (!tidasValidationFactoryMapPromise) {
+    tidasValidationFactoryMapPromise = import('@tiangong-lca/tidas-sdk/core').then((module) => ({
+      contacts: module.createContact as StrictValidatorFactory,
+      flows: module.createFlow as StrictValidatorFactory,
+      lifecyclemodels: module.createLifeCycleModel as StrictValidatorFactory,
+      processes: module.createProcess as StrictValidatorFactory,
+      sources: module.createSource as StrictValidatorFactory,
+    }));
+  }
+
+  return tidasValidationFactoryMapPromise;
+}
 
 function requireAccessToken(accessToken?: string): string {
   if (!accessToken) {
@@ -194,46 +219,14 @@ function ensureRows(rows: unknown, errorMessage: string): JsonValue[] {
  * @param jsonOrdered - The JSON data to validate
  * @throws Error if validation fails
  */
-function validateJsonOrdered(table: AllowedTable, jsonOrdered: JsonValue): void {
+async function validateJsonOrdered(table: AllowedTable, jsonOrdered: JsonValue): Promise<void> {
   try {
-    let validationResult: { success: boolean; error?: any };
-
-    switch (table) {
-      case 'contacts': {
-        const contact = createContact(jsonOrdered as any, { mode: 'strict' });
-        validationResult = contact.validate();
-        break;
-      }
-      case 'flows': {
-        const flow = createFlow(jsonOrdered as any, { mode: 'strict' });
-        validationResult = flow.validate();
-        break;
-      }
-      case 'lifecyclemodels': {
-        const lifecycleModel = createLifeCycleModel(jsonOrdered as any, { mode: 'strict' });
-        validationResult = lifecycleModel.validate();
-        break;
-      }
-      case 'processes': {
-        const process = createProcess(jsonOrdered as any, { mode: 'strict' });
-        validationResult = process.validate();
-        break;
-      }
-      case 'sources': {
-        const source = createSource(jsonOrdered as any, { mode: 'strict' });
-        validationResult = source.validate();
-        break;
-      }
-      default: {
-        const exhaustiveCheck: never = table;
-        throw new Error(`Unsupported table type: ${table}`);
-      }
-    }
+    const validationFactoryMap = await getTidasValidationFactoryMap();
+    const createValidator = validationFactoryMap[table];
+    const validationResult = createValidator(jsonOrdered, { mode: 'strict' }).validate();
 
     if (!validationResult.success) {
-      const errorDetails = validationResult.error?.issues
-        ? JSON.stringify(validationResult.error.issues, null, 2)
-        : JSON.stringify(validationResult.error);
+      const errorDetails = summarizeError(validationResult.error);
       throw new Error(`Validation failed for table "${table}". Errors: ${errorDetails}`);
     }
   } catch (error) {
@@ -327,13 +320,15 @@ async function handleInsert(supabase: SupabaseClient, input: InsertInput): Promi
     throw new Error('id is required for insert operations.');
   }
 
+  const jsonOrderedValue = jsonOrdered as JsonValue;
+
   // Validate jsonOrdered before inserting
-  validateJsonOrdered(table, jsonOrdered);
+  await validateJsonOrdered(table, jsonOrderedValue);
 
   const keyColumn = getPrimaryKeyColumn(table);
   const { data, error } = await supabase
     .from(table)
-    .insert([{ [keyColumn]: id, json_ordered: jsonOrdered }])
+    .insert([{ [keyColumn]: id, json_ordered: jsonOrderedValue }])
     .select();
 
   if (error) {
@@ -363,8 +358,10 @@ async function handleUpdate(
     throw new Error('jsonOrdered is required for update operations.');
   }
 
+  const jsonOrderedValue = jsonOrdered as JsonValue;
+
   // Validate jsonOrdered before updating
-  validateJsonOrdered(table, jsonOrdered);
+  await validateJsonOrdered(table, jsonOrderedValue);
 
   const token = requireAccessToken(accessToken);
 
@@ -372,7 +369,7 @@ async function handleUpdate(
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    body: { id, version, table, data: { json_ordered: jsonOrdered } },
+    body: { id, version, table, data: { json_ordered: jsonOrderedValue } },
     region: FunctionRegion.UsEast1,
   });
 
