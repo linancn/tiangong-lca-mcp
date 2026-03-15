@@ -241,7 +241,9 @@ async function validateJsonOrdered(table: AllowedTable, jsonOrdered: JsonValue):
 function sanitizeLifecycleModelRows(rows: JsonValue[]): JsonValue[] {
   return rows.map((row) => {
     const record =
-      row && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, JsonValue>) : {};
+      row && typeof row === 'object' && !Array.isArray(row)
+        ? (row as Record<string, JsonValue>)
+        : {};
     return {
       id: record.id ?? null,
       version: record.version ?? null,
