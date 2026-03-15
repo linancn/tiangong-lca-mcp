@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
 import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
+import { prepareLifecycleModelFile } from './life_cycle_model_file_tools.js';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 type FilterValue = string | number | boolean | null;
@@ -73,7 +74,7 @@ const toolParamsSchema = {
     .unknown()
     .optional()
     .describe(
-      'JSON value persisted into json_ordered (required for insert/update; omit for select/delete).',
+      'JSON value persisted into json_ordered (required for insert/update; omit for select/delete). For lifecyclemodels, native files, platform bundles, raw records, or a single-item array of those are accepted; json_tg and rule_verification are derived automatically before write.',
     ),
 } as const satisfies z.ZodRawShape;
 
@@ -237,6 +238,76 @@ async function validateJsonOrdered(table: AllowedTable, jsonOrdered: JsonValue):
   }
 }
 
+function sanitizeLifecycleModelRows(rows: JsonValue[]): JsonValue[] {
+  return rows.map((row) => {
+    const record =
+      row && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, JsonValue>) : {};
+    return {
+      id: record.id ?? null,
+      version: record.version ?? null,
+      json_ordered: record.json_ordered ?? null,
+    };
+  });
+}
+
+function sanitizeRowsForOutput(table: AllowedTable, rows: JsonValue[]): JsonValue[] {
+  return table === 'lifecyclemodels' ? sanitizeLifecycleModelRows(rows) : rows;
+}
+
+type PreparedWritePayload = {
+  payload: Record<string, JsonValue>;
+  resolvedId?: string;
+  resolvedVersion?: string;
+};
+
+async function prepareWritePayload(
+  table: AllowedTable,
+  jsonOrdered: JsonValue,
+  inputId: string | undefined,
+  inputVersion: string | undefined,
+  bearerKey?: string | SupabaseSessionLike,
+): Promise<PreparedWritePayload> {
+  if (table !== 'lifecyclemodels') {
+    await validateJsonOrdered(table, jsonOrdered);
+    return {
+      payload: {
+        json_ordered: jsonOrdered,
+      },
+      resolvedId: inputId,
+      resolvedVersion: inputVersion,
+    };
+  }
+
+  const prepared = await prepareLifecycleModelFile(
+    {
+      payload: jsonOrdered,
+    },
+    bearerKey,
+  );
+
+  if (inputId && inputId !== prepared.lifecycleModelId) {
+    throw new Error(
+      `Provided id (${inputId}) does not match lifecycle model UUID (${prepared.lifecycleModelId}).`,
+    );
+  }
+
+  if (inputVersion && inputVersion !== prepared.lifecycleModelVersion) {
+    throw new Error(
+      `Provided version (${inputVersion}) does not match lifecycle model version (${prepared.lifecycleModelVersion}).`,
+    );
+  }
+
+  return {
+    payload: {
+      json_ordered: prepared.jsonOrdered as JsonValue,
+      json_tg: prepared.jsonTg as JsonValue,
+      rule_verification: prepared.ruleVerification,
+    },
+    resolvedId: prepared.lifecycleModelId,
+    resolvedVersion: prepared.lifecycleModelVersion,
+  };
+}
+
 async function createSupabaseClient(
   bearerKey?: string | SupabaseSessionLike,
 ): Promise<{ supabase: SupabaseClient; accessToken?: string }> {
@@ -276,7 +347,8 @@ async function createSupabaseClient(
 async function handleSelect(supabase: SupabaseClient, input: SelectInput): Promise<string> {
   const { table, limit, id, version, filters } = input;
   const keyColumn = getPrimaryKeyColumn(table);
-  let queryBuilder = supabase.from(table).select('*');
+  const selectColumns = table === 'lifecyclemodels' ? 'id, version, json_ordered' : '*';
+  let queryBuilder = supabase.from(table).select(selectColumns);
 
   if (filters) {
     for (const [column, value] of Object.entries(filters)) {
@@ -306,11 +378,16 @@ async function handleSelect(supabase: SupabaseClient, input: SelectInput): Promi
     throw error;
   }
 
-  return JSON.stringify({ data: data ?? [], count: data?.length ?? 0 });
+  const rows = sanitizeRowsForOutput(table, (data ?? []) as JsonValue[]);
+  return JSON.stringify({ data: rows, count: rows.length });
 }
 
-async function handleInsert(supabase: SupabaseClient, input: InsertInput): Promise<string> {
-  const { table, jsonOrdered, id } = input;
+async function handleInsert(
+  supabase: SupabaseClient,
+  input: InsertInput,
+  bearerKey?: string | SupabaseSessionLike,
+): Promise<string> {
+  const { table, jsonOrdered, id, version } = input;
 
   if (jsonOrdered === undefined) {
     throw new Error('jsonOrdered is required for insert operations.');
@@ -322,13 +399,20 @@ async function handleInsert(supabase: SupabaseClient, input: InsertInput): Promi
 
   const jsonOrderedValue = jsonOrdered as JsonValue;
 
-  // Validate jsonOrdered before inserting
-  await validateJsonOrdered(table, jsonOrderedValue);
+  const preparedWrite = await prepareWritePayload(table, jsonOrderedValue, id, version, bearerKey);
+  const resolvedId = preparedWrite.resolvedId ?? id;
+  const resolvedVersion = preparedWrite.resolvedVersion ?? version;
 
   const keyColumn = getPrimaryKeyColumn(table);
   const { data, error } = await supabase
     .from(table)
-    .insert([{ [keyColumn]: id, json_ordered: jsonOrderedValue }])
+    .insert([
+      {
+        [keyColumn]: resolvedId,
+        ...(resolvedVersion !== undefined ? { version: resolvedVersion } : {}),
+        ...preparedWrite.payload,
+      },
+    ])
     .select();
 
   if (error) {
@@ -336,13 +420,15 @@ async function handleInsert(supabase: SupabaseClient, input: InsertInput): Promi
     throw error;
   }
 
-  return JSON.stringify({ id, data: data ?? [] });
+  const rows = sanitizeRowsForOutput(table, (data ?? []) as JsonValue[]);
+  return JSON.stringify({ id: resolvedId, version: resolvedVersion, data: rows });
 }
 
 async function handleUpdate(
   supabase: SupabaseClient,
   accessToken: string | undefined,
   input: UpdateInput,
+  bearerKey?: string | SupabaseSessionLike,
 ): Promise<string> {
   const { table, id, version, jsonOrdered } = input;
 
@@ -360,8 +446,7 @@ async function handleUpdate(
 
   const jsonOrderedValue = jsonOrdered as JsonValue;
 
-  // Validate jsonOrdered before updating
-  await validateJsonOrdered(table, jsonOrderedValue);
+  const preparedWrite = await prepareWritePayload(table, jsonOrderedValue, id, version, bearerKey);
 
   const token = requireAccessToken(accessToken);
 
@@ -369,7 +454,12 @@ async function handleUpdate(
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    body: { id, version, table, data: { json_ordered: jsonOrderedValue } },
+    body: {
+      id: preparedWrite.resolvedId ?? id,
+      version: preparedWrite.resolvedVersion ?? version,
+      table,
+      data: preparedWrite.payload,
+    },
     region: FunctionRegion.UsEast1,
   });
 
@@ -390,10 +480,14 @@ async function handleUpdate(
   const keyColumn = getPrimaryKeyColumn(table);
   const rows = ensureRows(
     updatedRows,
-    `Update affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${id}) and version (${version}) exist and are accessible.`,
+    `Update affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${preparedWrite.resolvedId ?? id}) and version (${preparedWrite.resolvedVersion ?? version}) exist and are accessible.`,
   );
 
-  return JSON.stringify({ id, version, data: rows });
+  return JSON.stringify({
+    id: preparedWrite.resolvedId ?? id,
+    version: preparedWrite.resolvedVersion ?? version,
+    data: sanitizeRowsForOutput(table, rows),
+  });
 }
 
 async function handleDelete(supabase: SupabaseClient, input: DeleteInput): Promise<string> {
@@ -425,7 +519,7 @@ async function handleDelete(supabase: SupabaseClient, input: DeleteInput): Promi
     `Delete affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${id}) and version (${version}) exist and are accessible.`,
   );
 
-  return JSON.stringify({ id, version, data: rows });
+  return JSON.stringify({ id, version, data: sanitizeRowsForOutput(table, rows) });
 }
 
 async function performCrud(
@@ -440,10 +534,10 @@ async function performCrud(
         return handleSelect(supabase, input);
 
       case 'insert':
-        return handleInsert(supabase, input);
+        return handleInsert(supabase, input, bearerKey);
 
       case 'update':
-        return handleUpdate(supabase, accessToken, input);
+        return handleUpdate(supabase, accessToken, input, bearerKey);
 
       case 'delete':
         return handleDelete(supabase, input);
@@ -462,7 +556,7 @@ async function performCrud(
 export function regCrudTool(server: McpServer, bearerKey?: string | SupabaseSessionLike): void {
   server.tool(
     'Database_CRUD_Tool',
-    'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id and version).',
+    'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id and version). lifecyclemodels insert/update automatically validate the payload, derive platform json_tg, compute rule_verification, and then write the row; lifecyclemodels select returns id/version/json_ordered only.',
     toolParamsSchema,
     async (rawInput) => {
       const input = refinedInputSchema.parse(rawInput) as CrudOperationInput;
