@@ -28,6 +28,7 @@
     "ncu:update": "npx npm-check-updates -u"
   },
   "dependencies": {
+    "@dagrejs/dagre": "^2.0.4",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@supabase/supabase-js": "^2.95.3",
     "@tiangong-lca/tidas-sdk": "^0.1.30",

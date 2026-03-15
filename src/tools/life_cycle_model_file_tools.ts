@@ -1,5 +1,6 @@
+import dagre from '@dagrejs/dagre';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { createLifeCycleModel } from '@tiangong-lca/tidas-sdk';
+import { createLifeCycleModel } from '@tiangong-lca/tidas-sdk/core';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
 import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
@@ -11,16 +12,18 @@ type JsonRecord = Record<string, any>;
 const MAX_VALIDATION_ERROR_LENGTH = 4_000;
 const NODE_WIDTH = 350;
 const NODE_MIN_HEIGHT = 100;
-const NODE_Y = 160;
-const NODE_BASE_X = -150;
-const NODE_STEP_X = 430;
-const NODE_STEP_Y = 220;
-const CHAIN_SECOND_ROW_Y = 380;
 const PORT_START_Y = 65;
 const PORT_STEP_Y = 20;
 const PAIRED_INPUT_START_Y = 58;
 const PAIRED_OUTPUT_START_Y = 78;
 const PAIRED_PORT_STEP_Y = 40;
+const MIN_NODE_SIZE = 1;
+const DAGRE_RANKDIR: 'LR' = 'LR';
+const DAGRE_NODESEP = 88;
+const DAGRE_EDGESEP = 24;
+const DAGRE_RANKSEP = 170;
+const DAGRE_MARGIN_X = 36;
+const DAGRE_MARGIN_Y = 36;
 const PRIMARY_COLOR = '#5c246a';
 const BACKGROUND_COLOR = '#ffffff';
 const MUTED_TEXT_COLOR = 'rgba(0,0,0,0.45)';
@@ -56,6 +59,31 @@ type ProcessLookup = {
   shortSummary: Array<Record<string, string>>;
   referenceExchange?: JsonRecord;
   exchangeByDirectionAndFlow: Map<string, JsonRecord>;
+};
+
+type NodeLayoutSpec = {
+  internalId: string;
+  nodeId: string;
+  processId: string;
+  processVersion: string;
+  label: JsonRecord;
+  shortSummary: Array<Record<string, string>>;
+  multiplicationFactor: string;
+  inputPorts: PortSpec[];
+  outputPorts: PortSpec[];
+  width: number;
+  height: number;
+  isReferenceProcess: boolean;
+};
+
+type LifecycleModelValidationResult = {
+  success: boolean;
+  error?: unknown;
+};
+
+type LifecycleModelValidator = {
+  validate: () => LifecycleModelValidationResult;
+  validateEnhanced: () => LifecycleModelValidationResult;
 };
 
 function ensureArray<T>(value: T | T[] | null | undefined): T[] {
@@ -192,8 +220,12 @@ function getModelVersion(jsonOrdered: JsonRecord): string {
   return version;
 }
 
-function validateLifecycleModelStrict(jsonOrdered: JsonRecord): void {
-  const validationResult = createLifeCycleModel(jsonOrdered, { mode: 'strict' }).validate();
+function createLifecycleModelValidator(jsonOrdered: JsonRecord): LifecycleModelValidator {
+  return createLifeCycleModel(jsonOrdered, { mode: 'strict' }) as LifecycleModelValidator;
+}
+
+function validateLifecycleModelStrict(validator: LifecycleModelValidator): void {
+  const validationResult = validator.validate();
   if (!validationResult.success) {
     const errorDetails = summarizeError(validationResult.error);
     throw new Error(`Lifecycle model validation failed: ${errorDetails}`);
@@ -285,6 +317,25 @@ function processInstancesFromModel(jsonOrdered: JsonRecord): Array<JsonRecord> {
   ).map((item) => asRecord(item));
 }
 
+function processInstanceInternalId(instance: JsonRecord): string {
+  return String(instance['@dataSetInternalID'] ?? '').trim();
+}
+
+function graphProcessInstancesFromModel(jsonOrdered: JsonRecord): Array<JsonRecord> {
+  const processInstances = processInstancesFromModel(jsonOrdered);
+  const missingInternalIdIndexes = processInstances.flatMap((instance, index) =>
+    processInstanceInternalId(instance) ? [] : [index],
+  );
+
+  if (missingInternalIdIndexes.length > 0) {
+    throw new Error(
+      `Lifecycle model graph generation requires processInstance.@dataSetInternalID for every process. Missing values at indexes: ${missingInternalIdIndexes.join(', ')}.`,
+    );
+  }
+
+  return processInstances;
+}
+
 function referenceProcessInternalIdFromModel(jsonOrdered: JsonRecord): string {
   const dataSet = getModelDataSet(jsonOrdered);
   const quantitativeReference = asRecord(
@@ -298,7 +349,7 @@ function modelEdgesFromConnections(processInstances: Array<JsonRecord>): ModelEd
   const edges: ModelEdge[] = [];
 
   for (const instance of processInstances) {
-    const srcInternalId = String(instance['@dataSetInternalID'] ?? '').trim();
+    const srcInternalId = processInstanceInternalId(instance);
     if (!srcInternalId) {
       continue;
     }
@@ -371,63 +422,158 @@ async function createSupabaseClient(
   return { supabase };
 }
 
+function buildFallbackProcessLookup(
+  processId: string,
+  version: string,
+  referenceToProcess: JsonRecord,
+): ProcessLookup {
+  const fallbackShortDescription = langEntries(referenceToProcess['common:shortDescription']);
+  const fallbackLabel = buildSyntheticName(fallbackShortDescription);
+  const fallbackSummary = buildNameSummary(fallbackLabel);
+
+  return {
+    processId,
+    version,
+    shortDescription: fallbackSummary,
+    label: fallbackLabel,
+    shortSummary: fallbackSummary,
+    exchangeByDirectionAndFlow: new Map<string, JsonRecord>(),
+  };
+}
+
+function processSelectionKey(processId: string, version: string): string {
+  return `${processId}@@${version}`;
+}
+
+function extractProcessDataSet(row: Record<string, any> | undefined): JsonRecord {
+  return asRecord(asRecord(row?.json_ordered).processDataSet);
+}
+
+async function loadReferencedProcessDataSets(
+  supabase: SupabaseClient,
+  processInstances: Array<JsonRecord>,
+): Promise<Map<string, JsonRecord>> {
+  const versionedIdsByVersion = new Map<string, Set<string>>();
+  const unversionedIds = new Set<string>();
+
+  for (const instance of processInstances) {
+    const referenceToProcess = asRecord(instance.referenceToProcess);
+    const processId = String(referenceToProcess['@refObjectId'] ?? '').trim();
+    const version = String(referenceToProcess['@version'] ?? '').trim();
+    if (!processId) {
+      continue;
+    }
+
+    if (version) {
+      if (!versionedIdsByVersion.has(version)) {
+        versionedIdsByVersion.set(version, new Set<string>());
+      }
+      versionedIdsByVersion.get(version)!.add(processId);
+      continue;
+    }
+
+    unversionedIds.add(processId);
+  }
+
+  const processDataSetBySelection = new Map<string, JsonRecord>();
+  const batchFetches: Promise<void>[] = [];
+
+  for (const [version, processIds] of versionedIdsByVersion.entries()) {
+    const ids = Array.from(processIds);
+    if (ids.length === 0) {
+      continue;
+    }
+
+    batchFetches.push(
+      (async () => {
+        const { data, error } = await supabase
+          .from('processes')
+          .select('id, version, json_ordered')
+          .eq('version', version)
+          .in('id', ids);
+        if (error) {
+          throw new Error(
+            `Failed to load referenced processes for version ${version}: ${error.message}`,
+          );
+        }
+
+        for (const row of (data ?? []) as Array<Record<string, any>>) {
+          const processId = String(row.id ?? '').trim();
+          if (!processId) {
+            continue;
+          }
+          processDataSetBySelection.set(
+            processSelectionKey(processId, version),
+            extractProcessDataSet(row),
+          );
+        }
+      })(),
+    );
+  }
+
+  if (unversionedIds.size > 0) {
+    batchFetches.push(
+      (async () => {
+        const { data, error } = await supabase
+          .from('processes')
+          .select('id, version, json_ordered')
+          .in('id', Array.from(unversionedIds))
+          .order('version', { ascending: false });
+        if (error) {
+          throw new Error(`Failed to load referenced processes without version: ${error.message}`);
+        }
+
+        for (const row of (data ?? []) as Array<Record<string, any>>) {
+          const processId = String(row.id ?? '').trim();
+          if (!processId || processDataSetBySelection.has(processSelectionKey(processId, ''))) {
+            continue;
+          }
+          processDataSetBySelection.set(
+            processSelectionKey(processId, ''),
+            extractProcessDataSet(row),
+          );
+        }
+      })(),
+    );
+  }
+
+  await Promise.all(batchFetches);
+  return processDataSetBySelection;
+}
+
 async function fetchProcessLookups(
   supabase: SupabaseClient,
   processInstances: Array<JsonRecord>,
 ): Promise<Map<string, ProcessLookup>> {
   const lookups = new Map<string, ProcessLookup>();
+  const processDataSetBySelection = await loadReferencedProcessDataSets(supabase, processInstances);
 
   const fetches = processInstances.map(async (instance) => {
     const referenceToProcess = asRecord(instance.referenceToProcess);
     const processId = String(referenceToProcess['@refObjectId'] ?? '').trim();
     const version = String(referenceToProcess['@version'] ?? '').trim();
-    const internalId = String(instance['@dataSetInternalID'] ?? '').trim();
-    const fallbackShortDescription = langEntries(referenceToProcess['common:shortDescription']);
-    const fallbackLabel = buildSyntheticName(fallbackShortDescription);
-
-    if (!processId || !internalId) {
-      lookups.set(internalId, {
-        processId,
-        version,
-        shortDescription: buildNameSummary(fallbackLabel),
-        label: fallbackLabel,
-        shortSummary: buildNameSummary(fallbackLabel),
-        exchangeByDirectionAndFlow: new Map<string, JsonRecord>(),
-      });
+    const internalId = processInstanceInternalId(instance);
+    if (!internalId) {
       return;
     }
 
-    let processDataSet: JsonRecord | undefined;
-    if (version) {
-      const { data, error } = await supabase
-        .from('processes')
-        .select('json_ordered')
-        .eq('id', processId)
-        .eq('version', version)
-        .limit(1);
-      if (error) {
-        throw new Error(
-          `Failed to load referenced process ${processId} version ${version}: ${error.message}`,
-        );
-      }
-      const firstRow = data?.[0] as Record<string, any> | undefined;
-      processDataSet = asRecord(asRecord(firstRow?.json_ordered).processDataSet);
-    } else {
-      const { data, error } = await supabase
-        .from('processes')
-        .select('json_ordered')
-        .eq('id', processId)
-        .limit(1);
-      if (error) {
-        throw new Error(`Failed to load referenced process ${processId}: ${error.message}`);
-      }
-      const firstRow = data?.[0] as Record<string, any> | undefined;
-      processDataSet = asRecord(asRecord(firstRow?.json_ordered).processDataSet);
+    if (!processId) {
+      lookups.set(internalId, buildFallbackProcessLookup(processId, version, referenceToProcess));
+      return;
+    }
+
+    const fallbackLookup = buildFallbackProcessLookup(processId, version, referenceToProcess);
+    const processDataSet = processDataSetBySelection.get(processSelectionKey(processId, version));
+    if (Object.keys(processDataSet ?? {}).length === 0) {
+      lookups.set(internalId, fallbackLookup);
+      return;
     }
 
     const info = asRecord(asRecord(asRecord(processDataSet).processInformation).dataSetInformation);
     const label =
-      Object.keys(asRecord(info.name)).length > 0 ? cloneJson(asRecord(info.name)) : fallbackLabel;
+      Object.keys(asRecord(info.name)).length > 0
+        ? cloneJson(asRecord(info.name))
+        : fallbackLookup.label;
     const shortSummary = buildNameSummary(label);
     const exchangeByDirectionAndFlow = new Map<string, JsonRecord>();
     let referenceExchange: JsonRecord | undefined;
@@ -488,104 +634,70 @@ function exchangeAmount(exchange?: JsonRecord): string {
   return candidate === undefined || candidate === null ? '' : String(candidate);
 }
 
-function topologicalLayout(
-  processInstances: Array<JsonRecord>,
+function dagreLayout(
+  nodes: NodeLayoutSpec[],
   edges: ModelEdge[],
 ): Map<string, { x: number; y: number }> {
-  const orderedIds = processInstances
-    .map((instance) => String(instance['@dataSetInternalID'] ?? '').trim())
-    .filter(Boolean);
-  const orderIndex = new Map(orderedIds.map((id, index) => [id, index]));
-  const outgoing = new Map<string, string[]>();
-  const incomingDegree = new Map<string, number>();
+  const dagreGraph = new dagre.graphlib.Graph({ multigraph: true });
+  dagreGraph.setGraph({
+    rankdir: DAGRE_RANKDIR,
+    nodesep: DAGRE_NODESEP,
+    edgesep: DAGRE_EDGESEP,
+    ranksep: DAGRE_RANKSEP,
+    marginx: DAGRE_MARGIN_X,
+    marginy: DAGRE_MARGIN_Y,
+    acyclicer: 'greedy',
+    ranker: 'network-simplex',
+  });
 
-  for (const id of orderedIds) {
-    outgoing.set(id, []);
-    incomingDegree.set(id, 0);
-  }
+  const nodeIdByInternalId = new Map(nodes.map((node) => [node.internalId, node.nodeId]));
 
-  for (const edge of edges) {
-    if (!outgoing.has(edge.srcInternalId) || !incomingDegree.has(edge.dstInternalId)) {
-      continue;
-    }
-    outgoing.get(edge.srcInternalId)!.push(edge.dstInternalId);
-    incomingDegree.set(edge.dstInternalId, (incomingDegree.get(edge.dstInternalId) ?? 0) + 1);
-  }
-
-  const remainingIncomingCount = new Map(incomingDegree);
-
-  const queue = orderedIds
-    .filter((id) => (remainingIncomingCount.get(id) ?? 0) === 0)
-    .sort((left, right) => (orderIndex.get(left) ?? 0) - (orderIndex.get(right) ?? 0));
-  const topoOrder: string[] = [];
-
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    topoOrder.push(current);
-    for (const next of outgoing.get(current) ?? []) {
-      const nextCount = (remainingIncomingCount.get(next) ?? 0) - 1;
-      remainingIncomingCount.set(next, nextCount);
-      if (nextCount === 0) {
-        queue.push(next);
-        queue.sort((left, right) => (orderIndex.get(left) ?? 0) - (orderIndex.get(right) ?? 0));
-      }
-    }
-  }
-
-  for (const id of orderedIds) {
-    if (!topoOrder.includes(id)) {
-      topoOrder.push(id);
-    }
-  }
-
-  const levels = new Map<string, number>();
-  for (const id of topoOrder) {
-    let level = 0;
-    for (const edge of edges) {
-      if (edge.dstInternalId === id) {
-        level = Math.max(level, (levels.get(edge.srcInternalId) ?? 0) + 1);
-      }
-    }
-    levels.set(id, level);
-  }
-
-  const byLevel = new Map<number, string[]>();
-  for (const id of topoOrder) {
-    const level = levels.get(id) ?? 0;
-    if (!byLevel.has(level)) {
-      byLevel.set(level, []);
-    }
-    byLevel.get(level)!.push(id);
-  }
-
-  const positions = new Map<string, { x: number; y: number }>();
-  for (const [level, ids] of Array.from(byLevel.entries()).sort(
-    (left, right) => left[0] - right[0],
-  )) {
-    ids.sort((left, right) => (orderIndex.get(left) ?? 0) - (orderIndex.get(right) ?? 0));
-    ids.forEach((id, index) => {
-      positions.set(id, {
-        x: NODE_BASE_X + level * NODE_STEP_X,
-        y: NODE_Y + index * NODE_STEP_Y,
-      });
+  for (const node of nodes) {
+    dagreGraph.setNode(node.nodeId, {
+      width: Math.max(node.width, MIN_NODE_SIZE),
+      height: Math.max(node.height, MIN_NODE_SIZE),
     });
   }
 
-  const isLinearChain =
-    topoOrder.length > 5 &&
-    edges.length === topoOrder.length - 1 &&
-    topoOrder.every(
-      (id) => (incomingDegree.get(id) ?? 0) <= 1 && (outgoing.get(id)?.length ?? 0) <= 1,
-    ) &&
-    topoOrder.filter((id) => (incomingDegree.get(id) ?? 0) === 0).length === 1 &&
-    topoOrder.filter((id) => (outgoing.get(id)?.length ?? 0) === 0).length === 1;
+  for (const edge of edges) {
+    const sourceNodeId = nodeIdByInternalId.get(edge.srcInternalId);
+    const targetNodeId = nodeIdByInternalId.get(edge.dstInternalId);
+    if (!sourceNodeId || !targetNodeId || sourceNodeId === targetNodeId) {
+      continue;
+    }
+    if (!dagreGraph.hasNode(sourceNodeId) || !dagreGraph.hasNode(targetNodeId)) {
+      continue;
+    }
+    dagreGraph.setEdge(
+      sourceNodeId,
+      targetNodeId,
+      {
+        minlen: 1,
+        weight: 2,
+      },
+      `${sourceNodeId}|${targetNodeId}|${edge.flowUuid}|${edge.srcInternalId}|${edge.dstInternalId}`,
+    );
+  }
 
-  if (isLinearChain) {
-    topoOrder.slice(5).forEach((id, index) => {
-      positions.set(id, {
-        x: NODE_BASE_X + (3 + index) * NODE_STEP_X,
-        y: CHAIN_SECOND_ROW_Y,
-      });
+  dagre.layout(dagreGraph);
+
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const node of nodes) {
+    const layoutNode = dagreGraph.node(node.nodeId) as
+      | {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        }
+      | undefined;
+    if (!layoutNode) {
+      positions.set(node.internalId, { x: DAGRE_MARGIN_X, y: DAGRE_MARGIN_Y });
+      continue;
+    }
+    positions.set(node.internalId, {
+      x: layoutNode.x - layoutNode.width / 2,
+      y: layoutNode.y - layoutNode.height / 2,
     });
   }
 
@@ -674,16 +786,15 @@ function mergeJsonTg(
 
 function generateJsonTg(
   jsonOrdered: JsonRecord,
+  processInstances: Array<JsonRecord>,
   processLookups: Map<string, ProcessLookup>,
 ): JsonRecord {
-  const processInstances = processInstancesFromModel(jsonOrdered);
   const referenceProcessInternalId = referenceProcessInternalIdFromModel(jsonOrdered);
   const fallbackReferenceProcessInstance = processInstances[processInstances.length - 1];
   const resolvedReferenceProcessInternalId =
     referenceProcessInternalId ||
     String(fallbackReferenceProcessInstance?.['@dataSetInternalID'] ?? '').trim();
   const edges = modelEdgesFromConnections(processInstances);
-  const positions = topologicalLayout(processInstances, edges);
 
   const outgoingEdges = new Map<string, ModelEdge[]>();
   const incomingEdges = new Map<string, ModelEdge[]>();
@@ -698,18 +809,24 @@ function generateJsonTg(
     incomingEdges.get(edge.dstInternalId)!.push(edge);
   }
 
-  const nodes = processInstances.map((instance) => {
-    const internalId = String(instance['@dataSetInternalID'] ?? '').trim();
+  const nodeIdCounts = new Map<string, number>();
+  const nodeSpecs = processInstances.map((instance) => {
+    const internalId = processInstanceInternalId(instance);
     const multiplicationFactor = String(instance['@multiplicationFactor'] ?? '1');
     const referenceToProcess = asRecord(instance.referenceToProcess);
     const lookup = processLookups.get(internalId);
     const label =
       lookup?.label ?? buildSyntheticName(referenceToProcess['common:shortDescription']);
-    const shortSummary = lookup?.shortSummary.length
-      ? lookup.shortSummary
-      : buildNameSummary(label);
+    const shortSummary =
+      lookup?.shortSummary && lookup.shortSummary.length > 0
+        ? lookup.shortSummary
+        : buildNameSummary(label);
     const processId = lookup?.processId || String(referenceToProcess['@refObjectId'] ?? '').trim();
     const processVersion = lookup?.version || String(referenceToProcess['@version'] ?? '').trim();
+    const baseNodeId = processId || internalId;
+    const occurrence = (nodeIdCounts.get(baseNodeId) ?? 0) + 1;
+    nodeIdCounts.set(baseNodeId, occurrence);
+    const nodeId = occurrence === 1 ? baseNodeId : `${baseNodeId}::${internalId}`;
 
     const portMap = new Map<string, PortSpec>();
     const registerPort = (spec: PortSpec) => {
@@ -758,11 +875,35 @@ function generateJsonTg(
 
     const inputPorts = Array.from(portMap.values()).filter((item) => item.side === 'INPUT');
     const outputPorts = Array.from(portMap.values()).filter((item) => item.side === 'OUTPUT');
-    const position = positions.get(internalId) ?? { x: NODE_BASE_X, y: NODE_Y };
     const hasInputs = inputPorts.length > 0;
     const hasOutputs = outputPorts.length > 0;
     const bothSides = hasInputs && hasOutputs;
     const pairCount = Math.max(inputPorts.length, outputPorts.length);
+    const height = bothSides
+      ? Math.max(NODE_MIN_HEIGHT + 10, 110 + Math.max(pairCount - 1, 0) * PAIRED_PORT_STEP_Y)
+      : Math.max(inputPorts.length, outputPorts.length, 2) * PORT_STEP_Y + 60;
+
+    return {
+      internalId,
+      nodeId,
+      processId: processId || nodeId,
+      processVersion,
+      label,
+      shortSummary,
+      multiplicationFactor,
+      inputPorts,
+      outputPorts,
+      width: NODE_WIDTH,
+      height: Math.max(NODE_MIN_HEIGHT, height),
+      isReferenceProcess: internalId === resolvedReferenceProcessInternalId,
+    };
+  });
+  const nodeSpecByInternalId = new Map(nodeSpecs.map((node) => [node.internalId, node]));
+  const positions = dagreLayout(nodeSpecs, edges);
+  const nodes = nodeSpecs.map((nodeSpec) => {
+    const bothSides = nodeSpec.inputPorts.length > 0 && nodeSpec.outputPorts.length > 0;
+    const position = positions.get(nodeSpec.internalId) ?? { x: DAGRE_MARGIN_X, y: DAGRE_MARGIN_Y };
+    const labelText = preferredText(nodeSpec.shortSummary);
     const portY = (side: 'INPUT' | 'OUTPUT', index: number) => {
       if (bothSides) {
         return side === 'INPUT'
@@ -771,17 +912,14 @@ function generateJsonTg(
       }
       return PORT_START_Y + index * PORT_STEP_Y;
     };
-    const height = bothSides
-      ? Math.max(NODE_MIN_HEIGHT + 10, 110 + Math.max(pairCount - 1, 0) * PAIRED_PORT_STEP_Y)
-      : Math.max(inputPorts.length, outputPorts.length, 2) * PORT_STEP_Y + 60;
 
     return {
-      id: internalId,
+      id: nodeSpec.nodeId,
       shape: 'rect',
       position,
       size: {
-        width: NODE_WIDTH,
-        height: Math.max(NODE_MIN_HEIGHT, height),
+        width: nodeSpec.width,
+        height: nodeSpec.height,
       },
       attrs: {
         body: {
@@ -795,23 +933,25 @@ function generateJsonTg(
           fill: BODY_TEXT_COLOR,
           refX: 0.5,
           refY: 8,
+          text: labelText,
           textAnchor: 'middle',
           textVerticalAnchor: 'top',
         },
         text: {
-          text: preferredText(shortSummary),
+          fill: BODY_TEXT_COLOR,
+          text: labelText,
         },
       },
       isMyProcess: true,
       data: {
-        id: processId,
-        version: processVersion,
-        index: internalId,
-        label,
-        shortDescription: shortSummary,
-        quantitativeReference: internalId === resolvedReferenceProcessInternalId ? '1' : '0',
-        targetAmount: internalId === resolvedReferenceProcessInternalId ? '1' : '',
-        multiplicationFactor,
+        id: nodeSpec.processId,
+        version: nodeSpec.processVersion,
+        index: nodeSpec.internalId,
+        label: nodeSpec.label,
+        shortDescription: nodeSpec.shortSummary,
+        quantitativeReference: nodeSpec.isReferenceProcess ? '1' : '0',
+        targetAmount: nodeSpec.isReferenceProcess ? '1' : '',
+        multiplicationFactor: nodeSpec.multiplicationFactor,
       },
       ports: {
         groups: {
@@ -845,8 +985,8 @@ function generateJsonTg(
           },
         },
         items: [
-          ...inputPorts.map((item, index) => buildPortItem(item, portY('INPUT', index))),
-          ...outputPorts.map((item, index) => buildPortItem(item, portY('OUTPUT', index))),
+          ...nodeSpec.inputPorts.map((item, index) => buildPortItem(item, portY('INPUT', index))),
+          ...nodeSpec.outputPorts.map((item, index) => buildPortItem(item, portY('OUTPUT', index))),
         ],
       },
       tools: { name: null, items: [] },
@@ -856,21 +996,32 @@ function generateJsonTg(
   });
 
   const instanceMap = new Map(
-    processInstances.map((instance) => [
-      String(instance['@dataSetInternalID'] ?? '').trim(),
-      asRecord(instance),
-    ]),
+    processInstances.map((instance) => [processInstanceInternalId(instance), asRecord(instance)]),
   );
 
   const xflowEdges = edges.map((edge) => {
+    const sourceNode = nodeSpecByInternalId.get(edge.srcInternalId);
+    const targetNode = nodeSpecByInternalId.get(edge.dstInternalId);
     const sourceLookup = processLookups.get(edge.srcInternalId);
     const targetLookup = processLookups.get(edge.dstInternalId);
     const targetExchange = targetLookup?.exchangeByDirectionAndFlow.get(`Input:${edge.flowUuid}`);
+    const sourceProcessId =
+      sourceNode?.processId ??
+      sourceLookup?.processId ??
+      String(
+        asRecord(instanceMap.get(edge.srcInternalId)?.referenceToProcess)['@refObjectId'] ?? '',
+      );
+    const targetProcessId =
+      targetNode?.processId ??
+      targetLookup?.processId ??
+      String(
+        asRecord(instanceMap.get(edge.dstInternalId)?.referenceToProcess)['@refObjectId'] ?? '',
+      );
     return {
       id: crypto.randomUUID(),
       shape: 'edge',
-      source: { cell: edge.srcInternalId, port: `OUTPUT:${edge.flowUuid}` },
-      target: { cell: edge.dstInternalId, port: `INPUT:${edge.flowUuid}` },
+      source: { cell: sourceNode?.nodeId ?? edge.srcInternalId, port: `OUTPUT:${edge.flowUuid}` },
+      target: { cell: targetNode?.nodeId ?? edge.dstInternalId, port: `INPUT:${edge.flowUuid}` },
       labels: [],
       attrs: {
         line: {
@@ -891,26 +1042,18 @@ function generateJsonTg(
           exchangeAmount: exchangeAmount(targetExchange),
         },
         node: {
-          sourceNodeID: edge.srcInternalId,
-          sourceProcessId:
-            processLookups.get(edge.srcInternalId)?.processId ??
-            String(
-              asRecord(instanceMap.get(edge.srcInternalId)?.referenceToProcess)['@refObjectId'] ??
-                '',
-            ),
+          sourceNodeID: sourceNode?.nodeId ?? edge.srcInternalId,
+          sourceProcessId,
           sourceProcessVersion:
+            sourceNode?.processVersion ??
             processLookups.get(edge.srcInternalId)?.version ??
             String(
               asRecord(instanceMap.get(edge.srcInternalId)?.referenceToProcess)['@version'] ?? '',
             ),
-          targetNodeID: edge.dstInternalId,
-          targetProcessId:
-            processLookups.get(edge.dstInternalId)?.processId ??
-            String(
-              asRecord(instanceMap.get(edge.dstInternalId)?.referenceToProcess)['@refObjectId'] ??
-                '',
-            ),
+          targetNodeID: targetNode?.nodeId ?? edge.dstInternalId,
+          targetProcessId,
           targetProcessVersion:
+            targetNode?.processVersion ??
             processLookups.get(edge.dstInternalId)?.version ??
             String(
               asRecord(instanceMap.get(edge.dstInternalId)?.referenceToProcess)['@version'] ?? '',
@@ -933,20 +1076,22 @@ function generateJsonTg(
     ) ?? fallbackReferenceProcessInstance;
   const referenceProcessRef = asRecord(referenceProcessInstance?.referenceToProcess);
   const referenceProcessLookup = processLookups.get(resolvedReferenceProcessInternalId);
+  const referenceNodeSpec = nodeSpecByInternalId.get(resolvedReferenceProcessInternalId);
   const referenceExchange = referenceProcessLookup?.referenceExchange;
   const fallbackEdge = (outgoingEdges.get(resolvedReferenceProcessInternalId) ?? [])[0];
   const finalId: JsonRecord = {
-    nodeId: resolvedReferenceProcessInternalId,
-    processId: String(referenceProcessRef['@refObjectId'] ?? ''),
+    nodeId:
+      referenceNodeSpec?.nodeId ||
+      String(referenceProcessRef['@refObjectId'] ?? '') ||
+      resolvedReferenceProcessInternalId,
+    processId: referenceNodeSpec?.processId || String(referenceProcessRef['@refObjectId'] ?? ''),
   };
 
   if (referenceExchange) {
-    finalId.referenceToFlowDataSet = {
-      '@refObjectId': String(
-        asRecord(referenceExchange.referenceToFlowDataSet)['@refObjectId'] ?? '',
-      ),
-      '@exchangeDirection': String(referenceExchange.exchangeDirection ?? ''),
-    };
+    finalId.allocatedExchangeFlowId = String(
+      asRecord(referenceExchange.referenceToFlowDataSet)['@refObjectId'] ?? '',
+    );
+    finalId.allocatedExchangeDirection = String(referenceExchange.exchangeDirection ?? '');
   } else if (fallbackEdge) {
     finalId.referenceToFlowDataSet = {
       '@refObjectId': fallbackEdge.flowUuid,
@@ -971,12 +1116,11 @@ function generateJsonTg(
   };
 }
 
-function deriveRuleVerification(jsonOrdered: JsonRecord): {
+function deriveRuleVerification(validator: LifecycleModelValidator): {
   ruleVerification: boolean;
   issueCount: number;
   filteredIssues: unknown[];
 } {
-  const validator = createLifeCycleModel(jsonOrdered, { mode: 'strict' });
   const enhanced = validator.validateEnhanced();
   if (enhanced.success) {
     return { ruleVerification: true, issueCount: 0, filteredIssues: [] };
@@ -1024,32 +1168,26 @@ export async function prepareLifecycleModelFile(
   input: PrepareLifecycleModelFileInput,
   bearerKey?: string | SupabaseSessionLike,
 ): Promise<PreparedLifecycleModelFile> {
-  const preferProvidedJsonTg = input.preferProvidedJsonTg ?? true;
+  const preferProvidedJsonTg = input.preferProvidedJsonTg ?? false;
   const normalized = normalizeLifecycleModelPayload(input.payload);
   const jsonOrdered = normalized.jsonOrdered;
+  const processInstances = graphProcessInstancesFromModel(jsonOrdered);
   const modelId = input.id ?? getModelUuid(jsonOrdered);
   const modelVersion = input.version ?? getModelVersion(jsonOrdered);
-  validateLifecycleModelStrict(jsonOrdered);
+  const validator = createLifecycleModelValidator(jsonOrdered);
+  validateLifecycleModelStrict(validator);
   const { supabase } = await createSupabaseClient(bearerKey);
-  const processLookups = await fetchProcessLookups(
-    supabase,
-    processInstancesFromModel(jsonOrdered),
-  );
-  const generatedJsonTg = generateJsonTg(jsonOrdered, processLookups);
+  const processLookups = await fetchProcessLookups(supabase, processInstances);
+  const generatedJsonTg = generateJsonTg(jsonOrdered, processInstances, processLookups);
   const merged = mergeJsonTg(generatedJsonTg, normalized.providedJsonTg, preferProvidedJsonTg);
-  const validation = deriveRuleVerification(jsonOrdered);
+  const validation = deriveRuleVerification(validator);
 
   return {
     sourceFormat: normalized.sourceFormat,
     lifecycleModelId: modelId,
     lifecycleModelVersion: modelVersion,
     jsonTgSource: merged.source,
-    processCount: ensureArray(
-      asRecord(
-        asRecord(asRecord(getModelDataSet(jsonOrdered).lifeCycleModelInformation).technology)
-          .processes,
-      ).processInstance as JsonRecord | JsonRecord[] | undefined,
-    ).length,
+    processCount: processInstances.length,
     nodeCount: ensureArray(asRecord(merged.jsonTg.xflow).nodes as JsonValue[] | undefined).length,
     edgeCount: ensureArray(asRecord(merged.jsonTg.xflow).edges as JsonValue[] | undefined).length,
     submodelCount: ensureArray(merged.jsonTg.submodels as JsonValue[] | undefined).length,
