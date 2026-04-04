@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createClient, FunctionRegion, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
@@ -13,7 +13,6 @@ type Filters = Record<string, FilterValue>;
 const allowedTables = ['contacts', 'flows', 'lifecyclemodels', 'processes', 'sources'] as const;
 type AllowedTable = (typeof allowedTables)[number];
 const tableSchema = z.enum(allowedTables);
-const UPDATE_FUNCTION_NAME = 'update_data';
 const MAX_VALIDATION_ERROR_LENGTH = 4_000;
 
 const tablePrimaryKey: Record<AllowedTable, string> = {
@@ -150,10 +149,6 @@ type UpdateInput = CrudInput & { operation: 'update' };
 type DeleteInput = CrudInput & { operation: 'delete' };
 type CrudOperationInput = SelectInput | InsertInput | UpdateInput | DeleteInput;
 
-type UpdateFunctionPayload = {
-  data?: JsonValue[] | null;
-  error?: { message?: string } & Record<string, unknown>;
-};
 type TidasValidationResult = { success: boolean; error?: unknown };
 type StrictValidatorFactory = (
   input: unknown,
@@ -450,44 +445,30 @@ async function handleUpdate(
 
   const preparedWrite = await prepareWritePayload(table, jsonOrderedValue, id, version, bearerKey);
 
-  const token = requireAccessToken(accessToken);
-
-  const { data: functionPayload, error } = await supabase.functions.invoke(UPDATE_FUNCTION_NAME, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: {
-      id: preparedWrite.resolvedId ?? id,
-      version: preparedWrite.resolvedVersion ?? version,
-      table,
-      data: preparedWrite.payload,
-    },
-    region: FunctionRegion.UsEast1,
-  });
-
-  if (error) {
-    console.error('Error invoking update_data function:', error);
-    throw error;
-  }
-
-  const { data: updatedRows, error: functionError } = (functionPayload ??
-    {}) as UpdateFunctionPayload;
-
-  if (functionError) {
-    console.error('Supabase update_data returned an error:', functionError);
-    const message = functionError.message ?? 'Supabase update_data function rejected the request.';
-    throw new Error(message);
-  }
+  requireAccessToken(accessToken);
 
   const keyColumn = getPrimaryKeyColumn(table);
+  const resolvedId = preparedWrite.resolvedId ?? id;
+  const resolvedVersion = preparedWrite.resolvedVersion ?? version;
+  const { data, error } = await supabase
+    .from(table)
+    .update(preparedWrite.payload)
+    .eq(keyColumn, resolvedId)
+    .eq('version', resolvedVersion)
+    .select();
+
+  if (error) {
+    console.error('Error updating the database:', error);
+    throw error;
+  }
   const rows = ensureRows(
-    updatedRows,
-    `Update affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${preparedWrite.resolvedId ?? id}) and version (${preparedWrite.resolvedVersion ?? version}) exist and are accessible.`,
+    data,
+    `Update affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${resolvedId}) and version (${resolvedVersion}) exist and are accessible.`,
   );
 
   return JSON.stringify({
-    id: preparedWrite.resolvedId ?? id,
-    version: preparedWrite.resolvedVersion ?? version,
+    id: resolvedId,
+    version: resolvedVersion,
     data: sanitizeRowsForOutput(table, rows),
   });
 }
