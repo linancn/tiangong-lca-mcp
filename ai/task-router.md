@@ -60,6 +60,7 @@ When working inside `tiangong-lca-mcp`, load docs in this order:
 | Change local OpenLCA helpers | `src/tools/openlca_ipc_*.ts` | `ai/validation.md`, `ai/architecture.md` | The gRPC file is scaffold only; the active runtime path is `olca-ipc`. |
 | Change actual remote search semantics or Edge response behavior | `tiangong-lca-edge-functions`, not this repo | root `ai/task-router.md` | This repo wraps those routes; it does not own their business logic. |
 | Change standalone TIDAS conversion/export/CLI tooling | `tidas-tools`, not this repo | root `ai/task-router.md` | Keep batch tooling out of the MCP repo. |
+| Change repo-local AI-doc maintenance only | `AGENTS.md`, `ai/**`, `.github/workflows/ai-doc-lint.yml`, `.github/scripts/ai-doc-lint.*` | `ai/validation.md` when present, otherwise `ai/repo.yaml` | Keep the repo-local maintenance gate aligned with root `ai/ci-lint-spec.md` and `ai/review-matrix.md`. |
 | Decide whether work is delivery-complete after merge | root workspace docs, not repo code paths | root `AGENTS.md`, `_docs/workspace-branch-policy-contract.md` | Root integration remains a separate phase. |
 
 ## Wrong Turns To Avoid

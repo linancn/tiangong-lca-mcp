@@ -167,7 +167,7 @@
       "notes": [
         "Treat npm test as demo/manual proof, not as a strong regression suite.",
         "Use npx tsx src/tools/openlca_ipc_test.ts only when the task explicitly includes a local OpenLCA smoke check.",
-        "AI-doc changes should still run the root warning-only ai-doc-lint."
+        "AI-doc changes should still run the repo-local ai-doc-lint workflow or the equivalent local node command."
       ]
     }
   }
