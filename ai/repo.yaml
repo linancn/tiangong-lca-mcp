@@ -31,7 +31,6 @@
         "tiangong-lca-mcp-http-local"
       ],
       "preferredNodeSignal": ".nvmrc=24 and Dockerfile=node:24-alpine",
-      "documentedDrift": "DEV_EN.md still says nvm install 22.",
       "baselineValidationCommands": [
         "npm run build",
         "npm run lint",

@@ -39,14 +39,11 @@ docker run -d \
 ```bash
 # Install Node.js
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-nvm install 22
-nvm use
+nvm install 24
+nvm use 24
 
 # Install dependencies
-npm install
-
-# Update dependencies
-npm update && npm ci
+npm ci
 ```
 
 ### Code Formatting
