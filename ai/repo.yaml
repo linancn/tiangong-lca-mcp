@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "lastReviewedAt": "2026-04-18",
+  "lastReviewedCommit": "ec9c15dfcbb398b56b5da7e918a3a6c7ae8d1414",
+  "repo": {
+    "id": "mcp",
+    "path": "tiangong-lca-mcp",
+    "canonicalRepo": "linancn/tiangong-lca-mcp",
+    "purpose": "TianGong LCA MCP transport and tool-integration repository.",
+    "entryDoc": "AGENTS.md",
+    "taskRouterDoc": "ai/task-router.md",
+    "validationDoc": "ai/validation.md",
+    "architectureDoc": "ai/architecture.md",
+    "readmeDoc": "README.md",
+    "defaultBranch": "main",
+    "dailyTrunk": "main",
+    "routinePrBase": "main",
+    "branchModel": "M1",
+    "workspaceIntegrationRequired": true,
+    "rootIntegrationRule": "lca-workspace/main may bump merged main-branch MCP snapshots when the workspace intends to ship the updated MCP server surface.",
+    "trackedBy": {
+      "workspaceParentIssue": "https://github.com/tiangong-lca/workspace/issues/73",
+      "repoIssue": "https://github.com/linancn/tiangong-lca-mcp/issues/14"
+    },
+    "runtime": {
+      "packageManager": "npm",
+      "moduleSystem": "ESM",
+      "publishedBinaries": [
+        "tiangong-lca-mcp-stdio",
+        "tiangong-lca-mcp-http",
+        "tiangong-lca-mcp-http-local"
+      ],
+      "preferredNodeSignal": ".nvmrc=24 and Dockerfile=node:24-alpine",
+      "baselineValidationCommands": [
+        "npm run build",
+        "npm run lint",
+        "npm test"
+      ],
+      "manualProbeCommands": [
+        "npm start",
+        "npm run start:server",
+        "npm run start:server-local",
+        "npx tsx src/tools/openlca_ipc_test.ts"
+      ],
+      "knownValidationCaveats": [
+        "npm run lint rewrites files because it runs prettier -c --write.",
+        "npm test runs a sample TIDAS validation script and is not a strong assertion suite.",
+        "start:server and start:server-local use concurrently, but concurrently is not declared in package.json."
+      ]
+    },
+    "sourceOfTruth": {
+      "stableManualEditPaths": [
+        {
+          "path": "src/index.ts",
+          "role": "STDIO MCP transport entrypoint"
+        },
+        {
+          "path": "src/index_server.ts",
+          "role": "authenticated Streamable HTTP entrypoint plus OAuth page mounting"
+        },
+        {
+          "path": "src/index_server_local.ts",
+          "role": "local Streamable HTTP entrypoint without auth"
+        },
+        {
+          "path": "src/auth_app.ts",
+          "role": "OAuth routes and PKCE token exchange flow"
+        },
+        {
+          "path": "src/_shared/**",
+          "role": "auth middleware, config, transport helpers, and shared runtime pieces"
+        },
+        {
+          "path": "src/tools/**",
+          "role": "MCP tool wrappers and lifecycle-model preprocessing logic"
+        },
+        {
+          "path": "src/prompts/**",
+          "role": "MCP prompt content"
+        },
+        {
+          "path": "src/resources/**",
+          "role": "MCP resource content"
+        },
+        {
+          "path": "public/**",
+          "role": "static OAuth demo and index pages"
+        },
+        {
+          "path": "mcp_config.json",
+          "role": "checked-in example MCP client configuration"
+        }
+      ],
+      "nonOwnerBoundaries": [
+        {
+          "repo": "edge-functions",
+          "doesNotOwn": [
+            "remote hybrid-search implementation",
+            "remote Edge runtime business logic"
+          ]
+        },
+        {
+          "repo": "next",
+          "doesNotOwn": [
+            "product UI behavior",
+            "Next.js application workflows"
+          ]
+        },
+        {
+          "repo": "tidas-tools",
+          "doesNotOwn": [
+            "standalone conversion CLI",
+            "standalone export CLI",
+            "batch validation tooling"
+          ]
+        },
+        {
+          "repo": "lca-workspace",
+          "doesNotOwn": [
+            "root integration state",
+            "submodule pointer updates"
+          ]
+        }
+      ]
+    },
+    "taskHotspots": [
+      {
+        "topic": "transport mode wiring and auth boundaries",
+        "paths": [
+          "src/index.ts",
+          "src/index_server.ts",
+          "src/index_server_local.ts",
+          "src/auth_app.ts",
+          "src/_shared/auth_middleware.ts",
+          "src/_shared/config.ts",
+          "src/_shared/cognito_auth.ts",
+          "src/_shared/decode_api_key.ts",
+          "src/_shared/supabase_session.ts"
+        ]
+      },
+      {
+        "topic": "search wrappers and remote tool contracts",
+        "paths": [
+          "src/tools/flow_hybrid_search.ts",
+          "src/tools/process_hybrid_search.ts",
+          "src/tools/life_cycle_model_hybrid_search.ts",
+          "src/tools/db_crud.ts"
+        ]
+      },
+      {
+        "topic": "local OpenLCA and TIDAS validation surfaces",
+        "paths": [
+          "src/tools/openlca_ipc_*.ts",
+          "src/tools/tidas_data_validation.ts",
+          "src/tools/life_cycle_model_file_tools.ts",
+          "test/**"
+        ]
+      }
+    ],
+    "validation": {
+      "baselineLocalCommands": [
+        "npm run build",
+        "npm run lint",
+        "npm test"
+      ],
+      "notes": [
+        "Treat npm test as demo/manual proof, not as a strong regression suite.",
+        "Use npx tsx src/tools/openlca_ipc_test.ts only when the task explicitly includes a local OpenLCA smoke check.",
+        "AI-doc changes should still run the repo-local ai-doc-lint workflow or the equivalent local node command."
+      ]
+    }
+  }
+}
