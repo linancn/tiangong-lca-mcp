@@ -1,0 +1,345 @@
+version: 1
+layout: repo
+lastReviewedAt: 2026-04-24
+lastReviewedCommit: bf48b7fd4c9115350b00fddba3d302188007f2f4
+
+catalog:
+  repos:
+    - id: mcp
+      path: .
+      canonicalRepo: linancn/tiangong-lca-mcp
+      entryDoc: AGENTS.md
+      workflowDocs:
+        - docs/agents/repo-validation.md
+        - docs/agents/repo-architecture.md
+        - DEV_EN.md
+        - DEV_CN.md
+      workspaceIntegrationRequired: true
+
+ownership:
+  domains:
+    - id: repo-governance-and-docs
+      paths:
+        include:
+          - AGENTS.md
+          - README.md
+          - README_CN.md
+          - DEV_EN.md
+          - DEV_CN.md
+          - .docpact/config.yaml
+          - docs/agents/**
+          - .github/workflows/ai-doc-lint.yml
+      ownerRepo: mcp
+    - id: runtime-and-package-config
+      paths:
+        include:
+          - package.json
+          - tsconfig.json
+          - .nvmrc
+          - .prettierrc.cjs
+          - .prettierignore
+          - Dockerfile
+          - .env.example
+          - mcp_config.json
+      ownerRepo: mcp
+    - id: transport-and-auth-runtime
+      paths:
+        include:
+          - src/index.ts
+          - src/index_server.ts
+          - src/index_server_local.ts
+          - src/auth_app.ts
+          - src/_shared/**
+          - public/**
+      ownerRepo: mcp
+    - id: tools-prompts-and-resources
+      paths:
+        include:
+          - src/tools/**
+          - src/prompts/**
+          - src/resources/**
+      ownerRepo: mcp
+    - id: demo-tests
+      paths:
+        include:
+          - test/**
+      ownerRepo: mcp
+
+coverage:
+  include:
+    - AGENTS.md
+    - README.md
+    - README_CN.md
+    - DEV_EN.md
+    - DEV_CN.md
+    - .docpact/config.yaml
+    - docs/agents/**
+    - package.json
+    - tsconfig.json
+    - .nvmrc
+    - .prettierrc.cjs
+    - .prettierignore
+    - Dockerfile
+    - .env.example
+    - mcp_config.json
+    - public/**
+    - src/**
+    - test/**
+    - .github/workflows/ai-doc-lint.yml
+  exclude:
+    - .git/**
+    - .github/scripts/**
+    - .docpact/runs/**
+    - node_modules/**
+    - dist/**
+    - package-lock.json
+    - '*.tgz'
+    - .env
+
+freshness:
+  warn_after_commits: 40
+  warn_after_days: 60
+  critical_after_days: 120
+
+routing:
+  intents:
+    transport-auth:
+      paths:
+        - src/index.ts
+        - src/index_server.ts
+        - src/index_server_local.ts
+        - src/auth_app.ts
+        - src/_shared/**
+        - .env.example
+        - mcp_config.json
+        - public/**
+    stdio-transport:
+      paths:
+        - src/index.ts
+        - src/_shared/init_server.ts
+    http-transport:
+      paths:
+        - src/index_server.ts
+        - src/index_server_local.ts
+        - src/_shared/init_server_http.ts
+        - src/_shared/init_server_http_local.ts
+        - src/auth_app.ts
+        - public/**
+    auth-runtime:
+      paths:
+        - src/_shared/auth_middleware.ts
+        - src/_shared/cognito_auth.ts
+        - src/_shared/decode_api_key.ts
+        - src/_shared/supabase_session.ts
+        - src/_shared/config.ts
+    oauth-pages:
+      paths:
+        - src/auth_app.ts
+        - src/index_server.ts
+        - public/**
+    mcp-tools:
+      paths:
+        - src/tools/**
+        - src/prompts/**
+        - src/resources/**
+    remote-search-wrappers:
+      paths:
+        - src/tools/flow_hybrid_search.ts
+        - src/tools/process_hybrid_search.ts
+        - src/tools/life_cycle_model_hybrid_search.ts
+        - src/tools/db_crud.ts
+    openlca-tidas:
+      paths:
+        - src/tools/openlca_ipc_*.ts
+        - src/tools/openlca_grpc.ts
+        - src/tools/tidas_data_validation.ts
+        - src/_shared/olca.proto
+        - src/_shared/services.proto
+        - test/**
+    validation-runtime:
+      paths:
+        - package.json
+        - tsconfig.json
+        - .nvmrc
+        - .prettierrc.cjs
+        - .prettierignore
+        - Dockerfile
+        - .env.example
+        - test/**
+    proof:
+      paths:
+        - docs/agents/repo-validation.md
+        - package.json
+        - tsconfig.json
+        - src/**
+        - public/**
+        - test/**
+    repo-docs:
+      paths:
+        - AGENTS.md
+        - README.md
+        - README_CN.md
+        - DEV_EN.md
+        - DEV_CN.md
+        - .docpact/config.yaml
+        - docs/agents/**
+    root-integration:
+      paths:
+        - AGENTS.md
+
+docInventory:
+  include:
+    - AGENTS.md
+    - README.md
+    - README_CN.md
+    - DEV_EN.md
+    - DEV_CN.md
+    - .docpact/config.yaml
+    - docs/agents/repo-validation.md
+    - docs/agents/repo-architecture.md
+
+repo:
+  id: mcp
+  owner: mcp
+
+rules:
+  - id: mcp-bootstrap-contract
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: AGENTS.md
+        kind: doc-contract
+      - path: .docpact/config.yaml
+        kind: doc-governance-layer
+      - path: docs/agents/repo-validation.md
+        kind: deep-doc
+      - path: docs/agents/repo-architecture.md
+        kind: deep-doc
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+      - path: docs/agents/repo-validation.md
+        mode: review_or_update
+      - path: docs/agents/repo-architecture.md
+        mode: review_or_update
+    reason: Repo entry guidance, machine-readable routing, and retained MCP source docs must stay aligned.
+  - id: mcp-readme-contract
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: README.md
+        kind: repo-landing
+      - path: README_CN.md
+        kind: repo-landing
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: README.md
+        mode: review_or_update
+      - path: README_CN.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+    reason: User-facing MCP setup docs should stay aligned with the current public package and runtime surface.
+  - id: mcp-maintainer-docs-contract
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: DEV_EN.md
+        kind: maintainer-doc
+      - path: DEV_CN.md
+        kind: maintainer-doc
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+      - path: DEV_EN.md
+        mode: review_or_update
+      - path: DEV_CN.md
+        mode: review_or_update
+      - path: docs/agents/repo-validation.md
+        mode: review_or_update
+    reason: Maintainer startup and runtime prerequisite notes must stay aligned with the repo contract and validation caveats.
+  - id: mcp-transport-and-auth-contract
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: package.json
+        kind: runtime-config
+      - path: tsconfig.json
+        kind: runtime-config
+      - path: .nvmrc
+        kind: runtime-config
+      - path: .prettierrc.cjs
+        kind: runtime-config
+      - path: .prettierignore
+        kind: runtime-config
+      - path: Dockerfile
+        kind: runtime-config
+      - path: .env.example
+        kind: runtime-config
+      - path: mcp_config.json
+        kind: client-config
+      - path: src/index.ts
+        kind: transport
+      - path: src/index_server.ts
+        kind: transport
+      - path: src/index_server_local.ts
+        kind: transport
+      - path: src/auth_app.ts
+        kind: oauth
+      - path: src/_shared/**
+        kind: shared-runtime
+      - path: public/**
+        kind: static-surface
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+      - path: docs/agents/repo-validation.md
+        mode: review_or_update
+      - path: docs/agents/repo-architecture.md
+        mode: review_or_update
+      - path: DEV_EN.md
+        mode: review_or_update
+    reason: Transport, auth, OAuth, and runtime prerequisite changes alter the executable MCP contract.
+  - id: mcp-tool-contract
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: src/tools/**
+        kind: tool-wrapper
+      - path: src/prompts/**
+        kind: prompt
+      - path: src/resources/**
+        kind: resource
+      - path: test/**
+        kind: demo-test
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+      - path: docs/agents/repo-validation.md
+        mode: review_or_update
+      - path: docs/agents/repo-architecture.md
+        mode: review_or_update
+    reason: Tool wrapper, prompt, resource, and demo-test changes alter what the MCP server exposes and how future work should be checked.
+  - id: mcp-doc-maintenance-contract
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: .github/workflows/ai-doc-lint.yml
+        kind: automation
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+      - path: docs/agents/repo-validation.md
+        mode: review_or_update
+    reason: Repo-local documentation maintenance automation must stay aligned with the repo contract and governed-doc rules.

@@ -1,3 +1,33 @@
+---
+title: TianGong LCA MCP Maintainer Notes CN
+docType: guide
+scope: repo
+status: active
+authoritative: false
+owner: mcp
+language: zh-CN
+whenToUse:
+  - when you need Chinese maintainer-facing MCP development, formatting, testing, publish, or deployment commands
+whenToUpdate:
+  - when Chinese maintainer-facing runtime prerequisites, development commands, publish steps, or deployment notes change
+checkPaths:
+  - DEV_CN.md
+  - DEV_EN.md
+  - package.json
+  - Dockerfile
+  - .nvmrc
+  - src/**
+  - test/**
+lastReviewedAt: 2026-04-24
+lastReviewedCommit: bf48b7fd4c9115350b00fddba3d302188007f2f4
+related:
+  - AGENTS.md
+  - .docpact/config.yaml
+  - docs/agents/repo-validation.md
+  - docs/agents/repo-architecture.md
+  - DEV_EN.md
+---
+
 # TianGong-LCA-MCP
 
 [中文](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_CN.md) | [English](https://github.com/linancn/tiangong-lca-mcp/blob/main/DEV_EN.md)

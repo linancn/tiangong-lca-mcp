@@ -1,3 +1,33 @@
+---
+title: TianGong LCA MCP README
+docType: guide
+scope: repo
+status: active
+authoritative: false
+owner: mcp
+language: en
+whenToUse:
+  - when you need user-facing MCP package setup, Docker usage, local startup, or inspector examples
+whenToUpdate:
+  - when public startup commands, Docker usage, package invocation, or user-facing MCP examples change
+checkPaths:
+  - README.md
+  - README_CN.md
+  - package.json
+  - Dockerfile
+  - mcp_config.json
+  - src/index.ts
+  - src/index_server.ts
+  - src/index_server_local.ts
+lastReviewedAt: 2026-04-24
+lastReviewedCommit: bf48b7fd4c9115350b00fddba3d302188007f2f4
+related:
+  - AGENTS.md
+  - .docpact/config.yaml
+  - DEV_EN.md
+  - README_CN.md
+---
+
 # TianGong-LCA-MCP
 
 [中文](https://github.com/linancn/tiangong-lca-mcp/blob/main/README_CN.md) | [English](https://github.com/linancn/tiangong-lca-mcp/blob/main/README.md)

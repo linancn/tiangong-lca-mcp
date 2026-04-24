@@ -15,8 +15,8 @@ whenToUpdate:
   - when auth flow or external dependency boundaries move
   - when the current map becomes misleading
 checkPaths:
-  - ai/architecture.md
-  - ai/repo.yaml
+  - docs/agents/repo-architecture.md
+  - .docpact/config.yaml
   - package.json
   - src/**
   - public/**
@@ -24,12 +24,13 @@ checkPaths:
 lastReviewedAt: 2026-04-18
 lastReviewedCommit: ec9c15dfcbb398b56b5da7e918a3a6c7ae8d1414
 related:
-  - ../AGENTS.md
-  - ./repo.yaml
-  - ./task-router.md
-  - ./validation.md
-  - ../README.md
-  - ../DEV_EN.md
+  - ../../AGENTS.md
+  - ../../.docpact/config.yaml
+  - ./repo-validation.md
+  - ../../README.md
+  - ../../README_CN.md
+  - ../../DEV_EN.md
+  - ../../DEV_CN.md
 ---
 
 ## Runtime Mode Matrix
