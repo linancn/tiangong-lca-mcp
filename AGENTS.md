@@ -13,15 +13,15 @@ whenToUse:
 whenToUpdate:
   - when runtime modes, auth boundaries, or tool registration change
   - when validation or runtime prerequisites change
-  - when the repo-local AI bootstrap docs under ai/ change
+  - when docpact routing, retained source docs, or repo-local governance rules change
 checkPaths:
   - AGENTS.md
   - README.md
   - README_CN.md
   - DEV_EN.md
   - DEV_CN.md
-  - ai/**/*.md
-  - ai/**/*.yaml
+  - .docpact/config.yaml
+  - docs/agents/**
   - package.json
   - .nvmrc
   - Dockerfile
@@ -33,30 +33,39 @@ checkPaths:
 lastReviewedAt: 2026-04-18
 lastReviewedCommit: ec9c15dfcbb398b56b5da7e918a3a6c7ae8d1414
 related:
-  - ai/repo.yaml
-  - ai/task-router.md
-  - ai/validation.md
-  - ai/architecture.md
+  - .docpact/config.yaml
+  - docs/agents/repo-validation.md
+  - docs/agents/repo-architecture.md
   - README.md
+  - README_CN.md
   - DEV_EN.md
+  - DEV_CN.md
 ---
 
 ## Repo Contract
 
 `tiangong-lca-mcp` owns TianGong LCA MCP transports and tool exposure: STDIO, authenticated Streamable HTTP, local Streamable HTTP, OAuth helpers, tool registration, and lifecycle-model preprocessing that is intentionally part of the MCP surface. Start here when the task may change how MCP clients connect or what this MCP server exposes.
 
-## AI Load Order
+## Bootstrap Order
 
 Load docs in this order:
 
 1. `AGENTS.md`
-2. `ai/repo.yaml`
-3. `ai/task-router.md`
-4. `ai/validation.md`
-5. `ai/architecture.md`
-6. `README.md` or `DEV_EN.md` only for human-oriented setup details
+2. `.docpact/config.yaml`
+3. `docpact route --root . --intent <intent>` when you need path-specific routing
+4. `docs/agents/repo-validation.md` when proof, runtime caveats, or CI behavior matters
+5. `docs/agents/repo-architecture.md` when transport, auth, OAuth, or tool ownership is unclear
+6. `README.md`, `README_CN.md`, `DEV_EN.md`, or `DEV_CN.md` only when user setup or maintainer runtime details are needed
 
 Do not start by assuming that remote search behavior or product UI truth lives in this repository.
+
+Preferred docpact commands:
+
+- `docpact route --root . --intent transport-auth`
+- `docpact route --root . --intent mcp-tools`
+- `docpact route --root . --intent remote-search-wrappers`
+- `docpact route --root . --intent openlca-tidas`
+- `docpact route --root . --intent repo-docs`
 
 ## Repo Ownership
 
@@ -85,7 +94,7 @@ Route those tasks to:
 
 ## Runtime Facts
 
-- Repo-local AI-doc maintenance is enforced by `.github/workflows/ai-doc-lint.yml` using the vendored `.github/scripts/ai-doc-lint.*` files.
+- Repo-local documentation governance is encoded in `.docpact/config.yaml` and enforced by `.github/workflows/ai-doc-lint.yml` through `docpact`.
 - Published binaries:
   - `tiangong-lca-mcp-stdio`
   - `tiangong-lca-mcp-http`
