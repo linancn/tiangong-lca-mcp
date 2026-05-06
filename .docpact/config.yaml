@@ -235,13 +235,9 @@ rules:
         kind: repo-landing
     requiredDocs:
       - path: AGENTS.md
-        mode: review_or_update
-      - path: README.md
-        mode: review_or_update
-      - path: README_CN.md
-        mode: review_or_update
+        mode: must_exist
       - path: .docpact/config.yaml
-        mode: review_or_update
+        mode: must_exist
     reason: User-facing MCP setup docs should stay aligned with the current public package and runtime surface.
   - id: mcp-maintainer-docs-contract
     scope: repo
