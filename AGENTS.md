@@ -30,8 +30,8 @@ checkPaths:
   - src/**
   - public/**
   - test/**
-lastReviewedAt: 2026-04-24
-lastReviewedCommit: 465ee14740515a308d5d31b5dd9879281b2f3260
+lastReviewedAt: 2026-05-06
+lastReviewedCommit: b9ebb102bb05127412cfe8a91020cdcb26660460
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
