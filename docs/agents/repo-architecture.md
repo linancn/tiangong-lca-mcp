@@ -21,8 +21,11 @@ checkPaths:
   - src/**
   - public/**
   - test/**
-lastReviewedAt: 2026-05-06
-lastReviewedCommit: b9ebb102bb05127412cfe8a91020cdcb26660460
+  - .githooks/pre-push
+  - scripts/docpact-gate.sh
+  - scripts/install-git-hooks.sh
+lastReviewedAt: 2026-05-08
+lastReviewedCommit: 0913ea7e5d25d5c038600fe0d4f304b7792e4284
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -117,3 +120,7 @@ The active local OpenLCA integration uses `olca-ipc`. The `openlca_grpc.ts` file
 - the OAuth demo pages here are not the product app
 - `npm test` is not a strong automated regression suite
 - a merged child PR does not finish workspace delivery
+
+## Local Docpact Push Gate
+
+This repository has a versioned local `pre-push` hook under `.githooks/pre-push` that delegates to `scripts/docpact-gate.sh`. The hook is a local developer guard for docpact config validation and enforced doc-governance linting; CI remains the authoritative PR enforcement path.

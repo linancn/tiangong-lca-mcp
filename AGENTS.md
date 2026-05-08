@@ -30,8 +30,11 @@ checkPaths:
   - src/**
   - public/**
   - test/**
-lastReviewedAt: 2026-05-06
-lastReviewedCommit: b9ebb102bb05127412cfe8a91020cdcb26660460
+  - .githooks/**
+  - scripts/docpact-gate.sh
+  - scripts/install-git-hooks.sh
+lastReviewedAt: 2026-05-08
+lastReviewedCommit: 0913ea7e5d25d5c038600fe0d4f304b7792e4284
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -121,3 +124,13 @@ If the change must ship through the workspace:
 1. merge the child PR into `tiangong-lca-mcp`
 2. update the `lca-workspace` submodule pointer deliberately
 3. complete any later workspace-level validation that depends on the updated MCP snapshot
+
+## Local Docpact Push Gate
+
+Install the versioned local hook once per checkout:
+
+```bash
+./scripts/install-git-hooks.sh
+```
+
+The `pre-push` hook runs `scripts/docpact-gate.sh`, which performs strict config validation and `docpact lint --mode enforce` before the push leaves the machine. The default comparison base is `origin/main`. Override it for unusual stacks with `DOCPACT_BASE_REF=<ref>` or `scripts/docpact-gate.sh --base <ref>`. The gate writes its detailed report to a temporary file so normal pushes do not create `.docpact/runs/` artifacts.
