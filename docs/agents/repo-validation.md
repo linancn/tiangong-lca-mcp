@@ -25,8 +25,11 @@ checkPaths:
   - src/**
   - public/**
   - test/**
-lastReviewedAt: 2026-05-06
-lastReviewedCommit: b9ebb102bb05127412cfe8a91020cdcb26660460
+  - .githooks/pre-push
+  - scripts/docpact-gate.sh
+  - scripts/install-git-hooks.sh
+lastReviewedAt: 2026-05-08
+lastReviewedCommit: 0913ea7e5d25d5c038600fe0d4f304b7792e4284
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -81,3 +84,13 @@ A good PR note for this repo should say:
 2. whether any validation path was mutating or demo-only
 3. whether a manual transport, OAuth, or OpenLCA proof was performed or deferred
 4. whether any required remote runtime proof belongs in another repo
+
+## Local Docpact Push Gate
+
+Install the versioned local hook once per checkout:
+
+```bash
+./scripts/install-git-hooks.sh
+```
+
+The `pre-push` hook runs `scripts/docpact-gate.sh`, which performs strict config validation and `docpact lint --mode enforce` before the push leaves the machine. The default comparison base is `origin/main`. Override it for unusual stacks with `DOCPACT_BASE_REF=<ref>` or `scripts/docpact-gate.sh --base <ref>`. The gate writes its detailed report to a temporary file so normal pushes do not create `.docpact/runs/` artifacts.
