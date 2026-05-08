@@ -94,10 +94,11 @@ npx @modelcontextprotocol/inspector
 ### 发布
 
 ```bash
-npm login
-
-npm run build && npm publish
+npm version patch
+git push origin main --follow-tags
 ```
+
+发布由 GitHub Actions trusted publishing 执行。Tag 继续使用本单包仓库的 `v<package.version>` 格式；例如 package 版本 `0.0.30` 对应发布 tag `v0.0.30`。
 
 ### 测试脚手架
 

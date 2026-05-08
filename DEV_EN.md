@@ -101,10 +101,11 @@ npx @modelcontextprotocol/inspector
 ### Publishing
 
 ```bash
-npm login
-
-npm run build && npm publish
+npm version patch
+git push origin main --follow-tags
 ```
+
+Publishing is handled by GitHub Actions trusted publishing. Tags must keep the existing single-package format `v<package.version>`; for example, package version `0.0.30` must be released from tag `v0.0.30`.
 
 ### scaffold
 
