@@ -26,6 +26,7 @@ checkPaths:
   - public/**
   - test/**
   - .githooks/pre-push
+  - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-05-08
@@ -65,7 +66,7 @@ Interpret the baseline carefully:
 | local OpenLCA helpers | `npm run build`; `npm run lint` | run `npx tsx src/tools/openlca_ipc_test.ts` only when the task explicitly includes a local OpenLCA smoke check | The active runtime path is `olca-ipc`, not the commented gRPC scaffold. |
 | `package.json`, `.nvmrc`, `Dockerfile`, `.env.example`, or `mcp_config.json` | `npm run build`; `npm run lint` | record the runtime prerequisite or config drift that was checked | Recheck `DEV_EN.md` and `DEV_CN.md` whenever the Node baseline or maintainer startup path changes. |
 | `public/**` only | `npm run build`; `npm run lint` | inspect the served page path if the task changes OAuth demo or index behavior | Static pages are part of the transport surface here. |
-| governed docs only | `docpact validate-config --root . --strict`; `docpact lint --root . --staged --mode enforce` | run one focused route check such as `transport-auth`, `mcp-tools`, or `openlca-tidas` when routing changes | Refresh review metadata even when prose-only docs change. |
+| governed docs only | `scripts/docpact validate-config --root . --strict`; `scripts/docpact lint --root . --staged --mode enforce` | run one focused route check such as `transport-auth`, `mcp-tools`, or `openlca-tidas` when routing changes | Refresh review metadata even when prose-only docs change. |
 
 ## Known Caveats
 
@@ -93,4 +94,4 @@ Install the versioned local hook once per checkout:
 ./scripts/install-git-hooks.sh
 ```
 
-The `pre-push` hook runs `scripts/docpact-gate.sh`, which performs strict config validation and `docpact lint --mode enforce` before the push leaves the machine. The default comparison base is `origin/main`. Override it for unusual stacks with `DOCPACT_BASE_REF=<ref>` or `scripts/docpact-gate.sh --base <ref>`. The gate writes its detailed report to a temporary file so normal pushes do not create `.docpact/runs/` artifacts.
+The `pre-push` hook runs `scripts/docpact-gate.sh`, which delegates CLI lookup to `scripts/docpact` and performs strict config validation plus enforced lint before the push leaves the machine. The wrapper checks `DOCPACT_BIN`, Cargo install locations, Homebrew install locations, and then `PATH`, so local agent shells should not fail only because bare `docpact` is unavailable. The default comparison base is `origin/main`. Override it for unusual stacks with `DOCPACT_BASE_REF=<ref>` or `scripts/docpact-gate.sh --base <ref>`. The gate writes its detailed report to a temporary file so normal pushes do not create `.docpact/runs/` artifacts.
