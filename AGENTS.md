@@ -31,6 +31,7 @@ checkPaths:
   - public/**
   - test/**
   - .githooks/**
+  - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-05-08
@@ -55,7 +56,7 @@ Load docs in this order:
 
 1. `AGENTS.md`
 2. `.docpact/config.yaml`
-3. `docpact route --root . --intent <intent>` when you need path-specific routing
+3. `scripts/docpact route --root . --intent <intent>` when you need path-specific routing
 4. `docs/agents/repo-validation.md` when proof, runtime caveats, or CI behavior matters
 5. `docs/agents/repo-architecture.md` when transport, auth, OAuth, or tool ownership is unclear
 6. `README.md`, `README_CN.md`, `DEV_EN.md`, or `DEV_CN.md` only when user setup or maintainer runtime details are needed
@@ -64,11 +65,11 @@ Do not start by assuming that remote search behavior or product UI truth lives i
 
 Preferred docpact commands:
 
-- `docpact route --root . --intent transport-auth`
-- `docpact route --root . --intent mcp-tools`
-- `docpact route --root . --intent remote-search-wrappers`
-- `docpact route --root . --intent openlca-tidas`
-- `docpact route --root . --intent repo-docs`
+- `scripts/docpact route --root . --intent transport-auth`
+- `scripts/docpact route --root . --intent mcp-tools`
+- `scripts/docpact route --root . --intent remote-search-wrappers`
+- `scripts/docpact route --root . --intent openlca-tidas`
+- `scripts/docpact route --root . --intent repo-docs`
 
 ## Repo Ownership
 
@@ -133,4 +134,4 @@ Install the versioned local hook once per checkout:
 ./scripts/install-git-hooks.sh
 ```
 
-The `pre-push` hook runs `scripts/docpact-gate.sh`, which performs strict config validation and `docpact lint --mode enforce` before the push leaves the machine. The default comparison base is `origin/main`. Override it for unusual stacks with `DOCPACT_BASE_REF=<ref>` or `scripts/docpact-gate.sh --base <ref>`. The gate writes its detailed report to a temporary file so normal pushes do not create `.docpact/runs/` artifacts.
+The `pre-push` hook runs `scripts/docpact-gate.sh`, which delegates CLI lookup to `scripts/docpact` and performs strict config validation plus enforced lint before the push leaves the machine. The wrapper checks `DOCPACT_BIN`, Cargo install locations, Homebrew install locations, and then `PATH`, so local agent shells should not fail only because bare `docpact` is unavailable. The default comparison base is `origin/main`. Override it for unusual stacks with `DOCPACT_BASE_REF=<ref>` or `scripts/docpact-gate.sh --base <ref>`. The gate writes its detailed report to a temporary file so normal pushes do not create `.docpact/runs/` artifacts.
