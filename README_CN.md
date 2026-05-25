@@ -34,6 +34,15 @@ related:
 
 TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO 和 Streamable Http 两种协议。
 
+## 环境变量
+
+GLAD 数据集查询工具需要在服务器环境中配置 GLAD API key：
+
+```bash
+GLAD_API_KEY=your-glad-api-key
+GLAD_API_BASE_URL=https://www.globallcadataaccess.org/api/v1
+```
+
 ## 启动 MCP 服务器
 
 ### 客户端 STDIO 服务器

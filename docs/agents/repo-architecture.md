@@ -41,8 +41,8 @@ related:
 
 | Mode | Entry file | Main surface | Tool families exposed |
 | --- | --- | --- | --- |
-| STDIO | `src/index.ts` | `StdioServerTransport` | search wrappers, OpenLCA tools, prompts, resources, guidance |
-| HTTP | `src/index_server.ts` | authenticated Streamable HTTP on `POST /mcp` plus `/health` and `/oauth` | search wrappers and `Database_CRUD_Tool` |
+| STDIO | `src/index.ts` | `StdioServerTransport` | search wrappers, GLAD dataset tools, OpenLCA tools, prompts, resources, guidance |
+| HTTP | `src/index_server.ts` | authenticated Streamable HTTP on `POST /mcp` plus `/health` and `/oauth` | search wrappers, GLAD dataset tools, and `Database_CRUD_Tool` |
 | HTTP local | `src/index_server_local.ts` | local Streamable HTTP on `POST /mcp` plus `/health` | OpenLCA tools, TIDAS validation, prompts, resources |
 
 ## Auth Decision Tree
@@ -87,6 +87,14 @@ These wrappers forward bearer auth and region headers to remote Edge Functions:
 - `src/tools/life_cycle_model_hybrid_search.ts`
 
 They are wrappers, not the underlying search implementation.
+
+### GLAD dataset lookup
+
+The GLAD tools call the public Global LCA Data Access API directly and require `GLAD_API_KEY` in the MCP server environment:
+
+- `src/tools/glad_dataset_search.ts`
+
+These tools are read-only API wrappers for dataset descriptor search and single dataset descriptor retrieval.
 
 ### CRUD and lifecyclemodel preprocessing
 

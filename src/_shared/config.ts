@@ -15,3 +15,7 @@ export const x_region = process.env.X_REGION ?? 'us-east-1';
 
 export const redis_url = process.env.UPSTASH_REDIS_URL ?? '';
 export const redis_token = process.env.UPSTASH_REDIS_TOKEN ?? '';
+
+export const glad_api_base_url =
+  process.env.GLAD_API_BASE_URL ?? 'https://www.globallcadataaccess.org/api/v1';
+export const glad_api_key = process.env.GLAD_API_KEY ?? '';
