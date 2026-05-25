@@ -19,7 +19,7 @@ checkPaths:
   - src/**
   - test/**
 lastReviewedAt: 2026-05-25
-lastReviewedCommit: b30b65f06723246379152687a05e2cd1992f9cae
+lastReviewedCommit: e8e4b0762abe8a31723c73724e98c14d75c931a5
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -98,7 +98,7 @@ npm version patch
 git push origin main --follow-tags
 ```
 
-发布由 GitHub Actions trusted publishing 执行。Tag 继续使用本单包仓库的 `v<package.version>` 格式；例如 package 版本 `0.0.30` 对应发布 tag `v0.0.30`。
+发布由 GitHub Actions trusted publishing 执行。Tag 继续使用本单包仓库的 `v<package.version>` 格式；例如 package 版本 `0.0.31` 对应发布 tag `v0.0.31`。
 
 ### 测试脚手架
 
@@ -109,11 +109,11 @@ npx tsx src/tools/openlca_ipc_test.ts
 ### 发布
 
 ```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.30 .
+docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.31 .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.30
+docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.31
 
-docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.30
+docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.31
 ```
