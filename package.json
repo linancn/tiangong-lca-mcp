@@ -1,9 +1,13 @@
 {
   "name": "@tiangong-lca/mcp-server",
-  "version": "0.0.30",
+  "version": "0.0.31",
   "description": "TianGong LCA MCP Server",
   "license": "MIT",
   "author": "Nan LI",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/linancn/tiangong-lca-mcp"
+  },
   "type": "module",
   "bin": {
     "tiangong-lca-mcp-stdio": "dist/src/index.js",

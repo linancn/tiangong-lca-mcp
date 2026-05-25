@@ -1,6 +1,6 @@
 FROM node:24-alpine
 
-RUN npm install -g @tiangong-lca/mcp-server@0.0.30
+RUN npm install -g @tiangong-lca/mcp-server@0.0.31
 
 EXPOSE 80
 

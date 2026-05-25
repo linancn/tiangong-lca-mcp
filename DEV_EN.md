@@ -19,7 +19,7 @@ checkPaths:
   - src/**
   - test/**
 lastReviewedAt: 2026-05-25
-lastReviewedCommit: b30b65f06723246379152687a05e2cd1992f9cae
+lastReviewedCommit: e8e4b0762abe8a31723c73724e98c14d75c931a5
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -105,7 +105,7 @@ npm version patch
 git push origin main --follow-tags
 ```
 
-Publishing is handled by GitHub Actions trusted publishing. Tags must keep the existing single-package format `v<package.version>`; for example, package version `0.0.30` must be released from tag `v0.0.30`.
+Publishing is handled by GitHub Actions trusted publishing. Tags must keep the existing single-package format `v<package.version>`; for example, package version `0.0.31` must be released from tag `v0.0.31`.
 
 ### scaffold
 
@@ -116,11 +116,11 @@ npx tsx src/tools/openlca_ipc_test.ts
 ### Deployment
 
 ```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.30 .
+docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.31 .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.30
+docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.31
 
-docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.30
+docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.31
 ```
