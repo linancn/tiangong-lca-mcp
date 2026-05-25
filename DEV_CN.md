@@ -18,8 +18,8 @@ checkPaths:
   - .nvmrc
   - src/**
   - test/**
-lastReviewedAt: 2026-04-24
-lastReviewedCommit: bf48b7fd4c9115350b00fddba3d302188007f2f4
+lastReviewedAt: 2026-05-25
+lastReviewedCommit: b30b65f06723246379152687a05e2cd1992f9cae
 related:
   - AGENTS.md
   - .docpact/config.yaml
