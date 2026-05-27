@@ -62,6 +62,9 @@ jobs:
       - name: Check npm registry version availability
         run: node ./scripts/ci/release-version.cjs assert-unpublished
 
+      - name: Build package artifacts
+        run: npm run build
+
       - name: Verify package
         run: npm pack --dry-run >/dev/null
 
