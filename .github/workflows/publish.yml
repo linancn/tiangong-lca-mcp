@@ -16,6 +16,20 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main
+        run: git fetch --force origin +refs/heads/main:refs/remotes/origin/main
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install docpact
+        run: cargo install docpact --version 0.1.9 --force
+
+      - name: Run docpact release gate
+        run: scripts/docpact-gate.sh --base origin/main
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
