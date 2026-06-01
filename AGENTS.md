@@ -30,12 +30,14 @@ checkPaths:
   - src/**
   - public/**
   - test/**
+  - scripts/ci/**
+  - .github/workflows/publish.yml
   - .githooks/**
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-05-28
-lastReviewedCommit: 8471054534129acbcb316bd5e53b394c586cd8b4
+lastReviewedAt: 2026-06-01
+lastReviewedCommit: afbb47af17b81da4cd4bad31a8e13c498612c4cd
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -103,6 +105,8 @@ Route those tasks to:
   - `tiangong-lca-mcp-stdio`
   - `tiangong-lca-mcp-http`
   - `tiangong-lca-mcp-http-local`
+- Release tags use `v<package.json version>`; canonical `main` branch pushes whose package version changes create the matching tag when missing, run the release gate, and publish `@tiangong-lca/mcp-server` to npm in the same workflow run
+- Manual `v*` tag pushes and `workflow_dispatch` runs for an existing release tag whose target commit is already on `main` remain supported for recovery/backfill releases
 - The checked-in runtime prerequisites are currently inconsistent:
   - `.nvmrc` and `Dockerfile` imply Node 24
   - `DEV_EN.md` still says Node 22

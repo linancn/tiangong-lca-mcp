@@ -1,7 +1,7 @@
 version: 1
 layout: repo
-lastReviewedAt: "2026-05-28"
-lastReviewedCommit: "8471054534129acbcb316bd5e53b394c586cd8b4"
+lastReviewedAt: "2026-06-01"
+lastReviewedCommit: "afbb47af17b81da4cd4bad31a8e13c498612c4cd"
 
 catalog:
   repos:
@@ -29,6 +29,12 @@ ownership:
           - .docpact/config.yaml
           - docs/agents/**
           - .github/workflows/ai-doc-lint.yml
+      ownerRepo: mcp
+    - id: validation-release-and-automation
+      paths:
+        include:
+          - scripts/ci/**
+          - .github/workflows/publish.yml
       ownerRepo: mcp
     - id: runtime-and-package-config
       paths:
@@ -87,6 +93,7 @@ coverage:
     - DEV_CN.md
     - .docpact/config.yaml
     - docs/agents/**
+    - scripts/ci/**
     - package.json
     - tsconfig.json
     - .nvmrc
@@ -98,6 +105,7 @@ coverage:
     - public/**
     - src/**
     - test/**
+    - .github/workflows/publish.yml
     - .github/workflows/ai-doc-lint.yml
   exclude:
     - .git/**
@@ -178,6 +186,8 @@ routing:
     validation-runtime:
       paths:
         - package.json
+        - scripts/ci/**
+        - .github/workflows/publish.yml
         - tsconfig.json
         - .nvmrc
         - .prettierrc.cjs
@@ -189,6 +199,8 @@ routing:
       paths:
         - docs/agents/repo-validation.md
         - package.json
+        - scripts/ci/**
+        - .github/workflows/publish.yml
         - tsconfig.json
         - src/**
         - public/**
@@ -202,6 +214,8 @@ routing:
         - DEV_CN.md
         - .docpact/config.yaml
         - docs/agents/**
+        - scripts/ci/**
+        - .github/workflows/publish.yml
     root-integration:
       paths:
         - AGENTS.md
@@ -322,6 +336,24 @@ rules:
       - path: DEV_EN.md
         mode: review_or_update
     reason: Transport, auth, OAuth, and runtime prerequisite changes alter the executable MCP contract.
+  - id: mcp-validation-and-release-contract
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: scripts/ci/**
+        kind: release-script
+      - path: .github/workflows/publish.yml
+        kind: release-automation
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+      - path: docs/agents/repo-validation.md
+        mode: review_or_update
+      - path: docs/agents/repo-architecture.md
+        mode: review_or_update
+    reason: Release scripts and publish workflow changes alter package validation, tag gating, and npm publish behavior without changing transport/auth startup docs.
   - id: mcp-tool-contract
     scope: repo
     repo: mcp

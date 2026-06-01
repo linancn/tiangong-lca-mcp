@@ -22,6 +22,8 @@ checkPaths:
   - Dockerfile
   - .env.example
   - mcp_config.json
+  - scripts/ci/**
+  - .github/workflows/publish.yml
   - src/**
   - public/**
   - test/**
@@ -29,8 +31,8 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-05-28
-lastReviewedCommit: 8471054534129acbcb316bd5e53b394c586cd8b4
+lastReviewedAt: 2026-06-01
+lastReviewedCommit: afbb47af17b81da4cd4bad31a8e13c498612c4cd
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -65,6 +67,7 @@ Interpret the baseline carefully:
 | search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `npm run build`; `npm run lint`; `npm test` | manually inspect one representative payload path or run the relevant wrapper under an MCP client if the task explicitly includes it | If the actual remote behavior changes, record the companion repo proof separately. GLAD API validation may need a browser-verified or otherwise allowed runtime because Cloudflare can challenge raw Node/curl requests before the API key is processed. |
 | local OpenLCA helpers | `npm run build`; `npm run lint` | run `npx tsx src/tools/openlca_ipc_test.ts` only when the task explicitly includes a local OpenLCA smoke check | The active runtime path is `olca-ipc`, not the commented gRPC scaffold. |
 | `package.json`, `.nvmrc`, `Dockerfile`, `.env.example`, or `mcp_config.json` | `npm run build`; `npm run lint` | record the runtime prerequisite or config drift that was checked | Recheck `DEV_EN.md` and `DEV_CN.md` whenever the Node baseline or maintainer startup path changes. |
+| release automation under `scripts/ci/**` or `.github/workflows/publish.yml` | inspect the workflow/script diff; run `npm run build` when package metadata or release scripts execute package code | record tag naming, `main`-only release, and npm unpublished-version assumptions checked locally | Release publish runs the full pre-publish gate before npm publish. |
 | `public/**` only | `npm run build`; `npm run lint` | inspect the served page path if the task changes OAuth demo or index behavior | Static pages are part of the transport surface here. |
 | governed docs only | `scripts/docpact validate-config --root . --strict`; `scripts/docpact lint --root . --staged --mode enforce` | run one focused route check such as `transport-auth`, `mcp-tools`, or `openlca-tidas` when routing changes | Refresh review metadata even when prose-only docs change. |
 
