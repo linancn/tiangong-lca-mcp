@@ -18,6 +18,8 @@ checkPaths:
   - docs/agents/repo-architecture.md
   - .docpact/config.yaml
   - package.json
+  - scripts/ci/**
+  - .github/workflows/publish.yml
   - src/**
   - public/**
   - test/**
@@ -25,8 +27,8 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-05-28
-lastReviewedCommit: 8471054534129acbcb316bd5e53b394c586cd8b4
+lastReviewedAt: 2026-06-01
+lastReviewedCommit: afbb47af17b81da4cd4bad31a8e13c498612c4cd
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -122,6 +124,10 @@ The active local OpenLCA integration uses `olca-ipc`. The `openlca_grpc.ts` file
 - `next` owns product UI behavior
 - `tidas-tools` owns standalone conversion, export, and batch validation tooling
 - this repo owns MCP transports, auth classification, and tool exposure
+
+## Release Architecture
+
+`main` pushes whose `package.json` version changes create the matching `v<version>` tag, run the release gate, and publish `@tiangong-lca/mcp-server` to npm. Manual `v*` tag pushes and workflow-dispatch runs for existing tags remain recovery/backfill paths.
 
 ## Common Misreads
 
