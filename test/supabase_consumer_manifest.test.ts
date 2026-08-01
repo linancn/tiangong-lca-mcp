@@ -7,7 +7,9 @@ import path from 'node:path';
 import test from 'node:test';
 import {
   assertCanonicalOrigin,
+  assertCanonicalSchema,
   assertExactOccurrenceSet,
+  assertMatchesCanonicalSchema,
   deriveManifest,
   deriveOccurrences,
   MANIFEST_SCHEMA,
@@ -148,6 +150,32 @@ test('canonical GitHub origin rejects suffix lookalikes', () => {
     0,
   );
   assert.throws(() => assertCanonicalOrigin(root), /canonical GitHub repository/u);
+});
+
+test('canonical Schema rejects commit, authority, repository, and schema-origin drift', () => {
+  const manifest = JSON.parse(
+    readFileSync(path.join(repoRoot, machineArtifacts[0]!), 'utf8'),
+  ) as Record<string, unknown>;
+  const schema = JSON.parse(
+    readFileSync(path.join(repoRoot, machineArtifacts[1]!), 'utf8'),
+  ) as Record<string, unknown>;
+  const badCommit = structuredClone(manifest);
+  badCommit.sourceTreeCommit = 'not-a-commit';
+  assert.throws(() => assertMatchesCanonicalSchema(badCommit, schema), /canonical JSON Schema/u);
+  const badAuthority = structuredClone(manifest) as {
+    authority: { authorizesHostedMutation: boolean };
+  };
+  badAuthority.authority.authorizesHostedMutation = true;
+  assert.throws(() => assertMatchesCanonicalSchema(badAuthority, schema), /canonical JSON Schema/u);
+  const badRepository = structuredClone(manifest);
+  badRepository.repository = 'evil/example';
+  assert.throws(
+    () => assertMatchesCanonicalSchema(badRepository, schema),
+    /canonical JSON Schema/u,
+  );
+  const badSchema = structuredClone(schema);
+  badSchema.$id = 'https://evil.example/schema.json';
+  assert.throws(() => assertCanonicalSchema(badSchema), /origin/u);
 });
 
 test('repository Prettier cannot rewrite generator-owned canonical artifacts', () => {

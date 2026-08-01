@@ -845,6 +845,27 @@ function assertRegularNoFollow(root: string, pathname: string): void {
     throw new Error(`${pathname} must be a no-follow regular file`);
 }
 
+export function assertCanonicalSchema(value: unknown): void {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    (value as { $id?: unknown }).$id !==
+      'https://github.com/linancn/tiangong-lca-mcp/contracts/supabase-consumer-manifest.v3.schema.json' ||
+    (value as { properties?: { schema?: { const?: unknown } } }).properties?.schema?.const !==
+      MANIFEST_SCHEMA
+  ) {
+    throw new Error('canonical JSON Schema origin or v3 identifier drift');
+  }
+}
+
+export function assertMatchesCanonicalSchema(manifest: unknown, schema: unknown): void {
+  assertCanonicalSchema(schema);
+  const validate = new Ajv2020({ allErrors: true, strict: true }).compile(schema as object);
+  if (!validate(manifest)) {
+    throw new Error(`manifest fails canonical JSON Schema: ${JSON.stringify(validate.errors)}`);
+  }
+}
+
 export function verifyManifest(root: string) {
   assertCanonicalOrigin(root);
   assertRegularNoFollow(root, MANIFEST_PATH);
@@ -858,20 +879,7 @@ export function verifyManifest(root: string) {
   const schema: unknown = JSON.parse(schemaRaw);
   if (schemaRaw !== canonicalJson(schema))
     throw new Error('schema bytes are not canonical pretty JSON plus LF');
-  if (
-    !schema ||
-    typeof schema !== 'object' ||
-    (schema as { $id?: unknown }).$id !==
-      'https://github.com/linancn/tiangong-lca-mcp/contracts/supabase-consumer-manifest.v3.schema.json' ||
-    (schema as { properties?: { schema?: { const?: unknown } } }).properties?.schema?.const !==
-      MANIFEST_SCHEMA
-  ) {
-    throw new Error('canonical JSON Schema origin or v3 identifier drift');
-  }
-  const validate = new Ajv2020({ allErrors: true, strict: true }).compile(schema as object);
-  if (!validate(parsed)) {
-    throw new Error(`manifest fails canonical JSON Schema: ${JSON.stringify(validate.errors)}`);
-  }
+  assertMatchesCanonicalSchema(parsed, schema);
   const expected = deriveManifest(root, parsed.sourceTreeCommit);
   assertExactOccurrenceSet(parsed.occurrences, expected.occurrences);
   if (canonicalJson(parsed) !== canonicalJson(expected)) {
