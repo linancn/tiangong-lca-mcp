@@ -1058,7 +1058,7 @@
     {
       "surface": "views",
       "result": "absent",
-      "evidence": "zero declared or independently derived view occurrences"
+      "evidence": "non-core .from() targets fail closed; zero derived view occurrences"
     },
     {
       "surface": "storage",
@@ -1073,12 +1073,12 @@
     {
       "surface": "direct-postgres-sql",
       "result": "absent",
-      "evidence": "AST import/new/string scan and package dependency parser"
+      "evidence": "AST import/new/string/tag scan and package dependency parser"
     },
     {
       "surface": "pgmq-cron",
       "result": "absent",
-      "evidence": "AST and package command scan found no PGMQ or Cron consumer"
+      "evidence": "AST property/schema and package command scan found no PGMQ or Cron consumer"
     },
     {
       "surface": "supabase-subprocess-cli",

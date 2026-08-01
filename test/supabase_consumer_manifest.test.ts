@@ -119,6 +119,10 @@ test('scanner fails closed for dynamic, non-core, raw REST, direct PG, CLI, and 
     () => deriveOccurrences('src/tools/db_crud.ts', 'pgmq.send(queue, payload);'),
     /PGMQ\/Cron/u,
   );
+  assert.throws(
+    () => deriveOccurrences('src/tools/db_crud.ts', "client.schema('pgmq').rpc('send');"),
+    /PGMQ\/Cron/u,
+  );
 });
 
 test('package JSON parser rejects direct PostgreSQL dependencies and Supabase CLI scripts', () => {

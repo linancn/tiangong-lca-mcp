@@ -572,6 +572,9 @@ export function deriveOccurrences(
       if (name === 'schema') {
         const schema = literal(node.arguments[0]);
         if (!schema) throw new Error(`${file}: unresolved dynamic .schema() target`);
+        if (['pgmq', 'pg_cron', 'cron'].includes(schema)) {
+          throw new Error(`${file}: forbidden or unresolved PGMQ/Cron schema`);
+        }
         add(node, 'schema.select', 'postgrest', schema, schema);
       }
       if (name === 'createClient') add(node, 'client.create', 'auth', 'client', 'supabase-project');
@@ -706,6 +709,65 @@ export function deriveManifest(root: string, revision: string): ConsumerManifest
   ].sort();
   const absent = (transport: Transport) =>
     !occurrences.some((item) => item.transport === transport);
+  const absenceProofs: ConsumerManifest['absenceProofs'] = [
+    ...(rpcs.length === 0
+      ? [
+          {
+            surface: 'postgrest-rpc',
+            result: 'absent' as const,
+            evidence: '0 independently AST-derived RPC occurrences',
+          },
+        ]
+      : []),
+    {
+      surface: 'views',
+      result: 'absent',
+      evidence: 'non-core .from() targets fail closed; zero derived view occurrences',
+    },
+    ...(absent('storage')
+      ? [
+          {
+            surface: 'storage',
+            result: 'absent' as const,
+            evidence: 'zero independently AST-derived Storage occurrences',
+          },
+        ]
+      : []),
+    ...(absent('realtime')
+      ? [
+          {
+            surface: 'realtime',
+            result: 'absent' as const,
+            evidence: 'zero independently AST-derived Realtime occurrences',
+          },
+        ]
+      : []),
+    {
+      surface: 'direct-postgres-sql',
+      result: 'absent',
+      evidence: 'AST import/new/string/tag scan and package dependency parser',
+    },
+    {
+      surface: 'pgmq-cron',
+      result: 'absent',
+      evidence: 'AST property/schema and package command scan found no PGMQ or Cron consumer',
+    },
+    {
+      surface: 'supabase-subprocess-cli',
+      result: 'absent',
+      evidence: 'AST subprocess calls plus package script parser',
+    },
+    {
+      surface: 'raw-rest-v1',
+      result: 'absent',
+      evidence: 'raw /rest/v1 route detection is fail-closed',
+    },
+    {
+      surface: 'service-role-credential',
+      result: 'absent',
+      evidence: 'credential classification has no service-role occurrence',
+    },
+  ];
   return {
     schema: MANIFEST_SCHEMA,
     version: 3,
@@ -761,53 +823,7 @@ export function deriveManifest(root: string, revision: string): ConsumerManifest
         ],
       },
     ],
-    absenceProofs: [
-      {
-        surface: 'postgrest-rpc',
-        result: 'absent',
-        evidence: `${rpcs.length} independently AST-derived RPC occurrences`,
-      },
-      {
-        surface: 'views',
-        result: 'absent',
-        evidence: 'zero declared or independently derived view occurrences',
-      },
-      {
-        surface: 'storage',
-        result: absent('storage') ? 'absent' : 'absent',
-        evidence: 'zero independently AST-derived Storage occurrences',
-      },
-      {
-        surface: 'realtime',
-        result: absent('realtime') ? 'absent' : 'absent',
-        evidence: 'zero independently AST-derived Realtime occurrences',
-      },
-      {
-        surface: 'direct-postgres-sql',
-        result: absent('direct-postgres') ? 'absent' : 'absent',
-        evidence: 'AST import/new/string scan and package dependency parser',
-      },
-      {
-        surface: 'pgmq-cron',
-        result: 'absent',
-        evidence: 'AST and package command scan found no PGMQ or Cron consumer',
-      },
-      {
-        surface: 'supabase-subprocess-cli',
-        result: absent('subprocess-cli') ? 'absent' : 'absent',
-        evidence: 'AST subprocess calls plus package script parser',
-      },
-      {
-        surface: 'raw-rest-v1',
-        result: 'absent',
-        evidence: 'raw /rest/v1 route detection is fail-closed',
-      },
-      {
-        surface: 'service-role-credential',
-        result: 'absent',
-        evidence: 'credential classification has no service-role occurrence',
-      },
-    ],
+    absenceProofs,
   };
 }
 
