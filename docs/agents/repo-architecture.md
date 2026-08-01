@@ -106,7 +106,7 @@ The MCP-side write and preprocessing logic clusters around:
 - `src/tools/db_crud.ts`
 - `src/tools/life_cycle_model_file_tools.ts`
 
-This path derives `json_tg` and `rule_verification` for lifecycle model writes. Its Supabase Data API boundary is governed by `docs/agents/data-api-contract.md`: nine explicit `public` core relations, five currently consumed and four explicit consumer-zero relations, with no current view or RPC consumer.
+This path derives `json_tg` and `rule_verification` for lifecycle model writes. Its Supabase boundary is governed by `docs/agents/data-api-contract.md`. The v3 machine manifest maps every independently derived occurrence to `Database_CRUD_Tool`, one of the three hybrid-search tools, or the authenticated HTTP transport lifecycle. It also records explicit zeroes for RPC, views, Storage, Realtime, direct PostgreSQL/SQL, PGMQ/Cron, raw REST, service-role credentials, and Supabase subprocess/CLI paths.
 
 ### Local OpenLCA and TIDAS validation
 

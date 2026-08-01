@@ -90,8 +90,11 @@ npm run lint
 
 ```bash
 npm run test:data-api-contract
+npm run test:supabase-consumer-manifest
 npm run scan:data-api-consumers
 ```
+
+v3 manifest 只能从 immutable Git commit 生成；它始终是 candidate 证据，不授权数据库、hosted、merge 或 deploy。不得手工修改 occurrence 行。
 
 #### 启动 MCP Inspector
 

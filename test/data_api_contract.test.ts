@@ -1,10 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
 import test from 'node:test';
-import { scanDataApiConsumers } from '../scripts/ci/scan-data-api-consumers.js';
 import {
   CORE_DATA_API_RELATIONS,
   DataApiContractError,
@@ -96,41 +92,4 @@ test('the MCP mutation layer invokes no request when api command migration is un
       error.code === 'DATA_API_MUTATION_COMMAND_UNRESOLVED',
   );
   assert.equal(calls, 0);
-});
-
-test('repository consumer inventory is exactly manifest-covered', () => {
-  const result = scanDataApiConsumers(resolve(import.meta.dirname, '..'));
-  assert.deepEqual(result, {
-    schemaVersion: 'mcp.data-api-consumer-scan.v1',
-    ok: true,
-    consumerCount: 2,
-    relationCount: 5,
-    viewCount: 0,
-    rpcCount: 0,
-    schemas: ['public'],
-    profiles: ['legacy-public-v1', 'api-contract-v1'],
-    findings: [],
-  });
-});
-
-test('scanner rejects unknown static, dynamic, RPC, and raw REST consumers', () => {
-  const root = mkdtempSync(join(tmpdir(), 'mcp-data-api-scan-'));
-  mkdirSync(join(root, 'src'), { recursive: true });
-  writeFileSync(
-    join(root, 'src', 'bad.ts'),
-    [
-      '// data-api-consumer-relations: private_table',
-      "client.from('private_table').select('*');",
-      'client.from(runtimeTable).select();',
-      "client.rpc('unknown_command');",
-      "client.schema('api').from('contacts');",
-      "fetch('/rest/v1/private_table');",
-    ].join('\n'),
-  );
-  const rules = scanDataApiConsumers(root).findings.map((finding) => finding.rule);
-  assert.ok(rules.includes('non-core-relation'));
-  assert.ok(rules.includes('unmanifested-dynamic-relation'));
-  assert.ok(rules.includes('unmanifested-rpc'));
-  assert.ok(rules.includes('non-public-schema-call'));
-  assert.ok(rules.includes('raw-rest-path'));
 });

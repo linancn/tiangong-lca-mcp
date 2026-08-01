@@ -90,8 +90,11 @@ npm run lint
 
 ```bash
 npm run test:data-api-contract
+npm run test:supabase-consumer-manifest
 npm run scan:data-api-consumers
 ```
+
+The v3 manifest is generated only from an immutable Git commit. It is candidate evidence, not database/hosted/merge/deploy authorization. Do not edit occurrence rows by hand.
 
 #### STDIO Server
 

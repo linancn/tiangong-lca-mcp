@@ -1,7 +1,10 @@
 version: 1
 layout: repo
-lastReviewedAt: "2026-06-01"
-lastReviewedCommit: "afbb47af17b81da4cd4bad31a8e13c498612c4cd"
+lastReviewedAt: "2026-08-02"
+lastReviewedCommit: "31e74fb431b7ac6745673e33454911400f34e1cc"
+# Review note, 2026-08-02: Issue #42 adds a candidate-only v3 Supabase consumer
+# manifest/schema, exact AST/parser derivation, MCP capability mapping, and PR CI.
+# Repository ownership and external database/hosted/workspace authority remain unchanged.
 
 catalog:
   repos:
@@ -35,7 +38,9 @@ ownership:
       paths:
         include:
           - scripts/ci/**
+          - contracts/**
           - .github/workflows/publish.yml
+          - .github/workflows/supabase-consumer-manifest.yml
       ownerRepo: mcp
     - id: runtime-and-package-config
       paths:
@@ -95,6 +100,7 @@ coverage:
     - .docpact/config.yaml
     - docs/agents/**
     - scripts/ci/**
+    - contracts/**
     - package.json
     - tsconfig.json
     - .nvmrc
@@ -108,6 +114,7 @@ coverage:
     - test/**
     - .github/workflows/publish.yml
     - .github/workflows/ai-doc-lint.yml
+    - .github/workflows/supabase-consumer-manifest.yml
   exclude:
     - .git/**
     - .github/scripts/**
@@ -172,11 +179,15 @@ routing:
         - src/resources/**
     data-api-contract:
       paths:
+        - contracts/supabase-consumer-manifest.v3.json
+        - contracts/supabase-consumer-manifest.v3.schema.json
         - src/_shared/data_api_contract.ts
         - src/tools/db_crud.ts
         - src/tools/life_cycle_model_file_tools.ts
         - scripts/ci/scan-data-api-consumers.ts
         - test/data_api_contract.test.ts
+        - test/supabase_consumer_manifest.test.ts
+        - .github/workflows/supabase-consumer-manifest.yml
         - docs/agents/data-api-contract.md
         - .env.example
         - package.json
@@ -406,8 +417,16 @@ rules:
         kind: data-api-consumer
       - path: scripts/ci/scan-data-api-consumers.ts
         kind: data-api-scanner
+      - path: contracts/supabase-consumer-manifest.v3.json
+        kind: data-api-manifest
+      - path: contracts/supabase-consumer-manifest.v3.schema.json
+        kind: data-api-schema
       - path: test/data_api_contract.test.ts
         kind: data-api-proof
+      - path: test/supabase_consumer_manifest.test.ts
+        kind: data-api-proof
+      - path: .github/workflows/supabase-consumer-manifest.yml
+        kind: data-api-ci
       - path: docs/agents/data-api-contract.md
         kind: data-api-contract
     requiredDocs:

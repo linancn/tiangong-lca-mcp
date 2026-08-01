@@ -30,14 +30,16 @@ checkPaths:
   - src/**
   - public/**
   - test/**
+  - contracts/**
   - scripts/ci/**
+  - .github/workflows/supabase-consumer-manifest.yml
   - .github/workflows/publish.yml
   - .githooks/**
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-08-01
-lastReviewedCommit: 0ab741e0881c70ce526e936d222939e38f4a4911
+lastReviewedAt: 2026-08-02
+lastReviewedCommit: 31e74fb431b7ac6745673e33454911400f34e1cc
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -74,6 +76,7 @@ Preferred docpact commands:
 - `scripts/docpact route --root . --intent remote-search-wrappers`
 - `scripts/docpact route --root . --intent openlca-tidas`
 - `scripts/docpact route --root . --intent repo-docs`
+- `scripts/docpact route --root . --intent data-api-contract`
 
 ## Repo Ownership
 
@@ -92,6 +95,8 @@ This repo does not own:
 - Next.js product UI behavior
 - standalone TIDAS conversion, export, or batch tooling
 - workspace integration state after merge
+
+The v3 Supabase consumer manifest under `contracts/**` is permanently candidate-only. It does not authorize database freeze/migration, hosted mutation, merge, or deploy. Database #357 must verify its exact bytes externally; database #358, Edge/CLI/hosted lifecycle proof, and workspace #484 remain independent gates.
 
 Route those tasks to:
 

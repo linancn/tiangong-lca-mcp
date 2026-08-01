@@ -28,8 +28,10 @@
     "start:server-local": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server_local.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
     "test": "node test/tidas_validation_test.js",
     "test:data-api-contract": "node --import tsx --test test/data_api_contract.test.ts",
+    "test:supabase-consumer-manifest": "node --import tsx --test test/supabase_consumer_manifest.test.ts",
     "scan:data-api-consumers": "tsx scripts/ci/scan-data-api-consumers.ts --root .",
-    "prepush:gate": "npm run build && npm run lint && npm test && npm run test:data-api-contract && npm run scan:data-api-consumers",
+    "generate:supabase-consumer-manifest": "tsx scripts/ci/scan-data-api-consumers.ts --root . --generate HEAD",
+    "prepush:gate": "npm run build && npm run lint && npm test && npm run test:data-api-contract && npm run test:supabase-consumer-manifest && npm run scan:data-api-consumers",
     "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\"",
     "ncu": "npx npm-check-updates",
     "ncu:update": "npx npm-check-updates -u"
@@ -47,6 +49,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/inspector": "^0.21.2",
+    "ajv": "^8.20.0",
     "dotenv-cli": "^11.0.0",
     "npm-check-updates": "^22.2.1",
     "prettier": "^3.8.3",
