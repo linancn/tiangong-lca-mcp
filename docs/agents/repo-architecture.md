@@ -27,12 +27,13 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-06-01
-lastReviewedCommit: afbb47af17b81da4cd4bad31a8e13c498612c4cd
+lastReviewedAt: 2026-08-01
+lastReviewedCommit: 0ab741e0881c70ce526e936d222939e38f4a4911
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
   - ./repo-validation.md
+  - ./data-api-contract.md
   - ../../README.md
   - ../../README_CN.md
   - ../../DEV_EN.md
@@ -105,7 +106,7 @@ The MCP-side write and preprocessing logic clusters around:
 - `src/tools/db_crud.ts`
 - `src/tools/life_cycle_model_file_tools.ts`
 
-This path derives `json_tg` and `rule_verification` for lifecycle model writes.
+This path derives `json_tg` and `rule_verification` for lifecycle model writes. Its Supabase Data API boundary is governed by `docs/agents/data-api-contract.md`: nine explicit `public` core relations, five currently consumed and four explicit consumer-zero relations, with no current view or RPC consumer.
 
 ### Local OpenLCA and TIDAS validation
 

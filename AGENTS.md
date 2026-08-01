@@ -36,12 +36,13 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-06-01
-lastReviewedCommit: afbb47af17b81da4cd4bad31a8e13c498612c4cd
+lastReviewedAt: 2026-08-01
+lastReviewedCommit: 0ab741e0881c70ce526e936d222939e38f4a4911
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
   - docs/agents/repo-architecture.md
+  - docs/agents/data-api-contract.md
   - README.md
   - README_CN.md
   - DEV_EN.md
@@ -61,7 +62,8 @@ Load docs in this order:
 3. `scripts/docpact route --root . --intent <intent>` when you need path-specific routing
 4. `docs/agents/repo-validation.md` when proof, runtime caveats, or CI behavior matters
 5. `docs/agents/repo-architecture.md` when transport, auth, OAuth, or tool ownership is unclear
-6. `README.md`, `README_CN.md`, `DEV_EN.md`, or `DEV_CN.md` only when user setup or maintainer runtime details are needed
+6. `docs/agents/data-api-contract.md` for any Supabase relation, view, RPC, schema, profile, or CRUD contract change
+7. `README.md`, `README_CN.md`, `DEV_EN.md`, or `DEV_CN.md` only when user setup or maintainer runtime details are needed
 
 Do not start by assuming that remote search behavior or product UI truth lives in this repository.
 

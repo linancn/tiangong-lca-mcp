@@ -31,12 +31,13 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-06-01
-lastReviewedCommit: afbb47af17b81da4cd4bad31a8e13c498612c4cd
+lastReviewedAt: 2026-08-01
+lastReviewedCommit: 0ab741e0881c70ce526e936d222939e38f4a4911
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
   - ./repo-architecture.md
+  - ./data-api-contract.md
   - ../../README.md
   - ../../README_CN.md
   - ../../DEV_EN.md
@@ -64,7 +65,8 @@ Interpret the baseline carefully:
 | --- | --- | --- | --- |
 | `src/index*.ts` or transport init helpers | `npm run build`; `npm run lint` | run the relevant built entrypoint directly or through the intended start script when the dependency set supports it | `start:server*` currently depends on undeclared `concurrently`; record if you used a manual alternative. |
 | auth middleware, config, or OAuth flow | `npm run build`; `npm run lint` | manually inspect or run the affected built HTTP entrypoint; record any live-token proof separately | Bearer parsing, Cognito verification, and session reuse live here. |
-| search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `npm run build`; `npm run lint`; `npm test` | manually inspect one representative payload path or run the relevant wrapper under an MCP client if the task explicitly includes it | If the actual remote behavior changes, record the companion repo proof separately. GLAD API validation may need a browser-verified or otherwise allowed runtime because Cloudflare can challenge raw Node/curl requests before the API key is processed. |
+| search wrappers or GLAD dataset tools | `npm run build`; `npm run lint`; `npm test` | manually inspect one representative payload path or run the relevant wrapper under an MCP client if the task explicitly includes it | If the actual remote behavior changes, record the companion repo proof separately. GLAD API validation may need a browser-verified or otherwise allowed runtime because Cloudflare can challenge raw Node/curl requests before the API key is processed. |
+| DB CRUD wrapper, lifecyclemodel preprocessing, or Data API manifest | `npm run build`; `npm run lint`; `npm run test:data-api-contract`; `npm run scan:data-api-consumers` | run hosted old/new schema-profile E2E when database contracts and environments are ready | The local suite proves the exact MCP consumer inventory and no MCP-level mutation replay; it does not replace database RLS/grant or hosted compatibility proof. |
 | local OpenLCA helpers | `npm run build`; `npm run lint` | run `npx tsx src/tools/openlca_ipc_test.ts` only when the task explicitly includes a local OpenLCA smoke check | The active runtime path is `olca-ipc`, not the commented gRPC scaffold. |
 | `package.json`, `.nvmrc`, `Dockerfile`, `.env.example`, or `mcp_config.json` | `npm run build`; `npm run lint` | record the runtime prerequisite or config drift that was checked | Recheck `DEV_EN.md` and `DEV_CN.md` whenever the Node baseline or maintainer startup path changes. |
 | release automation under `scripts/ci/**` or `.github/workflows/publish.yml` | inspect the workflow/script diff; run `npm run build` when package metadata or release scripts execute package code | record tag naming, `main`-only release, and npm unpublished-version assumptions checked locally | Release publish runs the full pre-publish gate before npm publish. |

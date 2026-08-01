@@ -2,9 +2,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
+import { assertDataApiOperation, executeMcpDataApiAttempt } from '../_shared/data_api_contract.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
 import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
 import { prepareLifecycleModelFile } from './life_cycle_model_file_tools.js';
+
+// data-api-consumer-relations: contacts, flows, lifecyclemodels, processes, sources
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 type FilterValue = string | number | boolean | null;
@@ -312,6 +315,9 @@ async function createSupabaseClient(
     resolveSupabaseAccessToken(bearerKey);
 
   const supabase = createClient(supabase_base_url, supabase_publishable_key, {
+    db: {
+      schema: 'public',
+    },
     auth: {
       persistSession: false,
       autoRefreshToken: Boolean(normalizedSession?.refresh_token),
@@ -401,16 +407,18 @@ async function handleInsert(
   const resolvedVersion = preparedWrite.resolvedVersion ?? version;
 
   const keyColumn = getPrimaryKeyColumn(table);
-  const { data, error } = await supabase
-    .from(table)
-    .insert([
-      {
-        [keyColumn]: resolvedId,
-        ...(resolvedVersion !== undefined ? { version: resolvedVersion } : {}),
-        ...preparedWrite.payload,
-      },
-    ])
-    .select();
+  const { data, error } = await executeMcpDataApiAttempt(table, 'insert', () =>
+    supabase
+      .from(table)
+      .insert([
+        {
+          [keyColumn]: resolvedId,
+          ...(resolvedVersion !== undefined ? { version: resolvedVersion } : {}),
+          ...preparedWrite.payload,
+        },
+      ])
+      .select(),
+  );
 
   if (error) {
     console.error('Error inserting into the database:', error);
@@ -450,12 +458,14 @@ async function handleUpdate(
   const keyColumn = getPrimaryKeyColumn(table);
   const resolvedId = preparedWrite.resolvedId ?? id;
   const resolvedVersion = preparedWrite.resolvedVersion ?? version;
-  const { data, error } = await supabase
-    .from(table)
-    .update(preparedWrite.payload)
-    .eq(keyColumn, resolvedId)
-    .eq('version', resolvedVersion)
-    .select();
+  const { data, error } = await executeMcpDataApiAttempt(table, 'update', () =>
+    supabase
+      .from(table)
+      .update(preparedWrite.payload)
+      .eq(keyColumn, resolvedId)
+      .eq('version', resolvedVersion)
+      .select(),
+  );
 
   if (error) {
     console.error('Error updating the database:', error);
@@ -485,12 +495,9 @@ async function handleDelete(supabase: SupabaseClient, input: DeleteInput): Promi
   }
 
   const keyColumn = getPrimaryKeyColumn(table);
-  const { data, error } = await supabase
-    .from(table)
-    .delete()
-    .eq(keyColumn, id)
-    .eq('version', version)
-    .select();
+  const { data, error } = await executeMcpDataApiAttempt(table, 'delete', () =>
+    supabase.from(table).delete().eq(keyColumn, id).eq('version', version).select(),
+  );
 
   if (error) {
     console.error('Error deleting from the database:', error);
@@ -510,6 +517,8 @@ async function performCrud(
   bearerKey?: string | SupabaseSessionLike,
 ): Promise<string> {
   try {
+    // Resolve the explicit core-relation/profile contract before creating a transport client.
+    assertDataApiOperation(input.table, input.operation);
     const { supabase, accessToken } = await createSupabaseClient(bearerKey);
 
     switch (input.operation) {

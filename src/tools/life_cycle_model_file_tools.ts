@@ -2,8 +2,11 @@ import dagre from '@dagrejs/dagre';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { createLifeCycleModel } from '@tiangong-lca/tidas-sdk/core';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
+import { assertDataApiOperation } from '../_shared/data_api_contract.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
 import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
+
+// data-api-consumer-relations: processes
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
@@ -393,6 +396,9 @@ async function createSupabaseClient(
     resolveSupabaseAccessToken(bearerKey);
 
   const supabase = createClient(supabase_base_url, supabase_publishable_key, {
+    db: {
+      schema: 'public',
+    },
     auth: {
       persistSession: false,
       autoRefreshToken: Boolean(normalizedSession?.refresh_token),
@@ -453,6 +459,7 @@ async function loadReferencedProcessDataSets(
   supabase: SupabaseClient,
   processInstances: Array<JsonRecord>,
 ): Promise<Map<string, JsonRecord>> {
+  assertDataApiOperation('processes', 'select');
   const versionedIdsByVersion = new Map<string, Set<string>>();
   const unversionedIds = new Set<string>();
 

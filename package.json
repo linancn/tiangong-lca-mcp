@@ -27,7 +27,9 @@
     "start:server": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
     "start:server-local": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server_local.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
     "test": "node test/tidas_validation_test.js",
-    "prepush:gate": "npm run build && npm run lint && npm test",
+    "test:data-api-contract": "node --import tsx --test test/data_api_contract.test.ts",
+    "scan:data-api-consumers": "tsx scripts/ci/scan-data-api-consumers.ts --root .",
+    "prepush:gate": "npm run build && npm run lint && npm test && npm run test:data-api-contract && npm run scan:data-api-consumers",
     "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\"",
     "ncu": "npx npm-check-updates",
     "ncu:update": "npx npm-check-updates -u"

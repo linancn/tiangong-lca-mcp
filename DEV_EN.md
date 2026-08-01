@@ -18,13 +18,14 @@ checkPaths:
   - .nvmrc
   - src/**
   - test/**
-lastReviewedAt: 2026-05-25
-lastReviewedCommit: e8e4b0762abe8a31723c73724e98c14d75c931a5
+lastReviewedAt: 2026-08-01
+lastReviewedCommit: 0ab741e0881c70ce526e936d222939e38f4a4911
 related:
   - AGENTS.md
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
   - docs/agents/repo-architecture.md
+  - docs/agents/data-api-contract.md
   - DEV_CN.md
 ---
 
@@ -76,6 +77,8 @@ nvm use 24
 npm ci
 ```
 
+Data API consumers default to `TIANGONG_LCA_DATA_API_PROFILE=legacy-public-v1`. `api-contract-v1` is also accepted; it keeps core reads on explicit `public` but blocks writes until database #358 freezes the versioned `api` command adapter. See `docs/agents/data-api-contract.md` before changing a relation, view, RPC, schema, or profile.
+
 ### Code Formatting
 
 ```bash
@@ -84,6 +87,11 @@ npm run lint
 ```
 
 ### Local Testing
+
+```bash
+npm run test:data-api-contract
+npm run scan:data-api-consumers
+```
 
 #### STDIO Server
 

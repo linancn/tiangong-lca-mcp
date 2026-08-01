@@ -18,13 +18,14 @@ checkPaths:
   - .nvmrc
   - src/**
   - test/**
-lastReviewedAt: 2026-05-25
-lastReviewedCommit: e8e4b0762abe8a31723c73724e98c14d75c931a5
+lastReviewedAt: 2026-08-01
+lastReviewedCommit: 0ab741e0881c70ce526e936d222939e38f4a4911
 related:
   - AGENTS.md
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
   - docs/agents/repo-architecture.md
+  - docs/agents/data-api-contract.md
   - DEV_EN.md
 ---
 
@@ -76,6 +77,8 @@ nvm use 24
 npm ci
 ```
 
+Data API consumer 默认使用 `TIANGONG_LCA_DATA_API_PROFILE=legacy-public-v1`。也可选择 `api-contract-v1`；它保留核心 relation 的显式 `public` 读取，但在 database #358 冻结 versioned `api` command adapter 前阻止写入。修改 relation、view、RPC、schema 或 profile 前请先阅读 `docs/agents/data-api-contract.md`。
+
 ### 代码格式化
 
 ```bash
@@ -84,6 +87,11 @@ npm run lint
 ```
 
 ### 本地测试
+
+```bash
+npm run test:data-api-contract
+npm run scan:data-api-consumers
+```
 
 #### 启动 MCP Inspector
 

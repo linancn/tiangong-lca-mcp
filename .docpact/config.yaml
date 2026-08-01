@@ -12,6 +12,7 @@ catalog:
       workflowDocs:
         - docs/agents/repo-validation.md
         - docs/agents/repo-architecture.md
+        - docs/agents/data-api-contract.md
         - DEV_EN.md
         - DEV_CN.md
       workspaceIntegrationRequired: true
@@ -169,6 +170,16 @@ routing:
         - src/tools/**
         - src/prompts/**
         - src/resources/**
+    data-api-contract:
+      paths:
+        - src/_shared/data_api_contract.ts
+        - src/tools/db_crud.ts
+        - src/tools/life_cycle_model_file_tools.ts
+        - scripts/ci/scan-data-api-consumers.ts
+        - test/data_api_contract.test.ts
+        - docs/agents/data-api-contract.md
+        - .env.example
+        - package.json
     remote-search-wrappers:
       paths:
         - src/tools/flow_hybrid_search.ts
@@ -230,6 +241,7 @@ docInventory:
     - .docpact/config.yaml
     - docs/agents/repo-validation.md
     - docs/agents/repo-architecture.md
+    - docs/agents/data-api-contract.md
 
 repo:
   id: mcp
@@ -248,6 +260,8 @@ rules:
         kind: deep-doc
       - path: docs/agents/repo-architecture.md
         kind: deep-doc
+      - path: docs/agents/data-api-contract.md
+        kind: data-api-contract
     requiredDocs:
       - path: AGENTS.md
         mode: review_or_update
@@ -256,6 +270,8 @@ rules:
       - path: docs/agents/repo-validation.md
         mode: review_or_update
       - path: docs/agents/repo-architecture.md
+        mode: review_or_update
+      - path: docs/agents/data-api-contract.md
         mode: review_or_update
     reason: Repo entry guidance, machine-readable routing, and retained MCP source docs must stay aligned.
   - id: mcp-readme-contract
@@ -333,6 +349,8 @@ rules:
         mode: review_or_update
       - path: docs/agents/repo-architecture.md
         mode: review_or_update
+      - path: docs/agents/data-api-contract.md
+        mode: review_or_update
       - path: DEV_EN.md
         mode: review_or_update
     reason: Transport, auth, OAuth, and runtime prerequisite changes alter the executable MCP contract.
@@ -376,6 +394,34 @@ rules:
       - path: docs/agents/repo-architecture.md
         mode: review_or_update
     reason: Tool wrapper, prompt, resource, and demo-test changes alter what the MCP server exposes and how future work should be checked.
+  - id: mcp-data-api-consumer-contract
+    scope: repo
+    repo: mcp
+    triggers:
+      - path: src/_shared/data_api_contract.ts
+        kind: data-api-manifest
+      - path: src/tools/db_crud.ts
+        kind: data-api-consumer
+      - path: src/tools/life_cycle_model_file_tools.ts
+        kind: data-api-consumer
+      - path: scripts/ci/scan-data-api-consumers.ts
+        kind: data-api-scanner
+      - path: test/data_api_contract.test.ts
+        kind: data-api-proof
+      - path: docs/agents/data-api-contract.md
+        kind: data-api-contract
+    requiredDocs:
+      - path: AGENTS.md
+        mode: review_or_update
+      - path: .docpact/config.yaml
+        mode: review_or_update
+      - path: docs/agents/repo-validation.md
+        mode: review_or_update
+      - path: docs/agents/repo-architecture.md
+        mode: review_or_update
+      - path: docs/agents/data-api-contract.md
+        mode: review_or_update
+    reason: Data API consumers, schema profiles, inventory proof, and their documented compatibility boundary must change together.
   - id: mcp-doc-maintenance-contract
     scope: repo
     repo: mcp
