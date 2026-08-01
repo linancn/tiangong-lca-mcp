@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -51,16 +52,29 @@ test('unknown profiles and non-core relations fail closed', () => {
   );
 });
 
-test('the MCP mutation layer invokes a failed request exactly once', async () => {
+test('the MCP mutation layer sends one SDK request for a failed mutation', async () => {
   let calls = 0;
-  const request = async () => {
-    calls += 1;
-    throw Object.assign(new Error('expired token'), { status: 401 });
-  };
-  await assert.rejects(
-    () => executeMcpDataApiAttempt('contacts', 'delete', request, 'legacy-public-v1'),
-    /expired token/,
+  const supabase = createClient('https://example.supabase.co', 'test-publishable-key', {
+    db: { schema: 'public' },
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: async () => {
+        calls += 1;
+        return new Response(JSON.stringify({ message: 'expired token' }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        });
+      },
+    },
+  });
+  const result = await executeMcpDataApiAttempt(
+    'contacts',
+    'delete',
+    () =>
+      supabase.from('contacts').delete().eq('id', '00000000-0000-0000-0000-000000000001').select(),
+    'legacy-public-v1',
   );
+  assert.equal(result.error?.message, 'expired token');
   assert.equal(calls, 1);
 });
 
