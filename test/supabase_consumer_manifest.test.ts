@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -13,6 +14,14 @@ import {
 } from '../scripts/ci/scan-data-api-consumers.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
+const machineArtifacts = [
+  'contracts/supabase-consumer-manifest.v3.json',
+  'contracts/supabase-consumer-manifest.v3.schema.json',
+];
+
+function fileSha256(file: string): string {
+  return createHash('sha256').update(readFileSync(path.join(repoRoot, file))).digest('hex');
+}
 
 test('TypeScript AST derives static and runtime-union PostgREST occurrences exactly once', () => {
   const source = `
@@ -137,6 +146,22 @@ test('canonical GitHub origin rejects suffix lookalikes', () => {
     0,
   );
   assert.throws(() => assertCanonicalOrigin(root), /canonical GitHub repository/u);
+});
+
+test('repository Prettier cannot rewrite generator-owned canonical artifacts', () => {
+  const ignoreLines = readFileSync(path.join(repoRoot, '.prettierignore'), 'utf8')
+    .split(/\r?\n/u)
+    .filter(Boolean);
+  for (const artifact of machineArtifacts) {
+    assert.equal(ignoreLines.filter((line) => line === artifact).length, 1);
+  }
+  const before = machineArtifacts.map(fileSha256);
+  const result = spawnSync('npx', ['prettier', '--write', ...machineArtifacts], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(machineArtifacts.map(fileSha256), before);
 });
 
 test('repository derivation is candidate-only and maps every occurrence to one capability', () => {

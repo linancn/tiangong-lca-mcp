@@ -12,3 +12,5 @@ LICENSE
 .eslintcache
 *.lock
 dist
+contracts/supabase-consumer-manifest.v3.json
+contracts/supabase-consumer-manifest.v3.schema.json

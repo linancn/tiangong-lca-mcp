@@ -458,7 +458,8 @@ export function deriveOccurrences(
       if (
         /(?:^|[;&|]\s*|\s)(?:npx\s+)?(?:supabase|psql|pg_dump|pg_restore)(?:\s|$)/iu.test(
           command,
-        ) || /\/rest\/v1|\/functions\/v1/iu.test(command)
+        ) ||
+        /\/rest\/v1|\/functions\/v1/iu.test(command)
       ) {
         throw new Error(`package.json script ${name} is an unresolved Supabase CLI/HTTP consumer`);
       }
