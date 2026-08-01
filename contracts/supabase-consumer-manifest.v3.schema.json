@@ -86,7 +86,9 @@
           ]
         },
         "exactExemptions": {
-          "const": ["scripts/ci/scan-data-api-consumers.ts"]
+          "const": [
+            "scripts/ci/scan-data-api-consumers.ts"
+          ]
         },
         "treeDigestAlgorithm": {
           "const": "sha256(mode\\0path\\0blobOid\\0)"
@@ -119,7 +121,14 @@
     "counts": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["occurrences", "capabilities", "tools", "transports", "credentials", "schemas"],
+      "required": [
+        "occurrences",
+        "capabilities",
+        "tools",
+        "transports",
+        "credentials",
+        "schemas"
+      ],
       "properties": {
         "occurrences": {
           "type": "integer",
@@ -147,7 +156,11 @@
     "publicResidue": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["relations", "rpcs", "views"],
+      "required": [
+        "relations",
+        "rpcs",
+        "views"
+      ],
       "properties": {
         "relations": {
           "$ref": "#/$defs/stringSet"
@@ -205,14 +218,23 @@
     "capability": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "name", "registrationFile", "runtimeTransports"],
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "registrationFile",
+        "runtimeTransports"
+      ],
       "properties": {
         "id": {
           "type": "string",
           "pattern": "^(mcp-tool|transport):"
         },
         "kind": {
-          "enum": ["mcp-tool", "transport-auth"]
+          "enum": [
+            "mcp-tool",
+            "transport-auth"
+          ]
         },
         "name": {
           "type": "string",
@@ -227,7 +249,10 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": {
-            "enum": ["stdio", "streamable-http"]
+            "enum": [
+              "stdio",
+              "streamable-http"
+            ]
           }
         }
       }
@@ -357,14 +382,22 @@
           "$ref": "#/$defs/stringSet"
         },
         "sourceClass": {
-          "enum": ["typescript-ast", "javascript-ast", "json-parser"]
+          "enum": [
+            "typescript-ast",
+            "javascript-ast",
+            "json-parser"
+          ]
         }
       }
     },
     "pending": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["capability", "reason", "upstream"],
+      "required": [
+        "capability",
+        "reason",
+        "upstream"
+      ],
       "properties": {
         "capability": {
           "type": "string",
@@ -382,7 +415,11 @@
     "absence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["surface", "result", "evidence"],
+      "required": [
+        "surface",
+        "result",
+        "evidence"
+      ],
       "properties": {
         "surface": {
           "type": "string",

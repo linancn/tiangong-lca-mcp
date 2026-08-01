@@ -1,0 +1,1100 @@
+{
+  "schema": "tiangong.supabase-consumer-manifest.v3",
+  "version": 3,
+  "repository": "linancn/tiangong-lca-mcp",
+  "sourceTreeCommit": "06a856b3910b198b59170fd2bf1b5d420576777b",
+  "deliveryHead": "06a856b3910b198b59170fd2bf1b5d420576777b",
+  "authority": {
+    "status": "candidate",
+    "authorizesDatabaseFreeze": false,
+    "authorizesDatabaseMigration": false,
+    "authorizesHostedMutation": false,
+    "authorizesMergeOrDeploy": false
+  },
+  "source": {
+    "derivation": "typescript-compiler-ast-and-json-parser-v1",
+    "governedPatterns": [
+      "src/**/*.{ts,tsx,js,mjs,cjs}",
+      "scripts/**/*.{ts,tsx,js,mjs,cjs}",
+      "package.json"
+    ],
+    "exactExemptions": [
+      "scripts/ci/scan-data-api-consumers.ts"
+    ],
+    "treeDigestAlgorithm": "sha256(mode\\0path\\0blobOid\\0)",
+    "treeDigest": "5bada8ead71b940e9286779044317e65397b5b13d458158f99a1a51ab948c10f",
+    "fileCount": 32
+  },
+  "capabilities": [
+    {
+      "id": "mcp-tool:Database_CRUD_Tool",
+      "kind": "mcp-tool",
+      "name": "Database_CRUD_Tool",
+      "registrationFile": "src/tools/db_crud.ts",
+      "runtimeTransports": [
+        "streamable-http"
+      ]
+    },
+    {
+      "id": "mcp-tool:Search_Flows_Tool",
+      "kind": "mcp-tool",
+      "name": "Search_Flows_Tool",
+      "registrationFile": "src/tools/flow_hybrid_search.ts",
+      "runtimeTransports": [
+        "stdio",
+        "streamable-http"
+      ]
+    },
+    {
+      "id": "mcp-tool:Search_Life_Cycle_Models_Tool",
+      "kind": "mcp-tool",
+      "name": "Search_Life_Cycle_Models_Tool",
+      "registrationFile": "src/tools/life_cycle_model_hybrid_search.ts",
+      "runtimeTransports": [
+        "stdio",
+        "streamable-http"
+      ]
+    },
+    {
+      "id": "mcp-tool:Search_Processes_Tool",
+      "kind": "mcp-tool",
+      "name": "Search_Processes_Tool",
+      "registrationFile": "src/tools/process_hybrid_search.ts",
+      "runtimeTransports": [
+        "stdio",
+        "streamable-http"
+      ]
+    },
+    {
+      "id": "transport:http-authentication",
+      "kind": "transport-auth",
+      "name": "authenticated POST /mcp lifecycle",
+      "registrationFile": "src/index_server.ts",
+      "runtimeTransports": [
+        "streamable-http"
+      ]
+    }
+  ],
+  "occurrences": [
+    {
+      "id": "mcp-5c22a0248a317c9d2d005ddc",
+      "file": "src/_shared/auth_middleware.ts",
+      "line": 11,
+      "span": {
+        "startOffset": 526,
+        "endOffset": 583,
+        "startLine": 11,
+        "startColumn": 18,
+        "endLine": 11,
+        "endColumn": 75,
+        "sha256": "41261e36ab8b27f270b6fd9cd1b7e0ee811f23ccd87434b0a4cdf7b91bb32184"
+      },
+      "capability": "transport:http-authentication",
+      "operation": "client.create",
+      "transport": "auth",
+      "credential": "publishable-key-plus-api-key-or-user-bearer",
+      "schema": "client",
+      "object": "supabase-project",
+      "signature": "createClient(supabase_base_url, supabase_publishable_key)",
+      "acl": "Supabase Auth validates password or bearer; authenticated role required",
+      "semantics": "HTTP MCP authentication lifecycle; Redis cache may reuse unexpired session",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-f8afc62ea5d0d0e901577add",
+      "file": "src/_shared/auth_middleware.ts",
+      "line": 198,
+      "span": {
+        "startOffset": 5465,
+        "endOffset": 5535,
+        "startLine": 198,
+        "startColumn": 35,
+        "endLine": 201,
+        "endColumn": 7,
+        "sha256": "005a78d95986832923b3f7369e0aa8b446ca6ee22607859c0dd09ce969953332"
+      },
+      "capability": "transport:http-authentication",
+      "operation": "auth.signInWithPassword",
+      "transport": "auth",
+      "credential": "publishable-key-plus-api-key-or-user-bearer",
+      "schema": "auth",
+      "object": "signInWithPassword",
+      "signature": "supabase.auth.signInWithPassword({\n      email,\n      password,\n    })",
+      "acl": "Supabase Auth validates password or bearer; authenticated role required",
+      "semantics": "HTTP MCP authentication lifecycle; Redis cache may reuse unexpired session",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-a942e7fb874eae3b9440f647",
+      "file": "src/_shared/auth_middleware.ts",
+      "line": 252,
+      "span": {
+        "startOffset": 6872,
+        "endOffset": 6904,
+        "startLine": 252,
+        "startColumn": 36,
+        "endLine": 252,
+        "endColumn": 68,
+        "sha256": "8eb656e9f39b37ccdaf83a7d5d7a7ef2a0585d93c2747b270b8739005bfbc56a"
+      },
+      "capability": "transport:http-authentication",
+      "operation": "auth.getUser",
+      "transport": "auth",
+      "credential": "publishable-key-plus-api-key-or-user-bearer",
+      "schema": "auth",
+      "object": "getUser",
+      "signature": "supabase.auth.getUser(bearerKey)",
+      "acl": "Supabase Auth validates password or bearer; authenticated role required",
+      "semantics": "HTTP MCP authentication lifecycle; Redis cache may reuse unexpired session",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-608d3b712ef9242c428670ca",
+      "file": "src/tools/db_crud.ts",
+      "line": 317,
+      "span": {
+        "startOffset": 10388,
+        "endOffset": 10786,
+        "startLine": 317,
+        "startColumn": 20,
+        "endLine": 334,
+        "endColumn": 5,
+        "sha256": "074a8902ff4cfa0e6a7c876c7e94c7c1b59ef6b65a3abe08e0609ee2335626a6"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "client.create",
+      "transport": "auth",
+      "credential": "publishable-key-plus-api-key-or-user-bearer",
+      "schema": "client",
+      "object": "supabase-project",
+      "signature": "createClient(supabase_base_url, supabase_publishable_key, {\n    db: {\n      schema: 'public',\n    },\n    auth: {\n      persistSession: false,\n      autoRefreshToken: Boolean(normalizedSession?.refresh_token),\n    },\n    ...(bearerToken\n      ? {\n          global: {\n            headers: {\n              Authorization: `Bearer ${bearerToken}`,\n            },\n          },\n        }\n      : {}),\n  })",
+      "acl": "Supabase Auth validates password or bearer; authenticated role required",
+      "semantics": "HTTP MCP authentication lifecycle; Redis cache may reuse unexpired session",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-eb67792651d7ec55249a7862",
+      "file": "src/tools/db_crud.ts",
+      "line": 337,
+      "span": {
+        "startOffset": 10876,
+        "endOffset": 11015,
+        "startLine": 337,
+        "startColumn": 46,
+        "endLine": 340,
+        "endColumn": 7,
+        "sha256": "064930a3006941392a9f804816ef0191a7951c60c32f143c0c379d6a2a4e9c61"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "auth.setSession",
+      "transport": "auth",
+      "credential": "publishable-key-plus-api-key-or-user-bearer",
+      "schema": "auth",
+      "object": "setSession",
+      "signature": "supabase.auth.setSession({\n      access_token: normalizedSession.access_token,\n      refresh_token: normalizedSession.refresh_token,\n    })",
+      "acl": "Supabase Auth validates password or bearer; authenticated role required",
+      "semantics": "optional SDK refresh-token session installation",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-865ab23b65376e43819cf3a0",
+      "file": "src/tools/db_crud.ts",
+      "line": 354,
+      "span": {
+        "startOffset": 11544,
+        "endOffset": 11564,
+        "startLine": 354,
+        "startColumn": 22,
+        "endLine": 354,
+        "endColumn": 42,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "select",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "contacts",
+      "signature": "public.contacts.select",
+      "acl": "public relation grants and RLS; optional authenticated bearer forwarded",
+      "semantics": "read; optional filters/limit; no completeness guarantee",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-80ce3b49106e4f491df9b0fa",
+      "file": "src/tools/db_crud.ts",
+      "line": 354,
+      "span": {
+        "startOffset": 11544,
+        "endOffset": 11564,
+        "startLine": 354,
+        "startColumn": 22,
+        "endLine": 354,
+        "endColumn": 42,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "select",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "flows",
+      "signature": "public.flows.select",
+      "acl": "public relation grants and RLS; optional authenticated bearer forwarded",
+      "semantics": "read; optional filters/limit; no completeness guarantee",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-a95599f04028d6b0cda6bbca",
+      "file": "src/tools/db_crud.ts",
+      "line": 354,
+      "span": {
+        "startOffset": 11544,
+        "endOffset": 11564,
+        "startLine": 354,
+        "startColumn": 22,
+        "endLine": 354,
+        "endColumn": 42,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "select",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "lifecyclemodels",
+      "signature": "public.lifecyclemodels.select",
+      "acl": "public relation grants and RLS; optional authenticated bearer forwarded",
+      "semantics": "read; optional filters/limit; no completeness guarantee",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-9f9d4ffdedc1c3c40567dccc",
+      "file": "src/tools/db_crud.ts",
+      "line": 354,
+      "span": {
+        "startOffset": 11544,
+        "endOffset": 11564,
+        "startLine": 354,
+        "startColumn": 22,
+        "endLine": 354,
+        "endColumn": 42,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "select",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "processes",
+      "signature": "public.processes.select",
+      "acl": "public relation grants and RLS; optional authenticated bearer forwarded",
+      "semantics": "read; optional filters/limit; no completeness guarantee",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-53f3833984ccad21ab218d8d",
+      "file": "src/tools/db_crud.ts",
+      "line": 354,
+      "span": {
+        "startOffset": 11544,
+        "endOffset": 11564,
+        "startLine": 354,
+        "startColumn": 22,
+        "endLine": 354,
+        "endColumn": 42,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "select",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "sources",
+      "signature": "public.sources.select",
+      "acl": "public relation grants and RLS; optional authenticated bearer forwarded",
+      "semantics": "read; optional filters/limit; no completeness guarantee",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-97ab793deff2b3aff5b9444f",
+      "file": "src/tools/db_crud.ts",
+      "line": 411,
+      "span": {
+        "startOffset": 13155,
+        "endOffset": 13182,
+        "startLine": 411,
+        "startColumn": 5,
+        "endLine": 412,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "insert",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "contacts",
+      "signature": "public.contacts.insert",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-a4a1f0c1fedbee78932913c7",
+      "file": "src/tools/db_crud.ts",
+      "line": 411,
+      "span": {
+        "startOffset": 13155,
+        "endOffset": 13182,
+        "startLine": 411,
+        "startColumn": 5,
+        "endLine": 412,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "insert",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "flows",
+      "signature": "public.flows.insert",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-895ad6fd6abc3006d3a8fe15",
+      "file": "src/tools/db_crud.ts",
+      "line": 411,
+      "span": {
+        "startOffset": 13155,
+        "endOffset": 13182,
+        "startLine": 411,
+        "startColumn": 5,
+        "endLine": 412,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "insert",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "lifecyclemodels",
+      "signature": "public.lifecyclemodels.insert",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-54d2cb1ca14a750735f549d0",
+      "file": "src/tools/db_crud.ts",
+      "line": 411,
+      "span": {
+        "startOffset": 13155,
+        "endOffset": 13182,
+        "startLine": 411,
+        "startColumn": 5,
+        "endLine": 412,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "insert",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "processes",
+      "signature": "public.processes.insert",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-5bd0983492a5c8d760a93aa6",
+      "file": "src/tools/db_crud.ts",
+      "line": 411,
+      "span": {
+        "startOffset": 13155,
+        "endOffset": 13182,
+        "startLine": 411,
+        "startColumn": 5,
+        "endLine": 412,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "insert",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "sources",
+      "signature": "public.sources.insert",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-29e0f198970914f1e07bc976",
+      "file": "src/tools/db_crud.ts",
+      "line": 462,
+      "span": {
+        "startOffset": 14650,
+        "endOffset": 14677,
+        "startLine": 462,
+        "startColumn": 5,
+        "endLine": 463,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "update",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "contacts",
+      "signature": "public.contacts.update",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-4880d23f8b526eb8fc5b8c16",
+      "file": "src/tools/db_crud.ts",
+      "line": 462,
+      "span": {
+        "startOffset": 14650,
+        "endOffset": 14677,
+        "startLine": 462,
+        "startColumn": 5,
+        "endLine": 463,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "update",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "flows",
+      "signature": "public.flows.update",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-bfda6988a02615831aaf7dc2",
+      "file": "src/tools/db_crud.ts",
+      "line": 462,
+      "span": {
+        "startOffset": 14650,
+        "endOffset": 14677,
+        "startLine": 462,
+        "startColumn": 5,
+        "endLine": 463,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "update",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "lifecyclemodels",
+      "signature": "public.lifecyclemodels.update",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-341365600c66a533daf5631c",
+      "file": "src/tools/db_crud.ts",
+      "line": 462,
+      "span": {
+        "startOffset": 14650,
+        "endOffset": 14677,
+        "startLine": 462,
+        "startColumn": 5,
+        "endLine": 463,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "update",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "processes",
+      "signature": "public.processes.update",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-7f58feb519129f5f72a8266c",
+      "file": "src/tools/db_crud.ts",
+      "line": 462,
+      "span": {
+        "startOffset": 14650,
+        "endOffset": 14677,
+        "startLine": 462,
+        "startColumn": 5,
+        "endLine": 463,
+        "endColumn": 19,
+        "sha256": "a935792d019055a0bafe3f12ab902dc03b2202dcc05f8b509433a547feefe748"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "update",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "sources",
+      "signature": "public.sources.update",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-c7bb05fb194078d1f7bcef7e",
+      "file": "src/tools/db_crud.ts",
+      "line": 499,
+      "span": {
+        "startOffset": 15699,
+        "endOffset": 15719,
+        "startLine": 499,
+        "startColumn": 5,
+        "endLine": 499,
+        "endColumn": 25,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "delete",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "contacts",
+      "signature": "public.contacts.delete",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-1d8bceacef0f7a3b97d0527c",
+      "file": "src/tools/db_crud.ts",
+      "line": 499,
+      "span": {
+        "startOffset": 15699,
+        "endOffset": 15719,
+        "startLine": 499,
+        "startColumn": 5,
+        "endLine": 499,
+        "endColumn": 25,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "delete",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "flows",
+      "signature": "public.flows.delete",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-34c3743ee0ec2c2481feb117",
+      "file": "src/tools/db_crud.ts",
+      "line": 499,
+      "span": {
+        "startOffset": 15699,
+        "endOffset": 15719,
+        "startLine": 499,
+        "startColumn": 5,
+        "endLine": 499,
+        "endColumn": 25,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "delete",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "lifecyclemodels",
+      "signature": "public.lifecyclemodels.delete",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-3aeb102ee8349f0c59b4352e",
+      "file": "src/tools/db_crud.ts",
+      "line": 499,
+      "span": {
+        "startOffset": 15699,
+        "endOffset": 15719,
+        "startLine": 499,
+        "startColumn": 5,
+        "endLine": 499,
+        "endColumn": 25,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "delete",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "processes",
+      "signature": "public.processes.delete",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-ece50d05e88257c939b40b1d",
+      "file": "src/tools/db_crud.ts",
+      "line": 499,
+      "span": {
+        "startOffset": 15699,
+        "endOffset": 15719,
+        "startLine": 499,
+        "startColumn": 5,
+        "endLine": 499,
+        "endColumn": 25,
+        "sha256": "e460856d337a4e6f38b3975180c4c7bf7d92a4a4363f73864891209ba136332f"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "delete",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "sources",
+      "signature": "public.sources.delete",
+      "acl": "legacy public grants/RLS; api-contract-v1 blocks before transport pending versioned command",
+      "semantics": "single SDK attempt; no automatic MCP replay; no idempotency key",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-2413f26dc9d03a8e373c0717",
+      "file": "src/tools/flow_hybrid_search.ts",
+      "line": 11,
+      "span": {
+        "startOffset": 412,
+        "endOffset": 466,
+        "startLine": 11,
+        "startColumn": 15,
+        "endLine": 11,
+        "endColumn": 69,
+        "sha256": "26cc369eef926e0e620c954f249c665e371a4fb89dd89257cddf7b381158114b"
+      },
+      "capability": "mcp-tool:Search_Flows_Tool",
+      "operation": "edge-function-http.raw-route",
+      "transport": "edge-function-http",
+      "credential": "forwarded-mcp-bearer-token",
+      "schema": "functions",
+      "object": "flow_hybrid_search",
+      "signature": "`${supabase_base_url}/functions/v1/flow_hybrid_search`",
+      "acl": "Edge Function runtime validates forwarded bearer identity; no service-role credential in MCP",
+      "semantics": "POST once; no MCP retry or idempotency replay",
+      "upstream": [
+        "linancn/tiangong-lca-edge-functions#249",
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-ad5a3b33ce914f7d8b749448",
+      "file": "src/tools/life_cycle_model_file_tools.ts",
+      "line": 398,
+      "span": {
+        "startOffset": 12316,
+        "endOffset": 12714,
+        "startLine": 398,
+        "startColumn": 20,
+        "endLine": 415,
+        "endColumn": 5,
+        "sha256": "074a8902ff4cfa0e6a7c876c7e94c7c1b59ef6b65a3abe08e0609ee2335626a6"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "client.create",
+      "transport": "auth",
+      "credential": "publishable-key-plus-api-key-or-user-bearer",
+      "schema": "client",
+      "object": "supabase-project",
+      "signature": "createClient(supabase_base_url, supabase_publishable_key, {\n    db: {\n      schema: 'public',\n    },\n    auth: {\n      persistSession: false,\n      autoRefreshToken: Boolean(normalizedSession?.refresh_token),\n    },\n    ...(bearerToken\n      ? {\n          global: {\n            headers: {\n              Authorization: `Bearer ${bearerToken}`,\n            },\n          },\n        }\n      : {}),\n  })",
+      "acl": "Supabase Auth validates password or bearer; authenticated role required",
+      "semantics": "HTTP MCP authentication lifecycle; Redis cache may reuse unexpired session",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-d219020f23d756d1146c79bd",
+      "file": "src/tools/life_cycle_model_file_tools.ts",
+      "line": 418,
+      "span": {
+        "startOffset": 12787,
+        "endOffset": 12926,
+        "startLine": 418,
+        "startColumn": 29,
+        "endLine": 421,
+        "endColumn": 7,
+        "sha256": "064930a3006941392a9f804816ef0191a7951c60c32f143c0c379d6a2a4e9c61"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "auth.setSession",
+      "transport": "auth",
+      "credential": "publishable-key-plus-api-key-or-user-bearer",
+      "schema": "auth",
+      "object": "setSession",
+      "signature": "supabase.auth.setSession({\n      access_token: normalizedSession.access_token,\n      refresh_token: normalizedSession.refresh_token,\n    })",
+      "acl": "Supabase Auth validates password or bearer; authenticated role required",
+      "semantics": "optional SDK refresh-token session installation",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-2e6fb5b391ac966bd58e36ae",
+      "file": "src/tools/life_cycle_model_file_tools.ts",
+      "line": 496,
+      "span": {
+        "startOffset": 15152,
+        "endOffset": 15189,
+        "startLine": 496,
+        "startColumn": 39,
+        "endLine": 497,
+        "endColumn": 29,
+        "sha256": "b964cbdc914ab3ae4fce2a2148a3606582aee184b5359f47deb4cfbfd638ae30"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "select",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "processes",
+      "signature": "public.processes.select",
+      "acl": "public relation grants and RLS; optional authenticated bearer forwarded",
+      "semantics": "read; optional filters/limit; no completeness guarantee",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-90b0237705cea33e3ac3f38e",
+      "file": "src/tools/life_cycle_model_file_tools.ts",
+      "line": 524,
+      "span": {
+        "startOffset": 15948,
+        "endOffset": 15985,
+        "startLine": 524,
+        "startColumn": 39,
+        "endLine": 525,
+        "endColumn": 29,
+        "sha256": "b964cbdc914ab3ae4fce2a2148a3606582aee184b5359f47deb4cfbfd638ae30"
+      },
+      "capability": "mcp-tool:Database_CRUD_Tool",
+      "operation": "select",
+      "transport": "postgrest",
+      "credential": "publishable-key-plus-optional-user-session",
+      "schema": "public",
+      "object": "processes",
+      "signature": "public.processes.select",
+      "acl": "public relation grants and RLS; optional authenticated bearer forwarded",
+      "semantics": "read; optional filters/limit; no completeness guarantee",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-0334dfa48a832ab399b76f68",
+      "file": "src/tools/life_cycle_model_hybrid_search.ts",
+      "line": 14,
+      "span": {
+        "startOffset": 429,
+        "endOffset": 493,
+        "startLine": 14,
+        "startColumn": 15,
+        "endLine": 14,
+        "endColumn": 79,
+        "sha256": "65d3f05dd12e42cae72a42dad01ecfbb5c7eee57e0098d8f10e540b4fa7e3d82"
+      },
+      "capability": "mcp-tool:Search_Life_Cycle_Models_Tool",
+      "operation": "edge-function-http.raw-route",
+      "transport": "edge-function-http",
+      "credential": "forwarded-mcp-bearer-token",
+      "schema": "functions",
+      "object": "lifecyclemodel_hybrid_search",
+      "signature": "`${supabase_base_url}/functions/v1/lifecyclemodel_hybrid_search`",
+      "acl": "Edge Function runtime validates forwarded bearer identity; no service-role credential in MCP",
+      "semantics": "POST once; no MCP retry or idempotency replay",
+      "upstream": [
+        "linancn/tiangong-lca-edge-functions#249",
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    },
+    {
+      "id": "mcp-191ad27967b7227da81632f6",
+      "file": "src/tools/process_hybrid_search.ts",
+      "line": 11,
+      "span": {
+        "startOffset": 416,
+        "endOffset": 473,
+        "startLine": 11,
+        "startColumn": 15,
+        "endLine": 11,
+        "endColumn": 72,
+        "sha256": "b53285c3548c51fb31893f1502742673295b58183a46ccd488c196b2786ccb1f"
+      },
+      "capability": "mcp-tool:Search_Processes_Tool",
+      "operation": "edge-function-http.raw-route",
+      "transport": "edge-function-http",
+      "credential": "forwarded-mcp-bearer-token",
+      "schema": "functions",
+      "object": "process_hybrid_search",
+      "signature": "`${supabase_base_url}/functions/v1/process_hybrid_search`",
+      "acl": "Edge Function runtime validates forwarded bearer identity; no service-role credential in MCP",
+      "semantics": "POST once; no MCP retry or idempotency replay",
+      "upstream": [
+        "linancn/tiangong-lca-edge-functions#249",
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ],
+      "sourceClass": "typescript-ast"
+    }
+  ],
+  "counts": {
+    "occurrences": 32,
+    "capabilities": 5,
+    "tools": 4,
+    "transports": {
+      "auth": 7,
+      "edge-function-http": 3,
+      "postgrest": 22
+    },
+    "credentials": {
+      "forwarded-mcp-bearer-token": 3,
+      "publishable-key-plus-api-key-or-user-bearer": 7,
+      "publishable-key-plus-optional-user-session": 22
+    },
+    "schemas": {
+      "auth": 4,
+      "client": 3,
+      "functions": 3,
+      "public": 22
+    }
+  },
+  "publicResidue": {
+    "relations": [
+      "contacts",
+      "flows",
+      "lifecyclemodels",
+      "processes",
+      "sources"
+    ],
+    "rpcs": [],
+    "views": []
+  },
+  "pending": [
+    {
+      "capability": "mcp-tool:Database_CRUD_Tool mutations",
+      "reason": "Versioned api command signatures, ACL, audit, idempotency, and stable error contract are not frozen.",
+      "upstream": [
+        "tiangong-lca/database-engine#358",
+        "tiangong-lca/workspace#484"
+      ]
+    },
+    {
+      "capability": "database-engine external exact verifier",
+      "reason": "database-engine#357 must consume and verify the exact manifest/schema bytes and source provenance.",
+      "upstream": [
+        "tiangong-lca/database-engine#357",
+        "tiangong-lca/workspace#484"
+      ]
+    },
+    {
+      "capability": "MCP tool lifecycle hosted proof",
+      "reason": "Edge, CLI, and hosted old/new profile tool lifecycle, retry, duplicate-call, and negative ACL proof remain external.",
+      "upstream": [
+        "linancn/tiangong-lca-edge-functions#249",
+        "tiangong-lca/tiangong-cli#216",
+        "tiangong-lca/workspace#484"
+      ]
+    }
+  ],
+  "absenceProofs": [
+    {
+      "surface": "postgrest-rpc",
+      "result": "absent",
+      "evidence": "0 independently AST-derived RPC occurrences"
+    },
+    {
+      "surface": "views",
+      "result": "absent",
+      "evidence": "zero declared or independently derived view occurrences"
+    },
+    {
+      "surface": "storage",
+      "result": "absent",
+      "evidence": "zero independently AST-derived Storage occurrences"
+    },
+    {
+      "surface": "realtime",
+      "result": "absent",
+      "evidence": "zero independently AST-derived Realtime occurrences"
+    },
+    {
+      "surface": "direct-postgres-sql",
+      "result": "absent",
+      "evidence": "AST import/new/string scan and package dependency parser"
+    },
+    {
+      "surface": "pgmq-cron",
+      "result": "absent",
+      "evidence": "AST and package command scan found no PGMQ or Cron consumer"
+    },
+    {
+      "surface": "supabase-subprocess-cli",
+      "result": "absent",
+      "evidence": "AST subprocess calls plus package script parser"
+    },
+    {
+      "surface": "raw-rest-v1",
+      "result": "absent",
+      "evidence": "raw /rest/v1 route detection is fail-closed"
+    },
+    {
+      "surface": "service-role-credential",
+      "result": "absent",
+      "evidence": "credential classification has no service-role occurrence"
+    }
+  ]
+}
