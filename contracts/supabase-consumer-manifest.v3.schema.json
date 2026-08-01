@@ -9,7 +9,6 @@
     "version",
     "repository",
     "sourceTreeCommit",
-    "deliveryHead",
     "authority",
     "source",
     "capabilities",
@@ -30,9 +29,6 @@
       "const": "linancn/tiangong-lca-mcp"
     },
     "sourceTreeCommit": {
-      "$ref": "#/$defs/sha"
-    },
-    "deliveryHead": {
       "$ref": "#/$defs/sha"
     },
     "authority": {

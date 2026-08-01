@@ -47,7 +47,7 @@ External gates remain:
 
 Run `npm run generate:supabase-consumer-manifest` only from an immutable source commit. The audit tool reads regular Git blobs through `git ls-tree`/`git show`, parses TypeScript/JavaScript with the TypeScript compiler AST and `package.json` with a JSON parser, and writes canonical pretty JSON plus LF. Each occurrence carries its exact byte/line span and SHA-256.
 
-`sourceTreeCommit` is the audited application source. `deliveryHead` in the candidate stays equal to that source commit; verification separately resolves the actual delivery `HEAD`, proves ancestry, and compares `sha256(mode\0path\0blobOid\0)` over all governed blobs. The only exact digest exemption is `scripts/ci/scan-data-api-consumers.ts`. Manifest and Schema must themselves be canonical no-follow regular files, regular Git blobs at delivery HEAD, and byte-identical to the worktree.
+`sourceTreeCommit` is the audited application source. Verification separately resolves and reports the actual delivery `HEAD`, proves ancestry, and compares `sha256(mode\0path\0blobOid\0)` over all governed blobs; the manifest does not pretend a self-referential delivery commit can be embedded in its own bytes. The only exact digest exemption is `scripts/ci/scan-data-api-consumers.ts`. Manifest and Schema must themselves be canonical no-follow regular files, regular Git blobs at delivery HEAD, and byte-identical to the worktree.
 
 Declared and independently derived occurrence rows are compared bidirectionally and globally exactly once. Missing, duplicate, swapped-capability, span/hash-tampered, schema/origin/commit drift, dynamic `.from/.rpc/.schema` targets, raw REST, direct PG/SQL, PGMQ/Cron, and Supabase subprocess/CLI bypasses fail closed.
 

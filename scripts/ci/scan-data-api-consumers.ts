@@ -62,7 +62,6 @@ export type ConsumerManifest = {
   version: 3;
   repository: typeof REPOSITORY;
   sourceTreeCommit: string;
-  deliveryHead: string;
   authority: {
     status: 'candidate';
     authorizesDatabaseFreeze: false;
@@ -712,7 +711,6 @@ export function deriveManifest(root: string, revision: string): ConsumerManifest
     version: 3,
     repository: REPOSITORY,
     sourceTreeCommit,
-    deliveryHead: sourceTreeCommit,
     authority: {
       status: 'candidate',
       authorizesDatabaseFreeze: false,

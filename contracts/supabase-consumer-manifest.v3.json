@@ -3,7 +3,6 @@
   "version": 3,
   "repository": "linancn/tiangong-lca-mcp",
   "sourceTreeCommit": "06a856b3910b198b59170fd2bf1b5d420576777b",
-  "deliveryHead": "06a856b3910b198b59170fd2bf1b5d420576777b",
   "authority": {
     "status": "candidate",
     "authorizesDatabaseFreeze": false,
