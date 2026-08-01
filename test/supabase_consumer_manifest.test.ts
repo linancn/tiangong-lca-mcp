@@ -20,7 +20,9 @@ const machineArtifacts = [
 ];
 
 function fileSha256(file: string): string {
-  return createHash('sha256').update(readFileSync(path.join(repoRoot, file))).digest('hex');
+  return createHash('sha256')
+    .update(readFileSync(path.join(repoRoot, file)))
+    .digest('hex');
 }
 
 test('TypeScript AST derives static and runtime-union PostgREST occurrences exactly once', () => {
