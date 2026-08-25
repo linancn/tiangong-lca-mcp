@@ -44,8 +44,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 0f6a09e70778af307f49c80a75e7b93af1522d36
-lastReviewedNote: 'Reviewed for Issue #46 after Windows CI: LF checkout normalization makes the read-only formatter gate deterministic across all four runners without changing runtime behavior.'
+lastReviewedCommit: d585506bee3c2436d3be0fd7a04671723cb34222
+lastReviewedNote: 'Reviewed for release Issue #48: version 0.1.0 changes package, Docker, tag, and public documentation evidence only; the pnpm/TS7 runtime and MCP behavior remain unchanged.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md

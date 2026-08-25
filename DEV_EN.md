@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 0f6a09e70778af307f49c80a75e7b93af1522d36
-lastReviewedNote: 'Reviewed for Issue #46 after Windows CI: maintainer formatting remains read-only and receives LF source bytes on every supported platform.'
+lastReviewedCommit: d585506bee3c2436d3be0fd7a04671723cb34222
+lastReviewedNote: 'Reviewed for release Issue #48: every maintainer Docker, tag, package, and deployment example consistently targets 0.1.0.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -54,17 +54,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.0.5 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.0 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.0.5
+docker pull linancn/tiangong-lca-mcp-server:0.1.0
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.0.5
+    linancn/tiangong-lca-mcp-server:0.1.0
 ```
 
 ## Development
@@ -115,7 +115,7 @@ This runs read-only lint/typecheck, offline behavior tests, packed-consumer vali
 
 ### Publishing
 
-Publishing is handled by a separately tracked release task after the feature change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; for example, package version `0.0.31` maps to `v0.0.31`.
+Publishing is handled by a separately tracked release task after the feature change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.0` maps to `v0.1.0`.
 
 ### scaffold
 
@@ -126,11 +126,11 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ### Deployment
 
 ```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.31 .
+docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.0 .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.31
+docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.0
 
-docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.0.31
+docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.0
 ```
