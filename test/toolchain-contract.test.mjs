@@ -79,4 +79,18 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.match(qualityGate, /pnpm install --frozen-lockfile/u);
     assert.match(qualityGate, /pnpm run prepush:gate/u);
   });
+
+  it('binds the 0.1.0 release across package, Docker, and active docs', () => {
+    assert.equal(packageJson.version, '0.1.0');
+    const surfaces = ['Dockerfile', 'README.md', 'README_CN.md', 'DEV_EN.md', 'DEV_CN.md'];
+    for (const surface of surfaces) {
+      const text = readText(surface);
+      assert.match(text, /0\.1\.0/u, surface);
+      assert.doesNotMatch(text, /0\.0\.31/u, surface);
+    }
+    assert.match(
+      readText('Dockerfile'),
+      /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.0/u,
+    );
+  });
 });
