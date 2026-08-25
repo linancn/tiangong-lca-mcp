@@ -4,7 +4,6 @@ module.exports = {
   printWidth: 100,
   proseWrap: 'never',
   endOfLine: 'lf',
-  plugins: ['prettier-plugin-organize-imports'],
   overrides: [
     {
       files: '.prettierrc',

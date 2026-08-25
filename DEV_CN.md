@@ -14,12 +14,15 @@ checkPaths:
   - DEV_CN.md
   - DEV_EN.md
   - package.json
+  - pnpm-lock.yaml
+  - pnpm-workspace.yaml
   - Dockerfile
   - .nvmrc
   - src/**
   - test/**
-lastReviewedAt: 2026-05-25
-lastReviewedCommit: e8e4b0762abe8a31723c73724e98c14d75c931a5
+  - scripts/**
+lastReviewedAt: 2026-08-25
+lastReviewedCommit: 085d4750233046ff420db4c1c65cd115fb07eea4
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -39,10 +42,10 @@ TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO 和 StreamableHttp
 ### 客户端 STDIO 服务器
 
 ```bash
-npm install -g @tiangong-lca/mcp-server
+corepack install --global pnpm@11.23.0
+pnpm add --global @tiangong-lca/mcp-server
 
-npx dotenv -e .env -- \
-npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
+pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 ```
 
 ### 使用 Docker
@@ -69,41 +72,46 @@ docker run -d \
 ```bash
 # 安装 Node.js
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-nvm install 24
-nvm use 24
+nvm install 24.19.0
+nvm use 24.19.0
 
-# 安装依赖
-npm ci
+# 安装精确包管理器并按冻结 lock 安装依赖
+corepack install --global pnpm@11.23.0
+pnpm install --frozen-lockfile
 ```
 
 ### 代码格式化
 
 ```bash
-# 使用代码检查工具格式化代码
-npm run lint
+# 只读 lint、格式检查和 TypeScript 7 类型检查
+pnpm lint
+
+# 显式写入格式化结果
+pnpm format
 ```
 
 ### 本地测试
 
 #### 启动 MCP Inspector
 
+使用 `pnpm start:server` 或 `pnpm start:server-local`。跨平台启动器会同时启动对应 HTTP 服务和 Inspector，不依赖 POSIX 专用环境变量语法。
+
+### 标准验证
+
 ```bash
-npx @modelcontextprotocol/inspector
+pnpm prepush:gate
 ```
+
+该门禁包含只读 lint/typecheck、离线行为测试、打包消费者测试、构建、精确工具链检查、依赖审计、dry-run pack，以及在任意临时路径中的冻结 clean-worktree 重跑。该离线门禁不会访问生产、GLAD、Supabase 或 OpenLCA。
 
 ### 发布
 
-```bash
-npm version patch
-git push origin main --follow-tags
-```
-
-发布由 GitHub Actions trusted publishing 执行。Tag 继续使用本单包仓库的 `v<package.version>` 格式；例如 package 版本 `0.0.31` 对应发布 tag `v0.0.31`。
+功能变更合并后，由单独跟踪的 release task 执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，例如 package 版本 `0.0.31` 对应 `v0.0.31`。
 
 ### 测试脚手架
 
 ```bash
-npx tsx src/tools/openlca_ipc_test.ts
+pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```
 
 ### 发布

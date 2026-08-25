@@ -15,7 +15,7 @@ function decodeApiKey(apiKey: string): Credentials | null {
     }
 
     return credentials as Credentials;
-  } catch (_error) {
+  } catch {
     return null;
   }
 }

@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 export function regOpenLcaResources(server: McpServer) {
-  server.resource('Guidence for LCA calculation', `resource://openlca`, (request) => {
+  server.resource('Guidence for LCA calculation', `resource://openlca`, (_request) => {
     return {
       contents: [
         {

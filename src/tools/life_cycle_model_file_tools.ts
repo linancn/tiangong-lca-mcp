@@ -1,15 +1,19 @@
 import dagre from '@dagrejs/dagre';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { createLifeCycleModel } from '@tiangong-lca/tidas-sdk/core';
+import {
+  createLifeCycleModel,
+  type EnhancedValidationResult,
+  type NormalizedValidationIssue,
+} from '@tiangong-lca/tidas-sdk/core';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
 import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
+import { TidasValidationError } from '../_shared/tidas_validation.js';
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 type JsonRecord = Record<string, any>;
 
-const MAX_VALIDATION_ERROR_LENGTH = 4_000;
 const NODE_WIDTH = 350;
 const NODE_MIN_HEIGHT = 100;
 const PORT_START_Y = 65;
@@ -18,7 +22,7 @@ const PAIRED_INPUT_START_Y = 58;
 const PAIRED_OUTPUT_START_Y = 78;
 const PAIRED_PORT_STEP_Y = 40;
 const MIN_NODE_SIZE = 1;
-const DAGRE_RANKDIR: 'LR' = 'LR';
+const DAGRE_RANKDIR = 'LR' as const;
 const DAGRE_NODESEP = 88;
 const DAGRE_EDGESEP = 24;
 const DAGRE_RANKSEP = 170;
@@ -76,14 +80,8 @@ type NodeLayoutSpec = {
   isReferenceProcess: boolean;
 };
 
-type LifecycleModelValidationResult = {
-  success: boolean;
-  error?: unknown;
-};
-
 type LifecycleModelValidator = {
-  validate: () => LifecycleModelValidationResult;
-  validateEnhanced: () => LifecycleModelValidationResult;
+  validateEnhanced: () => EnhancedValidationResult<unknown>;
 };
 
 function ensureArray<T>(value: T | T[] | null | undefined): T[] {
@@ -115,25 +113,6 @@ function parsePayload(value: unknown): unknown {
     return JSON.parse(value);
   }
   return value;
-}
-
-function summarizeError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  try {
-    const serialized = JSON.stringify(error);
-    if (!serialized) {
-      return String(error);
-    }
-
-    return serialized.length > MAX_VALIDATION_ERROR_LENGTH
-      ? `${serialized.slice(0, MAX_VALIDATION_ERROR_LENGTH)}...`
-      : serialized;
-  } catch {
-    return String(error);
-  }
 }
 
 function normalizeLifecycleModelPayload(rawPayload: unknown): LifecycleModelPayload {
@@ -224,12 +203,14 @@ function createLifecycleModelValidator(jsonOrdered: JsonRecord): LifecycleModelV
   return createLifeCycleModel(jsonOrdered, { mode: 'strict' }) as LifecycleModelValidator;
 }
 
-function validateLifecycleModelStrict(validator: LifecycleModelValidator): void {
-  const validationResult = validator.validate();
+function validateLifecycleModelStrict(
+  validator: LifecycleModelValidator,
+): EnhancedValidationResult<unknown> & { success: true } {
+  const validationResult = validator.validateEnhanced();
   if (!validationResult.success) {
-    const errorDetails = summarizeError(validationResult.error);
-    throw new Error(`Lifecycle model validation failed: ${errorDetails}`);
+    throw new TidasValidationError('lifeCycleModel', validationResult.validationIssues);
   }
+  return validationResult;
 }
 
 function langEntries(value: unknown): Array<Record<string, string>> {
@@ -1116,28 +1097,15 @@ function generateJsonTg(
   };
 }
 
-function deriveRuleVerification(validator: LifecycleModelValidator): {
+function deriveRuleVerification(enhanced: EnhancedValidationResult<unknown> & { success: true }): {
   ruleVerification: boolean;
   issueCount: number;
-  filteredIssues: unknown[];
+  validationIssues: NormalizedValidationIssue[];
 } {
-  const enhanced = validator.validateEnhanced();
-  if (enhanced.success) {
-    return { ruleVerification: true, issueCount: 0, filteredIssues: [] };
-  }
-
-  const issues = ensureArray(asRecord(enhanced.error).issues as unknown[] | undefined);
-  const filteredIssues = issues.filter((issue) => {
-    const path = ensureArray(asRecord(issue).path as string[] | undefined).map((part) =>
-      String(part),
-    );
-    return !path.includes('validation') && !path.includes('compliance');
-  });
-
   return {
-    ruleVerification: filteredIssues.length === 0,
-    issueCount: filteredIssues.length,
-    filteredIssues,
+    ruleVerification: enhanced.validationIssues.length === 0,
+    issueCount: enhanced.validationIssues.length,
+    validationIssues: enhanced.validationIssues,
   };
 }
 
@@ -1152,7 +1120,7 @@ export type PreparedLifecycleModelFile = {
   submodelCount: number;
   ruleVerification: boolean;
   validationIssueCount: number;
-  validationIssues: unknown[];
+  validationIssues: NormalizedValidationIssue[];
   jsonOrdered: JsonRecord;
   jsonTg: JsonRecord;
 };
@@ -1171,16 +1139,16 @@ export async function prepareLifecycleModelFile(
   const preferProvidedJsonTg = input.preferProvidedJsonTg ?? false;
   const normalized = normalizeLifecycleModelPayload(input.payload);
   const jsonOrdered = normalized.jsonOrdered;
+  const validator = createLifecycleModelValidator(jsonOrdered);
+  const enhancedValidation = validateLifecycleModelStrict(validator);
   const processInstances = graphProcessInstancesFromModel(jsonOrdered);
   const modelId = input.id ?? getModelUuid(jsonOrdered);
   const modelVersion = input.version ?? getModelVersion(jsonOrdered);
-  const validator = createLifecycleModelValidator(jsonOrdered);
-  validateLifecycleModelStrict(validator);
   const { supabase } = await createSupabaseClient(bearerKey);
   const processLookups = await fetchProcessLookups(supabase, processInstances);
   const generatedJsonTg = generateJsonTg(jsonOrdered, processInstances, processLookups);
   const merged = mergeJsonTg(generatedJsonTg, normalized.providedJsonTg, preferProvidedJsonTg);
-  const validation = deriveRuleVerification(validator);
+  const validation = deriveRuleVerification(enhancedValidation);
 
   return {
     sourceFormat: normalized.sourceFormat,
@@ -1193,7 +1161,7 @@ export async function prepareLifecycleModelFile(
     submodelCount: ensureArray(merged.jsonTg.submodels as JsonValue[] | undefined).length,
     ruleVerification: validation.ruleVerification,
     validationIssueCount: validation.issueCount,
-    validationIssues: validation.filteredIssues,
+    validationIssues: validation.validationIssues,
     jsonOrdered,
     jsonTg: merged.jsonTg,
   };

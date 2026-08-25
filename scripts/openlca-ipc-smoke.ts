@@ -81,4 +81,4 @@ async function main() {
   //   result.dispose();
 }
 
-main();
+void main();

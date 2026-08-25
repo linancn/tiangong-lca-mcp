@@ -1,9 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { EnhancedValidationResult } from '@tiangong-lca/tidas-sdk/core';
 import { z } from 'zod';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
 import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
+import { TidasValidationError } from '../_shared/tidas_validation.js';
 import { prepareLifecycleModelFile } from './life_cycle_model_file_tools.js';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -13,7 +15,6 @@ type Filters = Record<string, FilterValue>;
 const allowedTables = ['contacts', 'flows', 'lifecyclemodels', 'processes', 'sources'] as const;
 type AllowedTable = (typeof allowedTables)[number];
 const tableSchema = z.enum(allowedTables);
-const MAX_VALIDATION_ERROR_LENGTH = 4_000;
 
 const tablePrimaryKey: Record<AllowedTable, string> = {
   contacts: 'id',
@@ -149,42 +150,22 @@ type UpdateInput = CrudInput & { operation: 'update' };
 type DeleteInput = CrudInput & { operation: 'delete' };
 type CrudOperationInput = SelectInput | InsertInput | UpdateInput | DeleteInput;
 
-type TidasValidationResult = { success: boolean; error?: unknown };
 type StrictValidatorFactory = (
   input: unknown,
   options: { mode: 'strict' },
-) => { validate: () => TidasValidationResult };
+) => { validateEnhanced: () => EnhancedValidationResult<unknown> };
 type TidasValidationFactoryMap = Record<AllowedTable, StrictValidatorFactory>;
 
 let tidasValidationFactoryMapPromise: Promise<TidasValidationFactoryMap> | undefined;
 
-function summarizeError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  try {
-    const serialized = JSON.stringify(error);
-    if (!serialized) {
-      return String(error);
-    }
-
-    return serialized.length > MAX_VALIDATION_ERROR_LENGTH
-      ? `${serialized.slice(0, MAX_VALIDATION_ERROR_LENGTH)}...`
-      : serialized;
-  } catch {
-    return String(error);
-  }
-}
-
 async function getTidasValidationFactoryMap(): Promise<TidasValidationFactoryMap> {
   if (!tidasValidationFactoryMapPromise) {
     tidasValidationFactoryMapPromise = import('@tiangong-lca/tidas-sdk/core').then((module) => ({
-      contacts: module.createContact as StrictValidatorFactory,
-      flows: module.createFlow as StrictValidatorFactory,
-      lifecyclemodels: module.createLifeCycleModel as StrictValidatorFactory,
-      processes: module.createProcess as StrictValidatorFactory,
-      sources: module.createSource as StrictValidatorFactory,
+      contacts: (input, options) => module.createContact(input as never, options),
+      flows: (input, options) => module.createFlow(input as never, options),
+      lifecyclemodels: (input, options) => module.createLifeCycleModel(input as never, options),
+      processes: (input, options) => module.createProcess(input as never, options),
+      sources: (input, options) => module.createSource(input as never, options),
     }));
   }
 
@@ -216,20 +197,12 @@ function ensureRows(rows: unknown, errorMessage: string): JsonValue[] {
  * @throws Error if validation fails
  */
 async function validateJsonOrdered(table: AllowedTable, jsonOrdered: JsonValue): Promise<void> {
-  try {
-    const validationFactoryMap = await getTidasValidationFactoryMap();
-    const createValidator = validationFactoryMap[table];
-    const validationResult = createValidator(jsonOrdered, { mode: 'strict' }).validate();
+  const validationFactoryMap = await getTidasValidationFactoryMap();
+  const createValidator = validationFactoryMap[table];
+  const validationResult = createValidator(jsonOrdered, { mode: 'strict' }).validateEnhanced();
 
-    if (!validationResult.success) {
-      const errorDetails = summarizeError(validationResult.error);
-      throw new Error(`Validation failed for table "${table}". Errors: ${errorDetails}`);
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to validate jsonOrdered for table "${table}": ${error.message}`);
-    }
-    throw error;
+  if (!validationResult.success) {
+    throw new TidasValidationError(table, validationResult.validationIssues);
   }
 }
 
@@ -255,6 +228,14 @@ type PreparedWritePayload = {
   payload: Record<string, JsonValue>;
   resolvedId?: string;
   resolvedVersion?: string;
+  validationIssueCount?: number;
+  validationIssues?: unknown[];
+};
+
+type PrepareWritePayload = typeof prepareWritePayload;
+
+export type CrudToolDependencies = {
+  prepareWritePayload?: PrepareWritePayload;
 };
 
 async function prepareWritePayload(
@@ -302,6 +283,8 @@ async function prepareWritePayload(
     },
     resolvedId: prepared.lifecycleModelId,
     resolvedVersion: prepared.lifecycleModelVersion,
+    validationIssueCount: prepared.validationIssueCount,
+    validationIssues: prepared.validationIssues,
   };
 }
 
@@ -334,7 +317,7 @@ async function createSupabaseClient(
     });
 
     if (setSessionError) {
-      console.warn('Failed to set Supabase session for CRUD tool:', setSessionError.message);
+      console.warn('DATABASE_CRUD_SESSION_FAILED', { category: 'supabase_session' });
     }
   }
 
@@ -382,7 +365,7 @@ async function handleSelect(supabase: SupabaseClient, input: SelectInput): Promi
 async function handleInsert(
   supabase: SupabaseClient,
   input: InsertInput,
-  bearerKey?: string | SupabaseSessionLike,
+  preparedWrite: PreparedWritePayload,
 ): Promise<string> {
   const { table, jsonOrdered, id, version } = input;
 
@@ -394,9 +377,6 @@ async function handleInsert(
     throw new Error('id is required for insert operations.');
   }
 
-  const jsonOrderedValue = jsonOrdered as JsonValue;
-
-  const preparedWrite = await prepareWritePayload(table, jsonOrderedValue, id, version, bearerKey);
   const resolvedId = preparedWrite.resolvedId ?? id;
   const resolvedVersion = preparedWrite.resolvedVersion ?? version;
 
@@ -418,14 +398,24 @@ async function handleInsert(
   }
 
   const rows = sanitizeRowsForOutput(table, (data ?? []) as JsonValue[]);
-  return JSON.stringify({ id: resolvedId, version: resolvedVersion, data: rows });
+  return JSON.stringify({
+    id: resolvedId,
+    version: resolvedVersion,
+    ...(preparedWrite.validationIssueCount === undefined
+      ? {}
+      : {
+          validationIssueCount: preparedWrite.validationIssueCount,
+          validationIssues: preparedWrite.validationIssues ?? [],
+        }),
+    data: rows,
+  });
 }
 
 async function handleUpdate(
   supabase: SupabaseClient,
   accessToken: string | undefined,
   input: UpdateInput,
-  bearerKey?: string | SupabaseSessionLike,
+  preparedWrite: PreparedWritePayload,
 ): Promise<string> {
   const { table, id, version, jsonOrdered } = input;
 
@@ -440,10 +430,6 @@ async function handleUpdate(
   if (jsonOrdered === undefined) {
     throw new Error('jsonOrdered is required for update operations.');
   }
-
-  const jsonOrderedValue = jsonOrdered as JsonValue;
-
-  const preparedWrite = await prepareWritePayload(table, jsonOrderedValue, id, version, bearerKey);
 
   requireAccessToken(accessToken);
 
@@ -469,6 +455,12 @@ async function handleUpdate(
   return JSON.stringify({
     id: resolvedId,
     version: resolvedVersion,
+    ...(preparedWrite.validationIssueCount === undefined
+      ? {}
+      : {
+          validationIssueCount: preparedWrite.validationIssueCount,
+          validationIssues: preparedWrite.validationIssues ?? [],
+        }),
     data: sanitizeRowsForOutput(table, rows),
   });
 }
@@ -508,42 +500,76 @@ async function handleDelete(supabase: SupabaseClient, input: DeleteInput): Promi
 async function performCrud(
   input: CrudOperationInput,
   bearerKey?: string | SupabaseSessionLike,
+  dependencies: CrudToolDependencies = {},
 ): Promise<string> {
   try {
-    const { supabase, accessToken } = await createSupabaseClient(bearerKey);
-
     switch (input.operation) {
-      case 'select':
+      case 'select': {
+        const { supabase } = await createSupabaseClient(bearerKey);
         return handleSelect(supabase, input);
+      }
 
-      case 'insert':
-        return handleInsert(supabase, input, bearerKey);
+      case 'insert': {
+        if (input.jsonOrdered === undefined) {
+          throw new Error('jsonOrdered is required for insert operations.');
+        }
+        const preparedWrite = await (dependencies.prepareWritePayload ?? prepareWritePayload)(
+          input.table,
+          input.jsonOrdered as JsonValue,
+          input.id,
+          input.version,
+          bearerKey,
+        );
+        const { supabase } = await createSupabaseClient(bearerKey);
+        return handleInsert(supabase, input, preparedWrite);
+      }
 
-      case 'update':
-        return handleUpdate(supabase, accessToken, input, bearerKey);
+      case 'update': {
+        if (input.jsonOrdered === undefined) {
+          throw new Error('jsonOrdered is required for update operations.');
+        }
+        const preparedWrite = await (dependencies.prepareWritePayload ?? prepareWritePayload)(
+          input.table,
+          input.jsonOrdered as JsonValue,
+          input.id,
+          input.version,
+          bearerKey,
+        );
+        const { supabase, accessToken } = await createSupabaseClient(bearerKey);
+        return handleUpdate(supabase, accessToken, input, preparedWrite);
+      }
 
-      case 'delete':
+      case 'delete': {
+        const { supabase } = await createSupabaseClient(bearerKey);
         return handleDelete(supabase, input);
+      }
 
       default: {
-        const exhaustiveCheck: never = input;
+        const _exhaustiveCheck: never = input;
         throw new Error('Unsupported operation supplied to CRUD tool.');
       }
     }
   } catch (error) {
-    console.error('Error making the request:', error);
+    console.error('DATABASE_CRUD_FAILED', {
+      category: error instanceof TidasValidationError ? 'validation' : 'operation',
+      operation: input.operation,
+    });
     throw error;
   }
 }
 
-export function regCrudTool(server: McpServer, bearerKey?: string | SupabaseSessionLike): void {
+export function regCrudTool(
+  server: McpServer,
+  bearerKey?: string | SupabaseSessionLike,
+  dependencies: CrudToolDependencies = {},
+): void {
   server.tool(
     'Database_CRUD_Tool',
-    'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id and version). lifecyclemodels insert/update automatically validate the payload, derive platform json_tg, compute rule_verification, and then write the row; lifecyclemodels select returns id/version/json_ordered only.',
+    'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id and version). lifecyclemodels insert/update automatically validate the payload, derive platform json_tg, compute rule_verification, write the row, and return validationIssueCount/validationIssues; lifecyclemodels select returns id/version/json_ordered only.',
     toolParamsSchema,
     async (rawInput) => {
       const input = refinedInputSchema.parse(rawInput) as CrudOperationInput;
-      const result = await performCrud(input, bearerKey);
+      const result = await performCrud(input, bearerKey, dependencies);
       return {
         content: [
           {

@@ -36,7 +36,7 @@ export async function authenticateCognitoToken(token: string): Promise<AuthResul
     if (!userId) {
       return {
         isAuthenticated: false,
-        response: 'Invalid token: missing user ID',
+        response: 'Unauthorized',
       };
     }
 
@@ -46,11 +46,11 @@ export async function authenticateCognitoToken(token: string): Promise<AuthResul
       userId,
       email,
     };
-  } catch (error) {
-    console.error('Cognito token verification failed:', error);
+  } catch {
+    console.error('MCP_AUTHENTICATION_FAILED', { category: 'cognito' });
     return {
       isAuthenticated: false,
-      response: error instanceof Error ? error.message : 'Token verification failed',
+      response: 'Unauthorized',
     };
   }
 }

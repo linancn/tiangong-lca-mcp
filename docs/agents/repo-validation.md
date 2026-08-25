@@ -18,12 +18,19 @@ checkPaths:
   - docs/agents/repo-validation.md
   - .docpact/config.yaml
   - package.json
+  - pnpm-lock.yaml
+  - pnpm-workspace.yaml
   - .nvmrc
+  - .gitattributes
+  - tsconfig.json
+  - tsconfig.build.json
+  - .oxlintrc.json
   - Dockerfile
   - .env.example
   - mcp_config.json
   - scripts/ci/**
   - .github/workflows/publish.yml
+  - .github/workflows/quality-gate.yml
   - src/**
   - public/**
   - test/**
@@ -31,8 +38,9 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-06-01
-lastReviewedCommit: afbb47af17b81da4cd4bad31a8e13c498612c4cd
+lastReviewedAt: 2026-08-25
+lastReviewedCommit: 0f6a09e70778af307f49c80a75e7b93af1522d36
+lastReviewedNote: 'Reviewed for Issue #46 after Windows CI: the toolchain test and .gitattributes bind identical LF formatter input on every runner.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -48,44 +56,48 @@ related:
 Unless the change is doc-only, the current baseline is:
 
 ```bash
-npm run build
-npm run lint
-npm test
+pnpm install --frozen-lockfile
+pnpm prepush:gate
 ```
 
-Interpret the baseline carefully:
+The gate is intentionally non-mutating and includes:
 
-- `npm run lint` rewrites files because it runs Prettier with `--write`
-- `npm test` runs a demo/manual validation script and is not a strong assertion suite
+- type-aware Oxlint with warnings denied, Prettier check, and TypeScript 7 typecheck
+- offline Node assertions for tool, TIDAS, LifecycleModel, CRUD/search, auth, HTTP, error, and cancellation contracts
+- packed runtime-consumer validation in a path containing spaces
+- build, exact toolchain assertion, high-severity dependency audit, and dry-run pack
+- a frozen install plus lint/test/build/toolchain/pack rerun in a clean arbitrary-path worktree
 
 ## Validation Matrix
 
 | Change type | Minimum local proof | Additional proof when risk is higher | Notes |
 | --- | --- | --- | --- |
-| `src/index*.ts` or transport init helpers | `npm run build`; `npm run lint` | run the relevant built entrypoint directly or through the intended start script when the dependency set supports it | `start:server*` currently depends on undeclared `concurrently`; record if you used a manual alternative. |
-| auth middleware, config, or OAuth flow | `npm run build`; `npm run lint` | manually inspect or run the affected built HTTP entrypoint; record any live-token proof separately | Bearer parsing, Cognito verification, and session reuse live here. |
-| search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `npm run build`; `npm run lint`; `npm test` | manually inspect one representative payload path or run the relevant wrapper under an MCP client if the task explicitly includes it | If the actual remote behavior changes, record the companion repo proof separately. GLAD API validation may need a browser-verified or otherwise allowed runtime because Cloudflare can challenge raw Node/curl requests before the API key is processed. |
-| local OpenLCA helpers | `npm run build`; `npm run lint` | run `npx tsx src/tools/openlca_ipc_test.ts` only when the task explicitly includes a local OpenLCA smoke check | The active runtime path is `olca-ipc`, not the commented gRPC scaffold. |
-| `package.json`, `.nvmrc`, `Dockerfile`, `.env.example`, or `mcp_config.json` | `npm run build`; `npm run lint` | record the runtime prerequisite or config drift that was checked | Recheck `DEV_EN.md` and `DEV_CN.md` whenever the Node baseline or maintainer startup path changes. |
-| release automation under `scripts/ci/**` or `.github/workflows/publish.yml` | inspect the workflow/script diff; run `npm run build` when package metadata or release scripts execute package code | record tag naming, `main`-only release, and npm unpublished-version assumptions checked locally | Release publish runs the full pre-publish gate before npm publish. |
-| `public/**` only | `npm run build`; `npm run lint` | inspect the served page path if the task changes OAuth demo or index behavior | Static pages are part of the transport surface here. |
+| `src/index*.ts`, `src/http_app*.ts`, or transport init helpers | `pnpm test`; `pnpm build` | run the relevant built entrypoint through the intended start script when the task explicitly includes an interactive smoke check | Offline tests cover import side effects, health, method guards, JSON-RPC parsing, discovery, cleanup, cancellation, and repeated authenticated/local factory throws with sentinel leak checks. |
+| auth middleware, config, or OAuth flow | `pnpm test`; `pnpm lint` | record any live-token proof separately and only when the task authorizes it | Authenticator exceptions remain a generic JSON-RPC 500; missing bearer is 401 and any presented-but-denied credential is generic 403 `Forbidden`; provider messages, token/issuer sentinels, and stacks must not appear in responses or logs, which retain only stable failure code/category. |
+| search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `pnpm test`; `pnpm lint` | run an authorized remote case only when its external owner and safety boundary are explicit | Offline tests mock search transport, reject malformed CRUD input before network access, cover exact select/insert/update/delete success URLs, methods, headers, bodies and envelopes, run all declared TIDAS types through SDK `validateEnhanced()`, and prove a real strict-invalid LifecycleModel with a structurally valid access JWT plus refresh token returns normalized issues with fetch count zero before any auth/session/REST/write action. |
+| local OpenLCA helpers | `pnpm build`; `pnpm lint` | run `pnpm exec tsx scripts/openlca-ipc-smoke.ts` only when the task explicitly includes a local OpenLCA smoke check | The active runtime path is `olca-ipc`, not the commented gRPC scaffold. |
+| package, pnpm, Node, TypeScript, lint, Docker, or client config | `pnpm prepush:gate` | inspect `pnpm list --depth Infinity` when compiler or runtime leakage is in scope | Recheck `DEV_EN.md` and `DEV_CN.md` whenever the exact baseline or startup path changes. |
+| release automation under `scripts/ci/**` or `.github/workflows/publish.yml` | inspect the workflow/script diff; `pnpm prepush:gate` | record tag naming, `main` ancestry, and unpublished-version checks | The feature task prepares release-ready artifacts; version/tag/publish remains a separately tracked release action. |
+| `public/**` only | `pnpm build`; `pnpm lint` | inspect the served page path if the task changes OAuth demo or index behavior | Static pages are part of the transport surface here. |
 | governed docs only | `scripts/docpact validate-config --root . --strict`; `scripts/docpact lint --root . --staged --mode enforce` | run one focused route check such as `transport-auth`, `mcp-tools`, or `openlca-tidas` when routing changes | Refresh review metadata even when prose-only docs change. |
 
 ## Known Caveats
 
 Facts that matter today:
 
-- `.nvmrc`, `Dockerfile`, `DEV_EN.md`, and `DEV_CN.md` should stay aligned on the Node 24 baseline
-- `start:server` and `start:server-local` use `concurrently`, but `concurrently` is not declared in `package.json`
-
-If you rely on a manual workaround, record it in the PR note instead of pretending the scripted path is clean.
+- `.nvmrc`, `Dockerfile`, package engines, pnpm workspace policy, and maintainer docs must stay aligned on Node `24.19.0` and pnpm `11.23.0`
+- the only compiler in the direct or recursive graph is TypeScript `7.0.2`; SDK `0.2.0` must not reintroduce `ts-to-zod` or TypeScript 5/6
+- local tests do not contact TianGong production, GLAD, Supabase, or OpenLCA; external proof must be separately authorized and recorded
+- the four-platform workflow is the authoritative portability proof after PR submission; local macOS proof alone is not four-platform evidence
+- `.gitattributes` enforces LF for tracked text so Windows checkout cannot turn a read-only Prettier check into a whole-repository false failure
+- `pnpm/setup` native distributions do not guarantee `COREPACK_ROOT`; nested tests must pass with that variable absent, exact native `pnpm`/`pnpm.exe`, paths containing spaces, and `shell: false`
 
 ## Minimum PR Note Quality
 
 A good PR note for this repo should say:
 
 1. which commands ran
-2. whether any validation path was mutating or demo-only
+2. exact test count and whether packed-consumer and clean-worktree proofs passed
 3. whether a manual transport, OAuth, or OpenLCA proof was performed or deferred
 4. whether any required remote runtime proof belongs in another repo
 

@@ -1,3 +1,35 @@
+---
+title: TianGong LCA MCP README EN
+docType: guide
+scope: repo
+status: active
+authoritative: false
+owner: mcp
+language: en
+whenToUse:
+  - when you need English user-facing MCP package setup, Docker usage, local startup, or inspector examples
+whenToUpdate:
+  - when English startup commands, Docker usage, package invocation, or user-facing MCP examples change
+checkPaths:
+  - README.md
+  - README_CN.md
+  - package.json
+  - Dockerfile
+  - mcp_config.json
+  - src/index.ts
+  - src/index_server.ts
+  - src/index_server_local.ts
+  - src/http_app.ts
+  - src/http_app_local.ts
+lastReviewedAt: 2026-08-25
+lastReviewedCommit: 085d4750233046ff420db4c1c65cd115fb07eea4
+related:
+  - AGENTS.md
+  - .docpact/config.yaml
+  - DEV_EN.md
+  - README_CN.md
+---
+
 # TianGong-LCA-MCP
 
 [中文](https://github.com/linancn/tiangong-lca-mcp/blob/main/README_CN.md) | [English](https://github.com/linancn/tiangong-lca-mcp/blob/main/README.md)
@@ -18,27 +50,27 @@ GLAD_API_BASE_URL=https://www.globallcadataaccess.org/api/v1
 ### Client STDIO Server
 
 ```bash
-npm install -g @tiangong-lca/mcp-server
+corepack install --global pnpm@11.23.0
+pnpm add --global @tiangong-lca/mcp-server
 
-npx dotenv -e .env -- \
-npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
+pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 ```
 
 ### Using Docker
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.0.5 .
+docker build -t linancn/tiangong-lca-mcp-server:0.0.31 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.0.5
+docker pull linancn/tiangong-lca-mcp-server:0.0.31
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.0.5
+    linancn/tiangong-lca-mcp-server:0.0.31
 ```
 
 ## Local Testing
@@ -47,23 +79,19 @@ docker run -d \
 
 ```bash
 # Launch the STDIO Server using MCP Inspector
-npm start
+pnpm start
 ```
 
 ### Streamable Http Server
 
 ```bash
-npm run start:server
+pnpm start:server
 ```
 
 #### Streamable Http Local Server
 
 ```bash
-npm run start:server-local
+pnpm start:server-local
 ```
 
-### Launch MCP Inspector
-
-```bash
-DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector
-```
+The HTTP start commands launch MCP Inspector through a cross-platform Node argv wrapper and inject the development-only Inspector environment without POSIX shell syntax.

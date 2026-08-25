@@ -51,6 +51,29 @@ authApp.set('trust proxy', 1);
 authApp.use(express.json());
 authApp.use(express.urlencoded({ extended: true })); // Add support for URL-encoded form data
 
+function queryText(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return queryText(value[0]);
+  }
+  return '';
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/gu, (character) => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return entities[character] ?? character;
+  });
+}
+
 // Add CORS headers for OAuth endpoints
 authApp.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -67,13 +90,15 @@ authApp.use((req, res, next) => {
 
 // Add OAuth callback endpoint to handle authorization code from Cognito
 authApp.get('/callback', async (req, res) => {
-  const { code, state, error, error_description } = req.query;
+  const code = queryText(req.query.code);
+  const state = queryText(req.query.state);
+  const error = queryText(req.query.error);
 
   // console.log('OAuth callback received:', { code: !!code, state, error, error_description });
 
   if (error) {
-    console.error('OAuth error:', error, error_description);
-    return res.status(400).send(`OAuth Error: ${error} - ${error_description}`);
+    console.error('MCP_AUTHENTICATION_FAILED', { category: 'oauth_callback' });
+    return res.status(400).send('OAuth authorization failed');
   }
 
   if (!code) {
@@ -212,7 +237,7 @@ authApp.get('/callback', async (req, res) => {
               <h3>🔑 Your Authorization Code</h3>
               <button class="copy-button" onclick="copyAuthCode()">📋 Copy Code</button>
             </div>
-            <div class="code-display" id="auth-code">${code}</div>
+            <div class="code-display" id="auth-code">${escapeHtml(code)}</div>
             <p>Use this code along with your stored code verifier to exchange for an access token in the demo interface.</p>
           </div>
         </div>
@@ -289,8 +314,8 @@ authApp.get('/callback', async (req, res) => {
         if (window.opener) {
           window.opener.postMessage({ 
             type: 'oauth_success', 
-            code: '${code}',
-            state: '${state || ''}'
+            code: ${JSON.stringify(code).replaceAll('<', '\\u003c')},
+            state: ${JSON.stringify(state).replaceAll('<', '\\u003c')}
           }, '*');
         }
       </script>
@@ -391,10 +416,13 @@ authApp.post('/token', async (req, res) => {
     // });
 
     if (!tokenResponse.ok) {
-      console.error('Token exchange failed:', responseText);
+      console.error('MCP_AUTHENTICATION_FAILED', {
+        category: 'token_exchange',
+        status: tokenResponse.status,
+      });
       return res.status(tokenResponse.status).json({
         error: 'invalid_grant',
-        error_description: `Token exchange failed: ${responseText}`,
+        error_description: 'Token exchange failed',
       });
     }
 
@@ -417,8 +445,8 @@ authApp.post('/token', async (req, res) => {
     // });
 
     res.json(response);
-  } catch (error) {
-    console.error('Token exchange error:', error);
+  } catch {
+    console.error('MCP_AUTHENTICATION_FAILED', { category: 'token_exchange' });
     res.status(500).json({
       error: 'server_error',
       error_description: 'Internal server error during token exchange',
