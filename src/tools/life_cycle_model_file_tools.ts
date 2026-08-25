@@ -1116,7 +1116,7 @@ function generateJsonTg(
   };
 }
 
-function deriveRuleVerification(validator: LifecycleModelValidator): {
+export function deriveRuleVerification(validator: LifecycleModelValidator): {
   ruleVerification: boolean;
   issueCount: number;
   filteredIssues: unknown[];
