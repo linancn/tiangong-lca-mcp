@@ -90,7 +90,9 @@ export function createHttpApp(options: HttpAppOptions = {}): Express {
   app.use(express.json());
   installCors(app);
   app.post('/mcp', authenticateBearer(authenticator), async (req: AuthenticatedRequest, res) => {
-    await handleStatelessMcpRequest(req, res, serverFactory(req.bearerKey, req.supabaseSession));
+    await handleStatelessMcpRequest(req, res, () =>
+      serverFactory(req.bearerKey, req.supabaseSession),
+    );
   });
   installMcpMethodGuards(app);
   installHealthRoute(app);

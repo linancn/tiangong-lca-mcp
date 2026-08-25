@@ -20,23 +20,33 @@ export function installCors(app: Express): void {
 export async function handleStatelessMcpRequest(
   req: Request,
   res: Response,
-  server: McpServer,
+  serverFactory: () => McpServer,
 ): Promise<void> {
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-  });
+  let server: McpServer | undefined;
+  let transport: StreamableHTTPServerTransport | undefined;
   let closing = false;
   const close = () => {
     if (closing) {
       return;
     }
     closing = true;
-    void Promise.allSettled([transport.close(), server.close()]);
+    const closeTasks: Array<Promise<void>> = [];
+    if (transport) {
+      closeTasks.push(transport.close());
+    }
+    if (server) {
+      closeTasks.push(server.close());
+    }
+    void Promise.allSettled(closeTasks);
   };
 
   res.once('close', close);
 
   try {
+    server = serverFactory();
+    transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (error) {

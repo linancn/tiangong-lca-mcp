@@ -20,7 +20,7 @@ export function createLocalHttpApp(options: LocalHttpAppOptions = {}): Express {
   app.use(express.json());
   installCors(app);
   app.post('/mcp', async (req, res) => {
-    await handleStatelessMcpRequest(req, res, serverFactory());
+    await handleStatelessMcpRequest(req, res, serverFactory);
   });
   installMcpMethodGuards(app);
   installHealthRoute(app);

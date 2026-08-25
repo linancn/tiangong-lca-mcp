@@ -236,7 +236,7 @@ describe('request-scoped MCP server factory failures', () => {
               throw new Error(sentinel);
             },
           }),
-          headers: {},
+          headers: new Headers(),
         },
         {
           name: 'authenticated',
@@ -246,7 +246,7 @@ describe('request-scoped MCP server factory failures', () => {
               throw new Error(sentinel);
             },
           }),
-          headers: { authorization: 'Bearer test-token' },
+          headers: new Headers({ authorization: 'Bearer test-token' }),
         },
       ];
 
@@ -254,13 +254,12 @@ describe('request-scoped MCP server factory failures', () => {
         for (const testCase of cases) {
           await withHttpServer(testCase.app, async (baseUrl) => {
             for (let attempt = 0; attempt < 2; attempt += 1) {
+              const headers = new Headers(testCase.headers);
+              headers.set('accept', 'application/json, text/event-stream');
+              headers.set('content-type', 'application/json');
               const response = await fetch(`${baseUrl}/mcp`, {
                 method: 'POST',
-                headers: {
-                  accept: 'application/json, text/event-stream',
-                  'content-type': 'application/json',
-                  ...testCase.headers,
-                },
+                headers,
                 body: JSON.stringify({}),
               });
               const text = await response.text();
