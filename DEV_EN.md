@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 0f6a09e70778af307f49c80a75e7b93af1522d36
-lastReviewedNote: 'Reviewed for Issue #46 after Windows CI: maintainer formatting remains read-only and receives LF source bytes on every supported platform.'
+lastReviewedCommit: 6871ce361cc6f382654424be1064a24c1edf2031
+lastReviewedNote: 'Reviewed for release Issue #48: maintainer tag, package, and deployment examples consistently target 0.1.0.'
 related:
   - AGENTS.md
   - .docpact/config.yaml

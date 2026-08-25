@@ -22,7 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 085d4750233046ff420db4c1c65cd115fb07eea4
+lastReviewedCommit: 6871ce361cc6f382654424be1064a24c1edf2031
+lastReviewedNote: 'Reviewed for release Issue #48: maintainer tag, package, and deployment examples consistently target 0.1.0.'
 related:
   - AGENTS.md
   - .docpact/config.yaml

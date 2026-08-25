@@ -39,8 +39,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 0f6a09e70778af307f49c80a75e7b93af1522d36
-lastReviewedNote: 'Reviewed for Issue #46 after Windows CI: the toolchain test and .gitattributes bind identical LF formatter input on every runner.'
+lastReviewedCommit: 6871ce361cc6f382654424be1064a24c1edf2031
+lastReviewedNote: 'Reviewed for release Issue #48: package, Docker, and docs now bind 0.1.0 while all canonical feature gates remain mandatory.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
