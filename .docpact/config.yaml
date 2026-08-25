@@ -49,6 +49,7 @@ ownership:
           - tsconfig.json
           - tsconfig.build.json
           - .nvmrc
+          - .gitattributes
           - .oxlintrc.json
           - .prettierrc.cjs
           - .prettierignore
@@ -113,6 +114,7 @@ coverage:
     - tsconfig.json
     - tsconfig.build.json
     - .nvmrc
+    - .gitattributes
     - .oxlintrc.json
     - .prettierrc.cjs
     - .prettierignore
@@ -216,6 +218,7 @@ routing:
         - tsconfig.json
         - tsconfig.build.json
         - .nvmrc
+        - .gitattributes
         - .oxlintrc.json
         - .prettierrc.cjs
         - .prettierignore
@@ -343,6 +346,8 @@ rules:
       - path: tsconfig.build.json
         kind: runtime-config
       - path: .nvmrc
+        kind: runtime-config
+      - path: .gitattributes
         kind: runtime-config
       - path: .oxlintrc.json
         kind: runtime-config
