@@ -38,7 +38,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 2a7771afc75fb9ec646f9048ec41c88841fa2fb1
+lastReviewedCommit: d50bece228c95d576a627f861ed355cc3b12c9d5
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -70,9 +70,9 @@ The gate is intentionally non-mutating and includes:
 
 | Change type | Minimum local proof | Additional proof when risk is higher | Notes |
 | --- | --- | --- | --- |
-| `src/index*.ts`, `src/http_app*.ts`, or transport init helpers | `pnpm test`; `pnpm build` | run the relevant built entrypoint through the intended start script when the task explicitly includes an interactive smoke check | Offline tests cover import side effects, health, method guards, JSON-RPC parsing, discovery, cleanup, and cancellation. |
+| `src/index*.ts`, `src/http_app*.ts`, or transport init helpers | `pnpm test`; `pnpm build` | run the relevant built entrypoint through the intended start script when the task explicitly includes an interactive smoke check | Offline tests cover import side effects, health, method guards, JSON-RPC parsing, discovery, cleanup, cancellation, and repeated authenticated/local factory throws with sentinel leak checks. |
 | auth middleware, config, or OAuth flow | `pnpm test`; `pnpm lint` | record any live-token proof separately and only when the task authorizes it | Authenticator exceptions must remain a generic JSON-RPC 500 envelope; bearer denial remains 401/403. |
-| search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `pnpm test`; `pnpm lint` | run an authorized remote case only when its external owner and safety boundary are explicit | Offline tests mock search transport, reject malformed CRUD input before network access, cover exact select/insert/update/delete success URLs, methods, headers, bodies and envelopes, cover all declared TIDAS types, and preserve LifecycleModel `validationIssues`. |
+| search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `pnpm test`; `pnpm lint` | run an authorized remote case only when its external owner and safety boundary are explicit | Offline tests mock search transport, reject malformed CRUD input before network access, cover exact select/insert/update/delete success URLs, methods, headers, bodies and envelopes, run all declared TIDAS types through SDK `validateEnhanced()`, and prove a real strict-invalid LifecycleModel returns normalized issues before any fetch or write. |
 | local OpenLCA helpers | `pnpm build`; `pnpm lint` | run `pnpm exec tsx scripts/openlca-ipc-smoke.ts` only when the task explicitly includes a local OpenLCA smoke check | The active runtime path is `olca-ipc`, not the commented gRPC scaffold. |
 | package, pnpm, Node, TypeScript, lint, Docker, or client config | `pnpm prepush:gate` | inspect `pnpm list --depth Infinity` when compiler or runtime leakage is in scope | Recheck `DEV_EN.md` and `DEV_CN.md` whenever the exact baseline or startup path changes. |
 | release automation under `scripts/ci/**` or `.github/workflows/publish.yml` | inspect the workflow/script diff; `pnpm prepush:gate` | record tag naming, `main` ancestry, and unpublished-version checks | The feature task prepares release-ready artifacts; version/tag/publish remains a separately tracked release action. |

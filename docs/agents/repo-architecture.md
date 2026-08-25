@@ -33,7 +33,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 2a7771afc75fb9ec646f9048ec41c88841fa2fb1
+lastReviewedCommit: d50bece228c95d576a627f861ed355cc3b12c9d5
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -52,7 +52,7 @@ related:
 | HTTP | `src/index_server.ts` | authenticated Streamable HTTP on `POST /mcp` plus `/health` and `/oauth` | search wrappers, GLAD dataset tools, and `Database_CRUD_Tool` |
 | HTTP local | `src/index_server_local.ts` | local Streamable HTTP on `POST /mcp` plus `/health` | OpenLCA tools, TIDAS validation, prompts, resources |
 
-The executable HTTP entries delegate app construction to `src/http_app.ts` and `src/http_app_local.ts`. Importing an entry does not bind a port; each stateless request receives a request-scoped MCP server and transport, and response closure triggers bounded cleanup. This split is the offline test seam for health, method guards, auth errors, JSON-RPC errors, discovery, and cancellation.
+The executable HTTP entries delegate app construction to `src/http_app.ts` and `src/http_app_local.ts`. Importing an entry does not bind a port; each stateless request receives a request-scoped MCP server and transport, and response closure triggers bounded cleanup. Server construction itself is inside the common JSON-RPC error boundary, so both authenticated and local factory throws return a generic JSON 500 without leaking the exception or Express stack HTML. This split is the offline test seam for health, method guards, auth errors, JSON-RPC errors, discovery, cancellation, and factory cleanup.
 
 ## Auth Decision Tree
 
@@ -112,7 +112,7 @@ The MCP-side write and preprocessing logic clusters around:
 - `src/tools/db_crud.ts`
 - `src/tools/life_cycle_model_file_tools.ts`
 
-This path derives `json_tg` and `rule_verification` for lifecycle model writes. LifecycleModel insert/update responses also return the exact normalized `validationIssueCount` and `validationIssues` produced by preprocessing; those fields are response evidence and are not added to the database row.
+This path calls SDK `validateEnhanced()` once before graph construction or Supabase process lookup. Strict-invalid LifecycleModels throw a stable `TIDAS_VALIDATION_FAILED` envelope with normalized code/path/severity and never reach a write. A strict-success result alone may derive `json_tg` and `rule_verification`; insert/update responses echo the exact SDK `validationIssueCount` and `validationIssues` (normally zero/empty in strict success), and those response-evidence fields are not added to the database row.
 
 ### Local OpenLCA and TIDAS validation
 
