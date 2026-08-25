@@ -7,6 +7,9 @@ allowBuilds:
   esbuild: true
   fsevents: false
 
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+
 minimumReleaseAgeExclude:
   - '@oxlint/binding-android-arm-eabi@1.80.0'
   - '@oxlint/binding-android-arm64@1.80.0'

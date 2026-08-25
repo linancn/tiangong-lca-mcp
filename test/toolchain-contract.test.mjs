@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 const repoRoot = new URL('../', import.meta.url);
 const readText = (path) => readFileSync(new URL(path, repoRoot), 'utf8');
+const pathExists = (path) => existsSync(fileURLToPath(new URL(path, repoRoot)));
 const packageJson = JSON.parse(readText('package.json'));
 
 describe('pnpm and TypeScript 7 toolchain contract', () => {
@@ -18,10 +19,13 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
   });
 
   it('has one pnpm workspace lock and no npm lock', () => {
-    assert.equal(existsSync(join(repoRoot.pathname, 'package-lock.json')), false);
-    assert.equal(existsSync(join(repoRoot.pathname, 'pnpm-lock.yaml')), true);
-    assert.equal(existsSync(join(repoRoot.pathname, 'pnpm-workspace.yaml')), true);
-    assert.match(readText('pnpm-workspace.yaml'), /^packages:\s*\[\]\s*$/mu);
+    assert.equal(pathExists('package-lock.json'), false);
+    assert.equal(pathExists('pnpm-lock.yaml'), true);
+    assert.equal(pathExists('pnpm-workspace.yaml'), true);
+    const workspace = readText('pnpm-workspace.yaml');
+    assert.match(workspace, /^packages:\s*\[\]\s*$/mu);
+    assert.match(workspace, /^minimumReleaseAge:\s*1440\s*$/mu);
+    assert.match(workspace, /^minimumReleaseAgeStrict:\s*true\s*$/mu);
   });
 
   it('pins TypeScript 7 and the runtime-clean TIDAS SDK', () => {
@@ -43,5 +47,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.match(packageJson.scripts?.lint ?? '', /lint:prettier/u);
     assert.doesNotMatch(packageJson.scripts?.lint ?? '', /--write/u);
     assert.match(packageJson.scripts?.format ?? '', /prettier --write/u);
+    assert.doesNotMatch(packageJson.scripts?.['test:pack'] ?? '', />\s*\/dev\/null/u);
+    assert.doesNotMatch(packageJson.scripts?.['start:server'] ?? '', /DANGEROUSLY_OMIT_AUTH=/u);
   });
 });
