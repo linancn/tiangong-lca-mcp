@@ -34,7 +34,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 6871ce361cc6f382654424be1064a24c1edf2031
+lastReviewedCommit: d585506bee3c2436d3be0fd7a04671723cb34222
 lastReviewedNote: 'Reviewed for release Issue #48: the 0.1.0 version alignment does not change transport, auth, tool, or release-workflow ownership.'
 related:
   - ../../AGENTS.md
