@@ -255,6 +255,14 @@ type PreparedWritePayload = {
   payload: Record<string, JsonValue>;
   resolvedId?: string;
   resolvedVersion?: string;
+  validationIssueCount?: number;
+  validationIssues?: unknown[];
+};
+
+type PrepareWritePayload = typeof prepareWritePayload;
+
+export type CrudToolDependencies = {
+  prepareWritePayload?: PrepareWritePayload;
 };
 
 async function prepareWritePayload(
@@ -302,6 +310,8 @@ async function prepareWritePayload(
     },
     resolvedId: prepared.lifecycleModelId,
     resolvedVersion: prepared.lifecycleModelVersion,
+    validationIssueCount: prepared.validationIssueCount,
+    validationIssues: prepared.validationIssues,
   };
 }
 
@@ -383,6 +393,7 @@ async function handleInsert(
   supabase: SupabaseClient,
   input: InsertInput,
   bearerKey?: string | SupabaseSessionLike,
+  prepareWrite: PrepareWritePayload = prepareWritePayload,
 ): Promise<string> {
   const { table, jsonOrdered, id, version } = input;
 
@@ -396,7 +407,7 @@ async function handleInsert(
 
   const jsonOrderedValue = jsonOrdered as JsonValue;
 
-  const preparedWrite = await prepareWritePayload(table, jsonOrderedValue, id, version, bearerKey);
+  const preparedWrite = await prepareWrite(table, jsonOrderedValue, id, version, bearerKey);
   const resolvedId = preparedWrite.resolvedId ?? id;
   const resolvedVersion = preparedWrite.resolvedVersion ?? version;
 
@@ -418,7 +429,17 @@ async function handleInsert(
   }
 
   const rows = sanitizeRowsForOutput(table, (data ?? []) as JsonValue[]);
-  return JSON.stringify({ id: resolvedId, version: resolvedVersion, data: rows });
+  return JSON.stringify({
+    id: resolvedId,
+    version: resolvedVersion,
+    ...(preparedWrite.validationIssueCount === undefined
+      ? {}
+      : {
+          validationIssueCount: preparedWrite.validationIssueCount,
+          validationIssues: preparedWrite.validationIssues ?? [],
+        }),
+    data: rows,
+  });
 }
 
 async function handleUpdate(
@@ -426,6 +447,7 @@ async function handleUpdate(
   accessToken: string | undefined,
   input: UpdateInput,
   bearerKey?: string | SupabaseSessionLike,
+  prepareWrite: PrepareWritePayload = prepareWritePayload,
 ): Promise<string> {
   const { table, id, version, jsonOrdered } = input;
 
@@ -443,7 +465,7 @@ async function handleUpdate(
 
   const jsonOrderedValue = jsonOrdered as JsonValue;
 
-  const preparedWrite = await prepareWritePayload(table, jsonOrderedValue, id, version, bearerKey);
+  const preparedWrite = await prepareWrite(table, jsonOrderedValue, id, version, bearerKey);
 
   requireAccessToken(accessToken);
 
@@ -469,6 +491,12 @@ async function handleUpdate(
   return JSON.stringify({
     id: resolvedId,
     version: resolvedVersion,
+    ...(preparedWrite.validationIssueCount === undefined
+      ? {}
+      : {
+          validationIssueCount: preparedWrite.validationIssueCount,
+          validationIssues: preparedWrite.validationIssues ?? [],
+        }),
     data: sanitizeRowsForOutput(table, rows),
   });
 }
@@ -508,6 +536,7 @@ async function handleDelete(supabase: SupabaseClient, input: DeleteInput): Promi
 async function performCrud(
   input: CrudOperationInput,
   bearerKey?: string | SupabaseSessionLike,
+  dependencies: CrudToolDependencies = {},
 ): Promise<string> {
   try {
     const { supabase, accessToken } = await createSupabaseClient(bearerKey);
@@ -517,10 +546,21 @@ async function performCrud(
         return handleSelect(supabase, input);
 
       case 'insert':
-        return handleInsert(supabase, input, bearerKey);
+        return handleInsert(
+          supabase,
+          input,
+          bearerKey,
+          dependencies.prepareWritePayload ?? prepareWritePayload,
+        );
 
       case 'update':
-        return handleUpdate(supabase, accessToken, input, bearerKey);
+        return handleUpdate(
+          supabase,
+          accessToken,
+          input,
+          bearerKey,
+          dependencies.prepareWritePayload ?? prepareWritePayload,
+        );
 
       case 'delete':
         return handleDelete(supabase, input);
@@ -536,14 +576,18 @@ async function performCrud(
   }
 }
 
-export function regCrudTool(server: McpServer, bearerKey?: string | SupabaseSessionLike): void {
+export function regCrudTool(
+  server: McpServer,
+  bearerKey?: string | SupabaseSessionLike,
+  dependencies: CrudToolDependencies = {},
+): void {
   server.tool(
     'Database_CRUD_Tool',
-    'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id and version). lifecyclemodels insert/update automatically validate the payload, derive platform json_tg, compute rule_verification, and then write the row; lifecyclemodels select returns id/version/json_ordered only.',
+    'Perform select/insert/update/delete against allowed Supabase tables (insert needs jsonOrdered, update/delete need id and version). lifecyclemodels insert/update automatically validate the payload, derive platform json_tg, compute rule_verification, write the row, and return validationIssueCount/validationIssues; lifecyclemodels select returns id/version/json_ordered only.',
     toolParamsSchema,
     async (rawInput) => {
       const input = refinedInputSchema.parse(rawInput) as CrudOperationInput;
-      const result = await performCrud(input, bearerKey);
+      const result = await performCrud(input, bearerKey, dependencies);
       return {
         content: [
           {
