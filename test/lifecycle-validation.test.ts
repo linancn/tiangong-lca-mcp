@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { format } from 'node:util';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { regCrudTool } from '../src/tools/db_crud.js';
 import { prepareLifecycleModelFile } from '../src/tools/life_cycle_model_file_tools.js';
@@ -68,6 +69,11 @@ describe('LifecycleModel SDK 0.2 fail-closed validation', () => {
 
   it('validates insert and update before a refresh-token session can perform auth or REST requests', async () => {
     const originalFetch = globalThis.fetch;
+    const originalConsoleError = console.error;
+    const logs: string[] = [];
+    console.error = (...values) => {
+      logs.push(format(...values));
+    };
     let fetchCount = 0;
     globalThis.fetch = async () => {
       fetchCount += 1;
@@ -123,8 +129,14 @@ describe('LifecycleModel SDK 0.2 fail-closed validation', () => {
         assert.ok(envelope.validationIssues.length > 0, operation);
       }
       assert.equal(fetchCount, 0);
+      const renderedLogs = logs.join('\n');
+      assert.match(renderedLogs, /DATABASE_CRUD_FAILED/u);
+      assert.match(renderedLogs, /validation/u);
+      assert.doesNotMatch(renderedLogs, /fake-refresh-token/u);
+      assert.doesNotMatch(renderedLogs, /TidasValidationError|at .*\.(?:ts|js):\d+/u);
     } finally {
       globalThis.fetch = originalFetch;
+      console.error = originalConsoleError;
       await connection.close();
     }
   });

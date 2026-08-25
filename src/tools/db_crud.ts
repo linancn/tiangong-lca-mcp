@@ -365,8 +365,7 @@ async function handleSelect(supabase: SupabaseClient, input: SelectInput): Promi
 async function handleInsert(
   supabase: SupabaseClient,
   input: InsertInput,
-  bearerKey?: string | SupabaseSessionLike,
-  prepareWrite: PrepareWritePayload = prepareWritePayload,
+  preparedWrite: PreparedWritePayload,
 ): Promise<string> {
   const { table, jsonOrdered, id, version } = input;
 
@@ -378,9 +377,6 @@ async function handleInsert(
     throw new Error('id is required for insert operations.');
   }
 
-  const jsonOrderedValue = jsonOrdered as JsonValue;
-
-  const preparedWrite = await prepareWrite(table, jsonOrderedValue, id, version, bearerKey);
   const resolvedId = preparedWrite.resolvedId ?? id;
   const resolvedVersion = preparedWrite.resolvedVersion ?? version;
 
@@ -419,8 +415,7 @@ async function handleUpdate(
   supabase: SupabaseClient,
   accessToken: string | undefined,
   input: UpdateInput,
-  bearerKey?: string | SupabaseSessionLike,
-  prepareWrite: PrepareWritePayload = prepareWritePayload,
+  preparedWrite: PreparedWritePayload,
 ): Promise<string> {
   const { table, id, version, jsonOrdered } = input;
 
@@ -435,10 +430,6 @@ async function handleUpdate(
   if (jsonOrdered === undefined) {
     throw new Error('jsonOrdered is required for update operations.');
   }
-
-  const jsonOrderedValue = jsonOrdered as JsonValue;
-
-  const preparedWrite = await prepareWrite(table, jsonOrderedValue, id, version, bearerKey);
 
   requireAccessToken(accessToken);
 
@@ -512,31 +503,46 @@ async function performCrud(
   dependencies: CrudToolDependencies = {},
 ): Promise<string> {
   try {
-    const { supabase, accessToken } = await createSupabaseClient(bearerKey);
-
     switch (input.operation) {
-      case 'select':
+      case 'select': {
+        const { supabase } = await createSupabaseClient(bearerKey);
         return handleSelect(supabase, input);
+      }
 
-      case 'insert':
-        return handleInsert(
-          supabase,
-          input,
+      case 'insert': {
+        if (input.jsonOrdered === undefined) {
+          throw new Error('jsonOrdered is required for insert operations.');
+        }
+        const preparedWrite = await (dependencies.prepareWritePayload ?? prepareWritePayload)(
+          input.table,
+          input.jsonOrdered as JsonValue,
+          input.id,
+          input.version,
           bearerKey,
-          dependencies.prepareWritePayload ?? prepareWritePayload,
         );
+        const { supabase } = await createSupabaseClient(bearerKey);
+        return handleInsert(supabase, input, preparedWrite);
+      }
 
-      case 'update':
-        return handleUpdate(
-          supabase,
-          accessToken,
-          input,
+      case 'update': {
+        if (input.jsonOrdered === undefined) {
+          throw new Error('jsonOrdered is required for update operations.');
+        }
+        const preparedWrite = await (dependencies.prepareWritePayload ?? prepareWritePayload)(
+          input.table,
+          input.jsonOrdered as JsonValue,
+          input.id,
+          input.version,
           bearerKey,
-          dependencies.prepareWritePayload ?? prepareWritePayload,
         );
+        const { supabase, accessToken } = await createSupabaseClient(bearerKey);
+        return handleUpdate(supabase, accessToken, input, preparedWrite);
+      }
 
-      case 'delete':
+      case 'delete': {
+        const { supabase } = await createSupabaseClient(bearerKey);
         return handleDelete(supabase, input);
+      }
 
       default: {
         const _exhaustiveCheck: never = input;
@@ -544,7 +550,10 @@ async function performCrud(
       }
     }
   } catch (error) {
-    console.error('Error making the request:', error);
+    console.error('DATABASE_CRUD_FAILED', {
+      category: error instanceof TidasValidationError ? 'validation' : 'operation',
+      operation: input.operation,
+    });
     throw error;
   }
 }
