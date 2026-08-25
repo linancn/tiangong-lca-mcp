@@ -1,9 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { EnhancedValidationResult } from '@tiangong-lca/tidas-sdk/core';
 import { z } from 'zod';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
 import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
+import { TidasValidationError } from '../_shared/tidas_validation.js';
 import { prepareLifecycleModelFile } from './life_cycle_model_file_tools.js';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -13,7 +15,6 @@ type Filters = Record<string, FilterValue>;
 const allowedTables = ['contacts', 'flows', 'lifecyclemodels', 'processes', 'sources'] as const;
 type AllowedTable = (typeof allowedTables)[number];
 const tableSchema = z.enum(allowedTables);
-const MAX_VALIDATION_ERROR_LENGTH = 4_000;
 
 const tablePrimaryKey: Record<AllowedTable, string> = {
   contacts: 'id',
@@ -149,42 +150,22 @@ type UpdateInput = CrudInput & { operation: 'update' };
 type DeleteInput = CrudInput & { operation: 'delete' };
 type CrudOperationInput = SelectInput | InsertInput | UpdateInput | DeleteInput;
 
-type TidasValidationResult = { success: boolean; error?: unknown };
 type StrictValidatorFactory = (
   input: unknown,
   options: { mode: 'strict' },
-) => { validate: () => TidasValidationResult };
+) => { validateEnhanced: () => EnhancedValidationResult<unknown> };
 type TidasValidationFactoryMap = Record<AllowedTable, StrictValidatorFactory>;
 
 let tidasValidationFactoryMapPromise: Promise<TidasValidationFactoryMap> | undefined;
 
-function summarizeError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  try {
-    const serialized = JSON.stringify(error);
-    if (!serialized) {
-      return String(error);
-    }
-
-    return serialized.length > MAX_VALIDATION_ERROR_LENGTH
-      ? `${serialized.slice(0, MAX_VALIDATION_ERROR_LENGTH)}...`
-      : serialized;
-  } catch {
-    return String(error);
-  }
-}
-
 async function getTidasValidationFactoryMap(): Promise<TidasValidationFactoryMap> {
   if (!tidasValidationFactoryMapPromise) {
     tidasValidationFactoryMapPromise = import('@tiangong-lca/tidas-sdk/core').then((module) => ({
-      contacts: module.createContact as StrictValidatorFactory,
-      flows: module.createFlow as StrictValidatorFactory,
-      lifecyclemodels: module.createLifeCycleModel as StrictValidatorFactory,
-      processes: module.createProcess as StrictValidatorFactory,
-      sources: module.createSource as StrictValidatorFactory,
+      contacts: (input, options) => module.createContact(input as never, options),
+      flows: (input, options) => module.createFlow(input as never, options),
+      lifecyclemodels: (input, options) => module.createLifeCycleModel(input as never, options),
+      processes: (input, options) => module.createProcess(input as never, options),
+      sources: (input, options) => module.createSource(input as never, options),
     }));
   }
 
@@ -216,20 +197,12 @@ function ensureRows(rows: unknown, errorMessage: string): JsonValue[] {
  * @throws Error if validation fails
  */
 async function validateJsonOrdered(table: AllowedTable, jsonOrdered: JsonValue): Promise<void> {
-  try {
-    const validationFactoryMap = await getTidasValidationFactoryMap();
-    const createValidator = validationFactoryMap[table];
-    const validationResult = createValidator(jsonOrdered, { mode: 'strict' }).validate();
+  const validationFactoryMap = await getTidasValidationFactoryMap();
+  const createValidator = validationFactoryMap[table];
+  const validationResult = createValidator(jsonOrdered, { mode: 'strict' }).validateEnhanced();
 
-    if (!validationResult.success) {
-      const errorDetails = summarizeError(validationResult.error);
-      throw new Error(`Validation failed for table "${table}". Errors: ${errorDetails}`);
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to validate jsonOrdered for table "${table}": ${error.message}`);
-    }
-    throw error;
+  if (!validationResult.success) {
+    throw new TidasValidationError(table, validationResult.validationIssues);
   }
 }
 

@@ -33,11 +33,6 @@ describe('Database_CRUD_Tool offline success contract', () => {
     const requests: CapturedRequest[] = [];
     const id = '12345678-1234-4234-8234-123456789abc';
     const version = '01.00.000';
-    const validationIssue = {
-      code: 'custom',
-      message: 'Reference process is missing',
-      path: ['lifeCycleModelDataSet', 'lifeCycleModelInformation', 'quantitativeReference'],
-    };
     const prepareCalls: Array<Record<string, unknown>> = [];
 
     globalThis.fetch = async (input, init) => {
@@ -78,12 +73,12 @@ describe('Database_CRUD_Tool offline success contract', () => {
           payload: {
             json_ordered: { prepared: true },
             json_tg: { nodes: [], edges: [] },
-            rule_verification: false,
+            rule_verification: true,
           },
           resolvedId: inputId,
           resolvedVersion: inputVersion,
-          validationIssueCount: 1,
-          validationIssues: [validationIssue],
+          validationIssueCount: 0,
+          validationIssues: [],
         };
       },
     });
@@ -162,7 +157,7 @@ describe('Database_CRUD_Tool offline success contract', () => {
           version,
           json_ordered: { prepared: true },
           json_tg: { nodes: [], edges: [] },
-          rule_verification: false,
+          rule_verification: true,
         },
       ]);
       assert.equal(insert.headers.get('content-type'), 'application/json');
@@ -178,7 +173,7 @@ describe('Database_CRUD_Tool offline success contract', () => {
       assert.deepEqual(JSON.parse(update.body), {
         json_ordered: { prepared: true },
         json_tg: { nodes: [], edges: [] },
-        rule_verification: false,
+        rule_verification: true,
       });
       assert.equal(remove.body, '');
 
@@ -210,8 +205,8 @@ describe('Database_CRUD_Tool offline success contract', () => {
         assert.deepEqual(responses[index], {
           id,
           version,
-          validationIssueCount: 1,
-          validationIssues: [validationIssue],
+          validationIssueCount: 0,
+          validationIssues: [],
           data: [{ id, version, json_ordered: { returnedBy: method } }],
         });
       }

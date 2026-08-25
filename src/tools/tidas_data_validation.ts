@@ -8,8 +8,10 @@ import {
   createProcess,
   createSource,
   createUnitGroup,
+  type EnhancedValidationResult,
 } from '@tiangong-lca/tidas-sdk/core';
 import { z } from 'zod';
+import { createTidasValidationEnvelope } from '../_shared/tidas_validation.js';
 
 /**
  * Supported entity types for Tidas SDK validation
@@ -90,82 +92,28 @@ const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
 function validateTidasData(
   entityType: EntityType,
   data: JsonValue,
-): { success: boolean; error?: any; message?: string } {
-  try {
-    let validationResult: { success: boolean; error?: any };
-
-    switch (entityType) {
-      case 'contact': {
-        const entity = createContact(data as any, { mode: 'strict' });
-        validationResult = entity.validate();
-        break;
-      }
-      case 'flow': {
-        const entity = createFlow(data as any, { mode: 'strict' });
-        validationResult = entity.validate();
-        break;
-      }
-      case 'process': {
-        const entity = createProcess(data as any, { mode: 'strict' });
-        validationResult = entity.validate();
-        break;
-      }
-      case 'source': {
-        const entity = createSource(data as any, { mode: 'strict' });
-        validationResult = entity.validate();
-        break;
-      }
-      case 'flowProperty': {
-        const entity = createFlowProperty(data as any, { mode: 'strict' });
-        validationResult = entity.validate();
-        break;
-      }
-      case 'unitGroup': {
-        const entity = createUnitGroup(data as any, { mode: 'strict' });
-        validationResult = entity.validate();
-        break;
-      }
-      case 'lciaMethod': {
-        const entity = createLCIAMethod(data as any, { mode: 'strict' });
-        validationResult = entity.validate();
-        break;
-      }
-      case 'lifeCycleModel': {
-        const entity = createLifeCycleModel(data as any, { mode: 'strict' });
-        validationResult = entity.validate();
-        break;
-      }
-      default: {
-        const _exhaustiveCheck: never = entityType;
-        throw new Error('Unsupported entity type.');
-      }
+): EnhancedValidationResult<unknown> {
+  switch (entityType) {
+    case 'contact':
+      return createContact(data as never, { mode: 'strict' }).validateEnhanced();
+    case 'flow':
+      return createFlow(data as never, { mode: 'strict' }).validateEnhanced();
+    case 'process':
+      return createProcess(data as never, { mode: 'strict' }).validateEnhanced();
+    case 'source':
+      return createSource(data as never, { mode: 'strict' }).validateEnhanced();
+    case 'flowProperty':
+      return createFlowProperty(data as never, { mode: 'strict' }).validateEnhanced();
+    case 'unitGroup':
+      return createUnitGroup(data as never, { mode: 'strict' }).validateEnhanced();
+    case 'lciaMethod':
+      return createLCIAMethod(data as never, { mode: 'strict' }).validateEnhanced();
+    case 'lifeCycleModel':
+      return createLifeCycleModel(data as never, { mode: 'strict' }).validateEnhanced();
+    default: {
+      const _exhaustiveCheck: never = entityType;
+      throw new Error('Unsupported entity type.');
     }
-
-    if (validationResult.success) {
-      return {
-        success: true,
-        message: `✓ Validation passed for ${ENTITY_METADATA[entityType].name}`,
-      };
-    } else {
-      return {
-        success: false,
-        error: validationResult.error,
-        message: `✗ Validation failed for ${ENTITY_METADATA[entityType].name}`,
-      };
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      return {
-        success: false,
-        error: error,
-        message: `✗ Error validating ${ENTITY_METADATA[entityType].name}: ${error.message}`,
-      };
-    }
-    return {
-      success: false,
-      error: error,
-      message: `✗ Unknown error occurred during validation`,
-    };
   }
 }
 
@@ -205,37 +153,27 @@ Use strict validation mode to ensure data integrity before database operations.`
             content: [
               {
                 type: 'text',
-                text: `${result.message}
-
-Entity Type: ${ENTITY_METADATA[entityType].name}
-Status: ✓ Valid
-Description: ${ENTITY_METADATA[entityType].description}
-
-The data conforms to the ${ENTITY_METADATA[entityType].name} schema and can be safely used for database operations.`,
+                text: JSON.stringify({
+                  success: true,
+                  entityType,
+                  entityName: ENTITY_METADATA[entityType].name,
+                  mode: result.mode,
+                  validationIssues: result.validationIssues,
+                  warnings: result.warnings ?? [],
+                }),
               },
             ],
           };
         } else {
-          const errorDetails = result.error?.issues
-            ? JSON.stringify(result.error.issues, null, 2)
-            : result.error
-              ? JSON.stringify(result.error, null, 2)
-              : 'Unknown validation error';
-
           return {
             content: [
               {
                 type: 'text',
-                text: `${result.message}
-
-Entity Type: ${ENTITY_METADATA[entityType].name}
-Status: ✗ Invalid
-Description: ${ENTITY_METADATA[entityType].description}
-
-Validation Errors:
-${errorDetails}
-
-Please fix the validation errors before attempting database operations.`,
+                text: JSON.stringify({
+                  ...createTidasValidationEnvelope(entityType, result.validationIssues),
+                  mode: result.mode,
+                  warnings: result.warnings ?? [],
+                }),
               },
             ],
             isError: true,
