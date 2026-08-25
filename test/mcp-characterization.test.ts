@@ -91,8 +91,23 @@ describe('TIDAS validation contract', () => {
           data: {},
         });
         assert.equal(result.isError, true, entityType);
-        assert.match(responseText(result), /Status: ✗ Invalid/u, entityType);
-        assert.match(responseText(result), /Validation Errors:/u, entityType);
+        const envelope = JSON.parse(responseText(result)) as {
+          code: string;
+          entityType: string;
+          validationIssues: Array<{
+            code: string;
+            path: Array<string | number>;
+            severity: string;
+          }>;
+        };
+        assert.equal(envelope.code, 'TIDAS_VALIDATION_FAILED', entityType);
+        assert.equal(envelope.entityType, entityType);
+        assert.ok(envelope.validationIssues.length > 0, entityType);
+        for (const issue of envelope.validationIssues) {
+          assert.equal(typeof issue.code, 'string', entityType);
+          assert.ok(Array.isArray(issue.path), entityType);
+          assert.match(issue.severity, /^(?:error|warning|info)$/u, entityType);
+        }
       }
     } finally {
       await connection.close();

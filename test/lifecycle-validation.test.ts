@@ -1,56 +1,65 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { deriveRuleVerification } from '../src/tools/life_cycle_model_file_tools.js';
+import { prepareLifecycleModelFile } from '../src/tools/life_cycle_model_file_tools.js';
 
-describe('LifecycleModel validationIssues normalization', () => {
-  it('returns a clean verified result when enhanced validation succeeds', () => {
-    const result = deriveRuleVerification({
-      validate: () => ({ success: true }),
-      validateEnhanced: () => ({ success: true }),
-    });
-
-    assert.deepEqual(result, {
-      ruleVerification: true,
-      issueCount: 0,
-      filteredIssues: [],
-    });
-  });
-
-  it('retains domain issues while excluding validation and compliance metadata', () => {
-    const domainIssue = {
-      code: 'custom',
-      message: 'Reference process is missing',
-      path: ['lifeCycleModelDataSet', 'lifeCycleModelInformation', 'quantitativeReference'],
-    };
-    const result = deriveRuleVerification({
-      validate: () => ({ success: true }),
-      validateEnhanced: () => ({
-        success: false,
-        error: {
-          issues: [
-            domainIssue,
-            { code: 'custom', message: 'metadata', path: ['validation', 'review'] },
-            { code: 'custom', message: 'metadata', path: ['compliance'] },
-          ],
+const invalidLifecycleModel = {
+  lifeCycleModelDataSet: {
+    lifeCycleModelInformation: {
+      dataSetInformation: {
+        'common:UUID': '12345678-1234-4234-8234-123456789abc',
+      },
+      technology: {
+        processes: {
+          processInstance: [],
         },
-      }),
-    });
+      },
+    },
+    administrativeInformation: {
+      publicationAndOwnership: {
+        'common:dataSetVersion': '01.00.000',
+      },
+    },
+  },
+};
 
-    assert.equal(result.ruleVerification, false);
-    assert.equal(result.issueCount, 1);
-    assert.deepEqual(result.filteredIssues, [domainIssue]);
-  });
+describe('LifecycleModel SDK 0.2 fail-closed validation', () => {
+  it('returns normalized validationIssues before any Supabase process lookup', async () => {
+    const originalFetch = globalThis.fetch;
+    let fetchCount = 0;
+    globalThis.fetch = async () => {
+      fetchCount += 1;
+      throw new Error('network must remain unreachable for invalid LifecycleModel input');
+    };
 
-  it('treats absent issue arrays as an empty enhanced issue set', () => {
-    const result = deriveRuleVerification({
-      validate: () => ({ success: true }),
-      validateEnhanced: () => ({ success: false, error: new Error('no issue array') }),
-    });
-
-    assert.deepEqual(result, {
-      ruleVerification: true,
-      issueCount: 0,
-      filteredIssues: [],
-    });
+    try {
+      await assert.rejects(
+        prepareLifecycleModelFile({ payload: invalidLifecycleModel }),
+        (error: unknown) => {
+          assert.ok(error instanceof Error);
+          assert.equal(error.name, 'TidasValidationError');
+          const envelope = JSON.parse(error.message) as {
+            code: string;
+            entityType: string;
+            validationIssues: Array<{
+              code: string;
+              path: Array<string | number>;
+              severity: string;
+            }>;
+          };
+          assert.equal(envelope.code, 'TIDAS_VALIDATION_FAILED');
+          assert.equal(envelope.entityType, 'lifeCycleModel');
+          assert.ok(envelope.validationIssues.length > 0);
+          for (const issue of envelope.validationIssues) {
+            assert.equal(typeof issue.code, 'string');
+            assert.ok(Array.isArray(issue.path));
+            assert.match(issue.severity, /^(?:error|warning|info)$/u);
+          }
+          return true;
+        },
+      );
+      assert.equal(fetchCount, 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
