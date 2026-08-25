@@ -18,11 +18,13 @@ checkPaths:
   - pnpm-workspace.yaml
   - Dockerfile
   - .nvmrc
+  - .gitattributes
   - src/**
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 085d4750233046ff420db4c1c65cd115fb07eea4
+lastReviewedCommit: 0f6a09e70778af307f49c80a75e7b93af1522d36
+lastReviewedNote: 'Reviewed for Issue #46 after Windows CI: maintainer formatting remains read-only and receives LF source bytes on every supported platform.'
 related:
   - AGENTS.md
   - .docpact/config.yaml

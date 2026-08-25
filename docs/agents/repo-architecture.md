@@ -22,6 +22,7 @@ checkPaths:
   - pnpm-workspace.yaml
   - tsconfig.json
   - tsconfig.build.json
+  - .gitattributes
   - scripts/ci/**
   - .github/workflows/publish.yml
   - .github/workflows/quality-gate.yml
@@ -33,7 +34,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 085d4750233046ff420db4c1c65cd115fb07eea4
+lastReviewedCommit: 0f6a09e70778af307f49c80a75e7b93af1522d36
+lastReviewedNote: 'Reviewed for Issue #46 after Windows CI: repository-wide LF normalization is a validation boundary and does not alter MCP transport or tool ownership.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml

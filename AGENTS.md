@@ -26,6 +26,7 @@ checkPaths:
   - pnpm-lock.yaml
   - pnpm-workspace.yaml
   - .nvmrc
+  - .gitattributes
   - tsconfig.json
   - tsconfig.build.json
   - .oxlintrc.json
@@ -43,7 +44,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 085d4750233046ff420db4c1c65cd115fb07eea4
+lastReviewedCommit: 0f6a09e70778af307f49c80a75e7b93af1522d36
+lastReviewedNote: 'Reviewed for Issue #46 after Windows CI: LF checkout normalization makes the read-only formatter gate deterministic across all four runners without changing runtime behavior.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md

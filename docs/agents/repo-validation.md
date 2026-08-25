@@ -21,6 +21,7 @@ checkPaths:
   - pnpm-lock.yaml
   - pnpm-workspace.yaml
   - .nvmrc
+  - .gitattributes
   - tsconfig.json
   - tsconfig.build.json
   - .oxlintrc.json
@@ -38,7 +39,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 085d4750233046ff420db4c1c65cd115fb07eea4
+lastReviewedCommit: 0f6a09e70778af307f49c80a75e7b93af1522d36
+lastReviewedNote: 'Reviewed for Issue #46 after Windows CI: the toolchain test and .gitattributes bind identical LF formatter input on every runner.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -87,6 +89,7 @@ Facts that matter today:
 - the only compiler in the direct or recursive graph is TypeScript `7.0.2`; SDK `0.2.0` must not reintroduce `ts-to-zod` or TypeScript 5/6
 - local tests do not contact TianGong production, GLAD, Supabase, or OpenLCA; external proof must be separately authorized and recorded
 - the four-platform workflow is the authoritative portability proof after PR submission; local macOS proof alone is not four-platform evidence
+- `.gitattributes` enforces LF for tracked text so Windows checkout cannot turn a read-only Prettier check into a whole-repository false failure
 - `pnpm/setup` native distributions do not guarantee `COREPACK_ROOT`; nested tests must pass with that variable absent, exact native `pnpm`/`pnpm.exe`, paths containing spaces, and `shell: false`
 
 ## Minimum PR Note Quality
