@@ -10,10 +10,13 @@ export type { SupabaseSessionPayload } from './supabase_session.js';
 
 const supabase = createClient(supabase_base_url, supabase_publishable_key);
 
-const redis = new Redis({
-  url: redis_url,
-  token: redis_token,
-});
+const redis =
+  redis_url && redis_token
+    ? new Redis({
+        url: redis_url,
+        token: redis_token,
+      })
+    : undefined;
 
 export interface AuthResult {
   isAuthenticated: boolean;
@@ -143,7 +146,7 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
   if (credentials) {
     const { email, password } = credentials;
     const cacheKey = 'lca_' + email;
-    const cachedPayload = (await redis.get(cacheKey)) as CachedAuthPayload | null;
+    const cachedPayload = redis ? ((await redis.get(cacheKey)) as CachedAuthPayload | null) : null;
 
     let cachedUserId: string | undefined;
     let cachedSession: SupabaseSessionPayload | undefined;
@@ -180,7 +183,7 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
 
       if (ttlSeconds) {
         try {
-          await redis.expire(cacheKey, ttlSeconds);
+          await redis?.expire(cacheKey, ttlSeconds);
         } catch (error) {
           console.warn('Failed to refresh Redis TTL for cached Supabase session:', error);
         }
@@ -228,7 +231,7 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
     };
 
     const cacheTtl = sessionTokens ? (calculateCacheTtlSeconds(sessionTokens) ?? 3600) : 3600;
-    await redis.setex(cacheKey, cacheTtl, JSON.stringify(cacheValue));
+    await redis?.setex(cacheKey, cacheTtl, JSON.stringify(cacheValue));
 
     return {
       isAuthenticated: true,

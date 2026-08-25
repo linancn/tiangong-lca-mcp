@@ -2,14 +2,17 @@
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { getServer } from './_shared/init_server.js';
+import { isMainModule } from './_shared/is_main.js';
 
-async function runServer() {
+export async function runServer(): Promise<void> {
   const server = getServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
 
-runServer().catch((error) => {
-  console.error('Fatal error running server:', error);
-  process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+  void runServer().catch((error: unknown) => {
+    console.error('Fatal error running server:', error);
+    process.exitCode = 1;
+  });
+}
