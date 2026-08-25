@@ -48,8 +48,8 @@ function authenticateBearer(authenticator: Authenticator) {
     let authResult: AuthResult;
     try {
       authResult = await authenticator(bearerKey);
-    } catch (error) {
-      console.error('Authentication failed unexpectedly:', error);
+    } catch {
+      console.error('MCP_AUTHENTICATION_FAILED', { category: 'authenticator' });
       res.status(500).json({
         jsonrpc: '2.0',
         error: {

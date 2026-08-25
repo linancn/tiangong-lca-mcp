@@ -24,6 +24,7 @@ export async function handleStatelessMcpRequest(
 ): Promise<void> {
   let server: McpServer | undefined;
   let transport: StreamableHTTPServerTransport | undefined;
+  let failureCategory: 'factory' | 'transport' = 'factory';
   let closing = false;
   const close = () => {
     if (closing) {
@@ -44,13 +45,14 @@ export async function handleStatelessMcpRequest(
 
   try {
     server = serverFactory();
+    failureCategory = 'transport';
     transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
-  } catch (error) {
-    console.error('Error handling MCP request:', error);
+  } catch {
+    console.error('MCP_REQUEST_FAILED', { category: failureCategory });
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',
