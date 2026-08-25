@@ -219,3 +219,71 @@ describe('authenticated HTTP boundary', () => {
     }
   });
 });
+
+describe('request-scoped MCP server factory failures', () => {
+  it(
+    'normalizes local and authenticated factory throws without leaking or hanging',
+    { timeout: 5_000 },
+    async () => {
+      const sentinel = 'SENTINEL_FACTORY_SECRET_STACK';
+      const originalConsoleError = console.error;
+      console.error = () => {};
+      const cases = [
+        {
+          name: 'local',
+          app: createLocalHttpApp({
+            serverFactory: () => {
+              throw new Error(sentinel);
+            },
+          }),
+          headers: {},
+        },
+        {
+          name: 'authenticated',
+          app: createHttpApp({
+            authenticator: async () => ({ isAuthenticated: true }),
+            serverFactory: () => {
+              throw new Error(sentinel);
+            },
+          }),
+          headers: { authorization: 'Bearer test-token' },
+        },
+      ];
+
+      try {
+        for (const testCase of cases) {
+          await withHttpServer(testCase.app, async (baseUrl) => {
+            for (let attempt = 0; attempt < 2; attempt += 1) {
+              const response = await fetch(`${baseUrl}/mcp`, {
+                method: 'POST',
+                headers: {
+                  accept: 'application/json, text/event-stream',
+                  'content-type': 'application/json',
+                  ...testCase.headers,
+                },
+                body: JSON.stringify({}),
+              });
+              const text = await response.text();
+
+              assert.equal(response.status, 500, testCase.name);
+              assert.match(
+                response.headers.get('content-type') ?? '',
+                /^application\/json/u,
+                testCase.name,
+              );
+              assert.doesNotMatch(text, new RegExp(sentinel, 'u'), testCase.name);
+              assert.doesNotMatch(text, /Error:|at .*\.(?:ts|js):\d+/u, testCase.name);
+              assert.deepEqual(JSON.parse(text), {
+                jsonrpc: '2.0',
+                error: { code: -32603, message: 'Internal server error' },
+                id: null,
+              });
+            }
+          });
+        }
+      } finally {
+        console.error = originalConsoleError;
+      }
+    },
+  );
+});
