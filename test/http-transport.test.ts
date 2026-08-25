@@ -3,6 +3,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { format } from 'node:util';
 import { createHttpApp } from '../src/http_app.js';
 import { createLocalHttpApp } from '../src/http_app_local.js';
 import { withHttpServer } from './helpers/http-server.js';
@@ -185,7 +186,10 @@ describe('authenticated HTTP boundary', () => {
 
   it('normalizes authenticator failures into a JSON-RPC internal error', async () => {
     const originalConsoleError = console.error;
-    console.error = () => {};
+    const logs: string[] = [];
+    console.error = (...values) => {
+      logs.push(format(...values));
+    };
     const app = createHttpApp({
       authenticator: async () => {
         throw new Error('secret authenticator detail');
@@ -213,6 +217,9 @@ describe('authenticated HTTP boundary', () => {
           error: { code: -32603, message: 'Internal server error' },
           id: null,
         });
+        assert.doesNotMatch(logs.join('\n'), /secret authenticator detail/u);
+        assert.match(logs.join('\n'), /MCP_AUTHENTICATION_FAILED/u);
+        assert.match(logs.join('\n'), /authenticator/u);
       });
     } finally {
       console.error = originalConsoleError;
@@ -227,7 +234,10 @@ describe('request-scoped MCP server factory failures', () => {
     async () => {
       const sentinel = 'SENTINEL_FACTORY_SECRET_STACK';
       const originalConsoleError = console.error;
-      console.error = () => {};
+      const logs: string[] = [];
+      console.error = (...values) => {
+        logs.push(format(...values));
+      };
       const cases = [
         {
           name: 'local',
@@ -280,6 +290,9 @@ describe('request-scoped MCP server factory failures', () => {
             }
           });
         }
+        assert.doesNotMatch(logs.join('\n'), new RegExp(sentinel, 'u'));
+        assert.match(logs.join('\n'), /MCP_REQUEST_FAILED/u);
+        assert.match(logs.join('\n'), /factory/u);
       } finally {
         console.error = originalConsoleError;
       }
