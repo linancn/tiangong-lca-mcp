@@ -30,6 +30,8 @@
     "start:server": "pnpm build && node ./scripts/start-dev.mjs http",
     "start:server-local": "pnpm build && node ./scripts/start-dev.mjs http-local",
     "test": "node ./scripts/run-tests.mjs",
+    "test:consumer": "node ./scripts/test-packed-consumer.mjs",
+    "test:clean-worktree": "node ./scripts/test-clean-worktree.mjs",
     "test:toolchain": "node --test test/toolchain-contract.test.mjs",
     "test:pack": "pnpm --filter @tiangong-lca/mcp-server --fail-if-no-match pack --dry-run",
     "audit": "pnpm audit --audit-level high",
@@ -37,7 +39,7 @@
     "lint:oxlint": "pnpm exec oxlint --type-aware --format=stylish --deny-warnings ./src ./test ./scripts",
     "lint:prettier": "pnpm exec prettier --check \"{src,test,docs,scripts}/**/*.{js,cjs,mjs,jsx,tsx,ts,md,json}\" \"*.{js,cjs,mjs,jsx,tsx,ts,md,json}\"",
     "format": "pnpm exec prettier --write \"{src,test,docs,scripts}/**/*.{js,cjs,mjs,jsx,tsx,ts,md,json}\" \"*.{js,cjs,mjs,jsx,tsx,ts,md,json}\"",
-    "prepush:gate": "pnpm lint && pnpm test && pnpm build && pnpm test:toolchain && pnpm audit && pnpm test:pack",
+    "prepush:gate": "pnpm lint && pnpm test && pnpm test:consumer && pnpm build && pnpm test:toolchain && pnpm audit && pnpm test:pack && pnpm test:clean-worktree",
     "prepack": "pnpm build",
     "prepublishOnly": "pnpm prepush:gate"
   },
