@@ -38,7 +38,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 1d63400f50616fa2ce79709564d3d512caccefc9
+lastReviewedCommit: 6771aacc5c5e973b84be4f909a6c849c1aba0d48
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -71,8 +71,8 @@ The gate is intentionally non-mutating and includes:
 | Change type | Minimum local proof | Additional proof when risk is higher | Notes |
 | --- | --- | --- | --- |
 | `src/index*.ts`, `src/http_app*.ts`, or transport init helpers | `pnpm test`; `pnpm build` | run the relevant built entrypoint through the intended start script when the task explicitly includes an interactive smoke check | Offline tests cover import side effects, health, method guards, JSON-RPC parsing, discovery, cleanup, cancellation, and repeated authenticated/local factory throws with sentinel leak checks. |
-| auth middleware, config, or OAuth flow | `pnpm test`; `pnpm lint` | record any live-token proof separately and only when the task authorizes it | Authenticator exceptions must remain a generic JSON-RPC 500 envelope; bearer denial remains 401/403; caught messages/stacks must not appear in response or logs, which retain only stable failure code/category. |
-| search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `pnpm test`; `pnpm lint` | run an authorized remote case only when its external owner and safety boundary are explicit | Offline tests mock search transport, reject malformed CRUD input before network access, cover exact select/insert/update/delete success URLs, methods, headers, bodies and envelopes, run all declared TIDAS types through SDK `validateEnhanced()`, and prove a real strict-invalid LifecycleModel returns normalized issues before any fetch or write. |
+| auth middleware, config, or OAuth flow | `pnpm test`; `pnpm lint` | record any live-token proof separately and only when the task authorizes it | Authenticator exceptions remain a generic JSON-RPC 500; missing bearer is 401 and any presented-but-denied credential is generic 403 `Forbidden`; provider messages, token/issuer sentinels, and stacks must not appear in responses or logs, which retain only stable failure code/category. |
+| search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `pnpm test`; `pnpm lint` | run an authorized remote case only when its external owner and safety boundary are explicit | Offline tests mock search transport, reject malformed CRUD input before network access, cover exact select/insert/update/delete success URLs, methods, headers, bodies and envelopes, run all declared TIDAS types through SDK `validateEnhanced()`, and prove a real strict-invalid LifecycleModel with a structurally valid access JWT plus refresh token returns normalized issues with fetch count zero before any auth/session/REST/write action. |
 | local OpenLCA helpers | `pnpm build`; `pnpm lint` | run `pnpm exec tsx scripts/openlca-ipc-smoke.ts` only when the task explicitly includes a local OpenLCA smoke check | The active runtime path is `olca-ipc`, not the commented gRPC scaffold. |
 | package, pnpm, Node, TypeScript, lint, Docker, or client config | `pnpm prepush:gate` | inspect `pnpm list --depth Infinity` when compiler or runtime leakage is in scope | Recheck `DEV_EN.md` and `DEV_CN.md` whenever the exact baseline or startup path changes. |
 | release automation under `scripts/ci/**` or `.github/workflows/publish.yml` | inspect the workflow/script diff; `pnpm prepush:gate` | record tag naming, `main` ancestry, and unpublished-version checks | The feature task prepares release-ready artifacts; version/tag/publish remains a separately tracked release action. |

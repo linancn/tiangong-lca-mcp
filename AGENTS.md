@@ -43,7 +43,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 1d63400f50616fa2ce79709564d3d512caccefc9
+lastReviewedCommit: 6771aacc5c5e973b84be4f909a6c849c1aba0d48
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -111,7 +111,7 @@ Route those tasks to:
 - Runtime and compiler baselines are Node `24.19.0`, TypeScript `7.0.2`, and `@tiangong-lca/tidas-sdk` `0.2.0`; TypeScript 5/6 and compiler-API formatting plugins are not allowed in the direct or recursive graph.
 - `pnpm lint` is read-only: type-aware Oxlint, Prettier check, and TypeScript typecheck run without rewriting source. Use `pnpm format` for explicit formatting writes.
 - `pnpm test` runs real Node assertions for tool registration, every declared TIDAS dataset validation boundary, CRUD/search guards, LifecycleModel `validationIssues`, authenticated/local Streamable HTTP envelopes, and cancellation.
-- SDK validation uses `validateEnhanced()` exactly once per entity and consumes normalized `validationIssues`. Strict-invalid LifecycleModels fail before graph/database lookup and can never reach a write; their stable error envelope exposes normalized code/path/severity without raw Zod parsing.
+- SDK validation uses `validateEnhanced()` exactly once per entity and consumes normalized `validationIssues`. Insert/update prepares and validates once before creating the CRUD Supabase client or applying a refresh-token session. Strict-invalid LifecycleModels therefore perform zero auth/REST/process-lookup requests and can never reach a write; their stable error envelope exposes normalized code/path/severity without raw Zod parsing.
 - `pnpm prepush:gate` is the canonical gate. It also proves the packed runtime consumer, a clean arbitrary-path worktree, build, audit, and pack contract.
 - Nested package tests resolve and verify the exact native `pnpm`/`pnpm.exe` executable first with `shell: false`; Corepack JavaScript is only a fallback. Do not assume `COREPACK_ROOT` exists in `pnpm/setup` runners.
 - `.github/workflows/quality-gate.yml` runs the canonical gate on Linux x64, Windows x64, macOS arm64, and Linux arm64.
@@ -123,6 +123,7 @@ Route those tasks to:
 - Manual `v*` tag pushes and `workflow_dispatch` runs for an existing release tag whose target commit is already on `main` remain supported for recovery/backfill releases
 - HTTP entry modules are side-effect free when imported. `src/http_app.ts` and `src/http_app_local.ts` own app construction; the executable entry files only listen when they are the process entrypoint.
 - Authenticated and local request-scoped MCP server factory failures share the generic JSON-RPC 500 boundary; internal exception messages and stacks must never fall through to Express HTML responses or logs. Failure logs contain only stable redacted code/category fields.
+- Any presented credential that fails authentication receives generic `Forbidden`; provider-specific denial details are never copied into the HTTP response. Cognito verification failures log only `MCP_AUTHENTICATION_FAILED` with category `cognito`, never token, issuer, message, or stack.
 
 ## Hard Boundaries
 

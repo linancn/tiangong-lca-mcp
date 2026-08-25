@@ -33,7 +33,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 1d63400f50616fa2ce79709564d3d512caccefc9
+lastReviewedCommit: 6771aacc5c5e973b84be4f909a6c849c1aba0d48
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -72,6 +72,8 @@ Important supporting files:
 - `src/_shared/config.ts`
 
 API-key auth signs into Supabase and can reuse cached sessions through Upstash Redis.
+
+All credential denials at the authenticated HTTP boundary are generic `Forbidden`. Provider-specific strings are internal-only, and Cognito verification failures emit only the stable redacted `MCP_AUTHENTICATION_FAILED`/`cognito` log category.
 
 ## OAuth Surface
 
@@ -112,7 +114,7 @@ The MCP-side write and preprocessing logic clusters around:
 - `src/tools/db_crud.ts`
 - `src/tools/life_cycle_model_file_tools.ts`
 
-This path calls SDK `validateEnhanced()` once before graph construction or Supabase process lookup. Strict-invalid LifecycleModels throw a stable `TIDAS_VALIDATION_FAILED` envelope with normalized code/path/severity and never reach a write. A strict-success result alone may derive `json_tg` and `rule_verification`; insert/update responses echo the exact SDK `validationIssueCount` and `validationIssues` (normally zero/empty in strict success), and those response-evidence fields are not added to the database row.
+This path calls SDK `validateEnhanced()` once before graph construction or Supabase process lookup. Database insert/update computes that prepared payload once before constructing the CRUD Supabase client or applying a refresh-token session, then passes it into the operation handler without repeating validation. Strict-invalid LifecycleModels throw a stable `TIDAS_VALIDATION_FAILED` envelope with normalized code/path/severity, make zero auth/REST/process-lookup requests, and never reach a write. A strict-success result alone may derive `json_tg` and `rule_verification`; insert/update responses echo the exact SDK `validationIssueCount` and `validationIssues` (normally zero/empty in strict success), and those response-evidence fields are not added to the database row.
 
 ### Local OpenLCA and TIDAS validation
 
