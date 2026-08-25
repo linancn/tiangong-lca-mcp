@@ -88,9 +88,6 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       assert.match(text, /0\.1\.0/u, surface);
       assert.doesNotMatch(text, /0\.0\.31/u, surface);
     }
-    assert.match(
-      readText('Dockerfile'),
-      /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.0/u,
-    );
+    assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.0/u);
   });
 });
