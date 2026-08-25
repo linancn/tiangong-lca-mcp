@@ -26,6 +26,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.match(workspace, /^packages:\s*\[\]\s*$/mu);
     assert.match(workspace, /^minimumReleaseAge:\s*1440\s*$/mu);
     assert.match(workspace, /^minimumReleaseAgeStrict:\s*true\s*$/mu);
+    assert.equal(readText('.gitattributes').trim(), '* text=auto eol=lf');
   });
 
   it('pins TypeScript 7 and the runtime-clean TIDAS SDK', () => {
