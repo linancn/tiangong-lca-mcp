@@ -151,7 +151,9 @@ describe('remote read and CRUD boundaries', () => {
 
   it('normalizes a remote search failure into an MCP tool error', async () => {
     const originalFetch = globalThis.fetch;
+    const originalConsoleError = console.error;
     globalThis.fetch = async () => new Response('', { status: 503, statusText: 'Unavailable' });
+    console.error = () => {};
     const connection = await connectInMemory(initializeHttpServer('test-bearer'));
     try {
       const result = await callTool(connection.client, 'Search_Flows_Tool', { query: 'steel' });
@@ -159,6 +161,7 @@ describe('remote read and CRUD boundaries', () => {
       assert.match(responseText(result), /HTTP error: 503 Unavailable/u);
     } finally {
       globalThis.fetch = originalFetch;
+      console.error = originalConsoleError;
       await connection.close();
     }
   });

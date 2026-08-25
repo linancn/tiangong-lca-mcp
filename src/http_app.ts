@@ -45,7 +45,21 @@ function authenticateBearer(authenticator: Authenticator) {
     }
 
     const bearerKey = authHeader.slice(7).trim();
-    const authResult = await authenticator(bearerKey);
+    let authResult: AuthResult;
+    try {
+      authResult = await authenticator(bearerKey);
+    } catch (error) {
+      console.error('Authentication failed unexpectedly:', error);
+      res.status(500).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32603,
+          message: 'Internal server error',
+        },
+        id: null,
+      });
+      return;
+    }
 
     if (!authResult.isAuthenticated) {
       res.status(403).json({

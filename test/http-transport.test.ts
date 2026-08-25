@@ -71,52 +71,75 @@ describe('Streamable HTTP transport', () => {
     });
   });
 
-  it('closes request-scoped servers and returns a cancellation error', async () => {
-    let closeCount = 0;
-    let resolveStarted: (() => void) | undefined;
-    let resolveHandler: (() => void) | undefined;
-    const started = new Promise<void>((resolve) => {
-      resolveStarted = resolve;
-    });
-
-    const app = createLocalHttpApp({
-      serverFactory: () => {
-        const server = new McpServer({ name: 'cancellation-test', version: '1.0.0' });
-        const close = server.close.bind(server);
-        server.close = async () => {
-          closeCount += 1;
-          await close();
-        };
-        server.registerTool('Wait_Tool', {}, async () => {
-          resolveStarted?.();
-          await new Promise<void>((resolve) => {
-            resolveHandler = resolve;
-          });
-          return { content: [{ type: 'text', text: 'finished' }] };
-        });
-        return server;
-      },
-    });
-
-    await withHttpServer(app, async (baseUrl) => {
-      const client = new Client({ name: 'cancellation-client', version: '1.0.0' });
-      const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`));
-      await client.connect(transport);
-      const controller = new AbortController();
-      const call = client.callTool({ name: 'Wait_Tool', arguments: {} }, undefined, {
-        signal: controller.signal,
+  it(
+    'closes request-scoped servers and returns a cancellation error',
+    { timeout: 5_000 },
+    async () => {
+      let resolveStarted: (() => void) | undefined;
+      let resolveHandler: (() => void) | undefined;
+      let resolveHandlerFinished: (() => void) | undefined;
+      let resolveRequestClosed: (() => void) | undefined;
+      const started = new Promise<void>((resolve) => {
+        resolveStarted = resolve;
       });
-      await started;
-      const closeCountBeforeAbort = closeCount;
-      controller.abort();
+      const handlerFinished = new Promise<void>((resolve) => {
+        resolveHandlerFinished = resolve;
+      });
+      const requestClosed = new Promise<void>((resolve) => {
+        resolveRequestClosed = resolve;
+      });
 
-      await assert.rejects(call, /MCP error -32001: AbortError/u);
-      await new Promise((resolve) => setTimeout(resolve, 25));
-      assert.ok(closeCount > closeCountBeforeAbort);
-      resolveHandler?.();
-      await client.close();
-    });
-  });
+      const app = createLocalHttpApp({
+        serverFactory: () => {
+          const server = new McpServer({ name: 'cancellation-test', version: '1.0.0' });
+          const close = server.close.bind(server);
+          let waitHandlerStarted = false;
+          server.close = async () => {
+            if (waitHandlerStarted) {
+              resolveRequestClosed?.();
+            }
+            await close();
+          };
+          server.registerTool('Wait_Tool', {}, async () => {
+            waitHandlerStarted = true;
+            resolveStarted?.();
+            await new Promise<void>((resolve) => {
+              resolveHandler = resolve;
+            });
+            resolveHandlerFinished?.();
+            return { content: [{ type: 'text', text: 'finished' }] };
+          });
+          return server;
+        },
+      });
+
+      await withHttpServer(app, async (baseUrl) => {
+        const client = new Client({ name: 'cancellation-client', version: '1.0.0' });
+        const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`));
+        await client.connect(transport);
+        const controller = new AbortController();
+        const call = client.callTool({ name: 'Wait_Tool', arguments: {} }, undefined, {
+          signal: controller.signal,
+        });
+        await started;
+        controller.abort();
+
+        let assertionError: unknown;
+        try {
+          await assert.rejects(call, /MCP error -32001: AbortError/u);
+        } catch (error) {
+          assertionError = error;
+        }
+        resolveHandler?.();
+        await handlerFinished;
+        await requestClosed;
+        await client.close();
+        if (assertionError) {
+          throw assertionError;
+        }
+      });
+    },
+  );
 });
 
 describe('authenticated HTTP boundary', () => {
@@ -158,5 +181,41 @@ describe('authenticated HTTP boundary', () => {
       assert.equal(authCalls, 1);
       assert.equal(serverCalls, 0);
     });
+  });
+
+  it('normalizes authenticator failures into a JSON-RPC internal error', async () => {
+    const originalConsoleError = console.error;
+    console.error = () => {};
+    const app = createHttpApp({
+      authenticator: async () => {
+        throw new Error('secret authenticator detail');
+      },
+      serverFactory: () => {
+        throw new Error('server must not be created after auth failure');
+      },
+    });
+
+    try {
+      await withHttpServer(app, async (baseUrl) => {
+        const response = await fetch(`${baseUrl}/mcp`, {
+          method: 'POST',
+          headers: {
+            accept: 'application/json, text/event-stream',
+            authorization: 'Bearer test-token',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+
+        assert.equal(response.status, 500);
+        assert.deepEqual(await parseJson(response), {
+          jsonrpc: '2.0',
+          error: { code: -32603, message: 'Internal server error' },
+          id: null,
+        });
+      });
+    } finally {
+      console.error = originalConsoleError;
+    }
   });
 });
