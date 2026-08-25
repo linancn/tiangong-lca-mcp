@@ -60,17 +60,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.0.31 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.0 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.0.31
+docker pull linancn/tiangong-lca-mcp-server:0.1.0
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.0.31
+    linancn/tiangong-lca-mcp-server:0.1.0
 ```
 
 ### 本地测试
