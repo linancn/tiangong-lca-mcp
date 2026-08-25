@@ -22,7 +22,7 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: d50bece228c95d576a627f861ed355cc3b12c9d5
+lastReviewedCommit: 1d63400f50616fa2ce79709564d3d512caccefc9
 related:
   - AGENTS.md
   - .docpact/config.yaml

@@ -43,7 +43,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: d50bece228c95d576a627f861ed355cc3b12c9d5
+lastReviewedCommit: 1d63400f50616fa2ce79709564d3d512caccefc9
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -122,7 +122,7 @@ Route those tasks to:
 - Release tags use `v<package.json version>`; canonical `main` branch pushes whose package version changes create the matching tag when missing, run the release gate, and publish `@tiangong-lca/mcp-server` to npm in the same workflow run
 - Manual `v*` tag pushes and `workflow_dispatch` runs for an existing release tag whose target commit is already on `main` remain supported for recovery/backfill releases
 - HTTP entry modules are side-effect free when imported. `src/http_app.ts` and `src/http_app_local.ts` own app construction; the executable entry files only listen when they are the process entrypoint.
-- Authenticated and local request-scoped MCP server factory failures share the generic JSON-RPC 500 boundary; internal exception messages and stacks must never fall through to Express HTML responses.
+- Authenticated and local request-scoped MCP server factory failures share the generic JSON-RPC 500 boundary; internal exception messages and stacks must never fall through to Express HTML responses or logs. Failure logs contain only stable redacted code/category fields.
 
 ## Hard Boundaries
 
