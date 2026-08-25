@@ -66,7 +66,7 @@ function authenticateBearer(authenticator: Authenticator) {
         jsonrpc: '2.0',
         error: {
           code: -32002,
-          message: authResult.response || 'Forbidden',
+          message: 'Forbidden',
         },
         id: null,
       });

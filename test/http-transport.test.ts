@@ -178,7 +178,7 @@ describe('authenticated HTTP boundary', () => {
       });
       assert.equal(denied.status, 403);
       const deniedBody = await parseJson(denied);
-      assert.deepEqual(deniedBody.error, { code: -32002, message: 'denied by test' });
+      assert.deepEqual(deniedBody.error, { code: -32002, message: 'Forbidden' });
       assert.equal(authCalls, 1);
       assert.equal(serverCalls, 0);
     });

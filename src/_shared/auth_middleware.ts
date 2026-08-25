@@ -213,7 +213,7 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
     if (data.user.role !== 'authenticated') {
       return {
         isAuthenticated: false,
-        response: 'You are not an authenticated user.',
+        response: 'Forbidden',
       };
     }
 
@@ -244,7 +244,7 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
 
   return {
     isAuthenticated: false,
-    response: 'Invalid API key',
+    response: 'Unauthorized',
   };
 }
 
@@ -269,7 +269,7 @@ async function authenticateSupabaseRequest(bearerKey: string): Promise<AuthResul
   if (!authData || !authData.user) {
     return {
       isAuthenticated: false,
-      response: 'User Not Found',
+      response: 'Unauthorized',
     };
   } else {
     if (authData.user.role !== 'authenticated') {
