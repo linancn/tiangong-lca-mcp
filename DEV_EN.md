@@ -54,17 +54,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.0.5 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.0 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.0.5
+docker pull linancn/tiangong-lca-mcp-server:0.1.0
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.0.5
+    linancn/tiangong-lca-mcp-server:0.1.0
 ```
 
 ## Development
