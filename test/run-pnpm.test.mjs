@@ -88,6 +88,7 @@ describe('nested pnpm resolver', () => {
         stdio: 'pipe',
       },
       {
+        platform: 'linux',
         isNativeExecutable: (path) => path === candidate,
         spawnSync: (command, args, options) => {
           calls.push({ command, args, options });
@@ -155,6 +156,7 @@ describe('nested pnpm resolver', () => {
     assert.throws(
       () =>
         runPnpm(['test'], baseOptions, {
+          platform: 'linux',
           isNativeExecutable: nativeCheck,
           spawnSync: () => {
             calls += 1;
@@ -176,6 +178,7 @@ describe('nested pnpm resolver', () => {
     assert.throws(
       () =>
         runPnpm(['test'], baseOptions, {
+          platform: 'linux',
           isNativeExecutable: nativeCheck,
           writeStderr: (value) => written.push(value),
           spawnSync: () => {
