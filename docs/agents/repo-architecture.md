@@ -33,7 +33,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: f50772e9c6165cc88c0ca3d4af681784bc4f14c9
+lastReviewedCommit: 2a7771afc75fb9ec646f9048ec41c88841fa2fb1
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -137,6 +137,8 @@ The active local OpenLCA integration uses `olca-ipc`. The `openlca_grpc.ts` file
 `main` pushes whose `package.json` version changes create the matching `v<version>` tag, install with pnpm's frozen lock, run the canonical pre-push gate, and publish `@tiangong-lca/mcp-server` through pnpm. Manual `v*` tag pushes and workflow-dispatch runs for existing tags remain recovery/backfill paths.
 
 The package graph is single-track Node `24.19.0`, pnpm `11.23.0`, TypeScript `7.0.2`, and TIDAS SDK `0.2.0`. The packed-consumer proof imports all three packaged entry modules from an arbitrary path and verifies that compiler/lint/test tooling is absent from the production install.
+
+Nested consumer and clean-worktree commands cannot assume Corepack environment variables: they scan `PATH` for the official native `pnpm` or `pnpm.exe`, verify exact version `11.23.0`, and execute with argv plus `shell: false`. A verified `COREPACK_ROOT/dist/pnpm.js` invocation remains a fallback for local Corepack shells.
 
 ## Common Misreads
 

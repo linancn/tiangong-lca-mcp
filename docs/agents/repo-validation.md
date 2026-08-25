@@ -38,7 +38,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: f50772e9c6165cc88c0ca3d4af681784bc4f14c9
+lastReviewedCommit: 2a7771afc75fb9ec646f9048ec41c88841fa2fb1
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -87,6 +87,7 @@ Facts that matter today:
 - the only compiler in the direct or recursive graph is TypeScript `7.0.2`; SDK `0.2.0` must not reintroduce `ts-to-zod` or TypeScript 5/6
 - local tests do not contact TianGong production, GLAD, Supabase, or OpenLCA; external proof must be separately authorized and recorded
 - the four-platform workflow is the authoritative portability proof after PR submission; local macOS proof alone is not four-platform evidence
+- `pnpm/setup` native distributions do not guarantee `COREPACK_ROOT`; nested tests must pass with that variable absent, exact native `pnpm`/`pnpm.exe`, paths containing spaces, and `shell: false`
 
 ## Minimum PR Note Quality
 
