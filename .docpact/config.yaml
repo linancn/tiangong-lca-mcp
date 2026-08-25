@@ -1,7 +1,7 @@
 version: 1
 layout: repo
-lastReviewedAt: "2026-06-01"
-lastReviewedCommit: "afbb47af17b81da4cd4bad31a8e13c498612c4cd"
+lastReviewedAt: "2026-08-25"
+lastReviewedCommit: "50a55156b840b79f282540a69fb2847a55cc50b8"
 
 catalog:
   repos:
@@ -34,14 +34,22 @@ ownership:
       paths:
         include:
           - scripts/ci/**
+          - scripts/*.mjs
+          - scripts/*.ts
+          - scripts/lib/**
           - .github/workflows/publish.yml
+          - .github/workflows/quality-gate.yml
       ownerRepo: mcp
     - id: runtime-and-package-config
       paths:
         include:
           - package.json
+          - pnpm-lock.yaml
+          - pnpm-workspace.yaml
           - tsconfig.json
+          - tsconfig.build.json
           - .nvmrc
+          - .oxlintrc.json
           - .prettierrc.cjs
           - .prettierignore
           - Dockerfile
@@ -54,6 +62,8 @@ ownership:
           - src/index.ts
           - src/index_server.ts
           - src/index_server_local.ts
+          - src/http_app.ts
+          - src/http_app_local.ts
           - src/auth_app.ts
           - src/_shared/**
           - public/**
@@ -65,7 +75,7 @@ ownership:
           - src/prompts/**
           - src/resources/**
       ownerRepo: mcp
-    - id: demo-tests
+    - id: automated-tests
       paths:
         include:
           - test/**
@@ -86,6 +96,9 @@ coverage:
     - scripts/docpact
     - scripts/docpact-gate.sh
     - scripts/install-git-hooks.sh
+    - scripts/*.mjs
+    - scripts/*.ts
+    - scripts/lib/**
     - AGENTS.md
     - README.md
     - README_CN.md
@@ -95,8 +108,12 @@ coverage:
     - docs/agents/**
     - scripts/ci/**
     - package.json
+    - pnpm-lock.yaml
+    - pnpm-workspace.yaml
     - tsconfig.json
+    - tsconfig.build.json
     - .nvmrc
+    - .oxlintrc.json
     - .prettierrc.cjs
     - .prettierignore
     - Dockerfile
@@ -106,6 +123,7 @@ coverage:
     - src/**
     - test/**
     - .github/workflows/publish.yml
+    - .github/workflows/quality-gate.yml
     - .github/workflows/ai-doc-lint.yml
   exclude:
     - .git/**
@@ -113,7 +131,6 @@ coverage:
     - .docpact/runs/**
     - node_modules/**
     - dist/**
-    - package-lock.json
     - '*.tgz'
     - .env
 
@@ -135,6 +152,8 @@ routing:
         - src/index.ts
         - src/index_server.ts
         - src/index_server_local.ts
+        - src/http_app.ts
+        - src/http_app_local.ts
         - src/auth_app.ts
         - src/_shared/**
         - .env.example
@@ -186,10 +205,18 @@ routing:
     validation-runtime:
       paths:
         - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
         - scripts/ci/**
+        - scripts/*.mjs
+        - scripts/*.ts
+        - scripts/lib/**
         - .github/workflows/publish.yml
+        - .github/workflows/quality-gate.yml
         - tsconfig.json
+        - tsconfig.build.json
         - .nvmrc
+        - .oxlintrc.json
         - .prettierrc.cjs
         - .prettierignore
         - Dockerfile
@@ -200,8 +227,13 @@ routing:
         - docs/agents/repo-validation.md
         - package.json
         - scripts/ci/**
+        - scripts/*.mjs
+        - scripts/*.ts
+        - scripts/lib/**
         - .github/workflows/publish.yml
+        - .github/workflows/quality-gate.yml
         - tsconfig.json
+        - tsconfig.build.json
         - src/**
         - public/**
         - test/**
@@ -267,6 +299,10 @@ rules:
       - path: README_CN.md
         kind: repo-landing
     requiredDocs:
+      - path: README.md
+        mode: review_or_update
+      - path: README_CN.md
+        mode: review_or_update
       - path: AGENTS.md
         mode: must_exist
       - path: .docpact/config.yaml
@@ -298,9 +334,17 @@ rules:
     triggers:
       - path: package.json
         kind: runtime-config
+      - path: pnpm-lock.yaml
+        kind: runtime-config
+      - path: pnpm-workspace.yaml
+        kind: runtime-config
       - path: tsconfig.json
         kind: runtime-config
+      - path: tsconfig.build.json
+        kind: runtime-config
       - path: .nvmrc
+        kind: runtime-config
+      - path: .oxlintrc.json
         kind: runtime-config
       - path: .prettierrc.cjs
         kind: runtime-config
@@ -317,6 +361,10 @@ rules:
       - path: src/index_server.ts
         kind: transport
       - path: src/index_server_local.ts
+        kind: transport
+      - path: src/http_app.ts
+        kind: transport
+      - path: src/http_app_local.ts
         kind: transport
       - path: src/auth_app.ts
         kind: oauth
@@ -342,8 +390,16 @@ rules:
     triggers:
       - path: scripts/ci/**
         kind: release-script
+      - path: scripts/*.mjs
+        kind: validation-script
+      - path: scripts/*.ts
+        kind: validation-script
+      - path: scripts/lib/**
+        kind: validation-script
       - path: .github/workflows/publish.yml
         kind: release-automation
+      - path: .github/workflows/quality-gate.yml
+        kind: validation-automation
     requiredDocs:
       - path: AGENTS.md
         mode: review_or_update
@@ -353,7 +409,7 @@ rules:
         mode: review_or_update
       - path: docs/agents/repo-architecture.md
         mode: review_or_update
-    reason: Release scripts and publish workflow changes alter package validation, tag gating, and npm publish behavior without changing transport/auth startup docs.
+    reason: Release scripts and publish workflow changes alter package validation, tag gating, and registry publishing without changing transport/auth startup docs.
   - id: mcp-tool-contract
     scope: repo
     repo: mcp
@@ -365,7 +421,7 @@ rules:
       - path: src/resources/**
         kind: resource
       - path: test/**
-        kind: demo-test
+        kind: automated-test
     requiredDocs:
       - path: AGENTS.md
         mode: review_or_update
@@ -375,7 +431,7 @@ rules:
         mode: review_or_update
       - path: docs/agents/repo-architecture.md
         mode: review_or_update
-    reason: Tool wrapper, prompt, resource, and demo-test changes alter what the MCP server exposes and how future work should be checked.
+    reason: Tool wrapper, prompt, resource, and automated-test changes alter what the MCP server exposes and how future work should be checked.
   - id: mcp-doc-maintenance-contract
     scope: repo
     repo: mcp

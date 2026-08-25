@@ -18,8 +18,13 @@ checkPaths:
   - docs/agents/repo-architecture.md
   - .docpact/config.yaml
   - package.json
+  - pnpm-lock.yaml
+  - pnpm-workspace.yaml
+  - tsconfig.json
+  - tsconfig.build.json
   - scripts/ci/**
   - .github/workflows/publish.yml
+  - .github/workflows/quality-gate.yml
   - src/**
   - public/**
   - test/**
@@ -27,8 +32,8 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-06-01
-lastReviewedCommit: afbb47af17b81da4cd4bad31a8e13c498612c4cd
+lastReviewedAt: 2026-08-25
+lastReviewedCommit: 50a55156b840b79f282540a69fb2847a55cc50b8
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -46,6 +51,8 @@ related:
 | STDIO | `src/index.ts` | `StdioServerTransport` | search wrappers, GLAD dataset tools, OpenLCA tools, prompts, resources, guidance |
 | HTTP | `src/index_server.ts` | authenticated Streamable HTTP on `POST /mcp` plus `/health` and `/oauth` | search wrappers, GLAD dataset tools, and `Database_CRUD_Tool` |
 | HTTP local | `src/index_server_local.ts` | local Streamable HTTP on `POST /mcp` plus `/health` | OpenLCA tools, TIDAS validation, prompts, resources |
+
+The executable HTTP entries delegate app construction to `src/http_app.ts` and `src/http_app_local.ts`. Importing an entry does not bind a port; each stateless request receives a request-scoped MCP server and transport, and response closure triggers bounded cleanup. This split is the offline test seam for health, method guards, auth errors, JSON-RPC errors, discovery, and cancellation.
 
 ## Auth Decision Tree
 
@@ -127,13 +134,15 @@ The active local OpenLCA integration uses `olca-ipc`. The `openlca_grpc.ts` file
 
 ## Release Architecture
 
-`main` pushes whose `package.json` version changes create the matching `v<version>` tag, run the release gate, and publish `@tiangong-lca/mcp-server` to npm. Manual `v*` tag pushes and workflow-dispatch runs for existing tags remain recovery/backfill paths.
+`main` pushes whose `package.json` version changes create the matching `v<version>` tag, install with pnpm's frozen lock, run the canonical pre-push gate, and publish `@tiangong-lca/mcp-server` through pnpm. Manual `v*` tag pushes and workflow-dispatch runs for existing tags remain recovery/backfill paths.
+
+The package graph is single-track Node `24.19.0`, pnpm `11.23.0`, TypeScript `7.0.2`, and TIDAS SDK `0.2.0`. The packed-consumer proof imports all three packaged entry modules from an arbitrary path and verifies that compiler/lint/test tooling is absent from the production install.
 
 ## Common Misreads
 
 - this repo is not the source of truth for remote search algorithms
 - the OAuth demo pages here are not the product app
-- `npm test` is not a strong automated regression suite
+- `pnpm test` is an offline assertion suite; it does not imply live OpenLCA, GLAD, Supabase, or production proof
 - a merged child PR does not finish workspace delivery
 
 ## Local Docpact Push Gate

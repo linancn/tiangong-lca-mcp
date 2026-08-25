@@ -152,7 +152,7 @@ jobs:
             echo "tag_created=${tag_created}" >> "$GITHUB_OUTPUT"
             echo "tag_name=${tag_name}" >> "$GITHUB_OUTPUT"
             echo "release_head=${release_head}" >> "$GITHUB_OUTPUT"
-            echo "::notice::Release target ${tag_name} points to ${release_head}, which is not on origin/main. Skipping npm publish."
+            echo "::notice::Release target ${tag_name} points to ${release_head}, which is not on origin/main. Skipping registry publish."
             exit 0
           fi
 

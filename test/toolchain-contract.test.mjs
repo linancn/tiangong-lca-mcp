@@ -38,6 +38,10 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     const lockfile = readText('pnpm-lock.yaml');
     assert.doesNotMatch(lockfile, /(?:^|\s)typescript@(?:5|6)\./mu);
     assert.doesNotMatch(lockfile, /(?:^|\s)ts-to-zod@/mu);
+    const compilerVersions = new Set(
+      [...lockfile.matchAll(/(?:^|\s)typescript@(\d+\.\d+\.\d+)/gmu)].map((match) => match[1]),
+    );
+    assert.deepEqual([...compilerVersions], ['7.0.2']);
   });
 
   it('keeps package scripts on pnpm and separates checks from writes', () => {
@@ -49,5 +53,29 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.match(packageJson.scripts?.format ?? '', /prettier --write/u);
     assert.doesNotMatch(packageJson.scripts?.['test:pack'] ?? '', />\s*\/dev\/null/u);
     assert.doesNotMatch(packageJson.scripts?.['start:server'] ?? '', /DANGEROUSLY_OMIT_AUTH=/u);
+  });
+
+  it('has no active npm package-management commands and defines four-platform CI', () => {
+    const packageManagementSurfaces = [
+      'README.md',
+      'README_CN.md',
+      'DEV_EN.md',
+      'DEV_CN.md',
+      'Dockerfile',
+      '.github/workflows/publish.yml',
+      '.github/workflows/quality-gate.yml',
+    ];
+    const forbiddenCommand =
+      /(?:^|[\s"'`])(?:npm|npx)\s+(?:ci|install|run|test|start|pack|publish|version|exec)(?:\s|$)/mu;
+    for (const path of packageManagementSurfaces) {
+      assert.doesNotMatch(readText(path), forbiddenCommand, path);
+    }
+
+    const qualityGate = readText('.github/workflows/quality-gate.yml');
+    for (const runner of ['ubuntu-latest', 'windows-latest', 'macos-latest', 'ubuntu-24.04-arm']) {
+      assert.match(qualityGate, new RegExp(`os: ${runner}`, 'u'));
+    }
+    assert.match(qualityGate, /pnpm install --frozen-lockfile/u);
+    assert.match(qualityGate, /pnpm run prepush:gate/u);
   });
 });

@@ -14,12 +14,15 @@ checkPaths:
   - DEV_EN.md
   - DEV_CN.md
   - package.json
+  - pnpm-lock.yaml
+  - pnpm-workspace.yaml
   - Dockerfile
   - .nvmrc
   - src/**
   - test/**
-lastReviewedAt: 2026-05-25
-lastReviewedCommit: e8e4b0762abe8a31723c73724e98c14d75c931a5
+  - scripts/**
+lastReviewedAt: 2026-08-25
+lastReviewedCommit: 50a55156b840b79f282540a69fb2847a55cc50b8
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -39,10 +42,10 @@ TianGong AI Model Context Protocol (MCP) Server supports STDIO and StreamableHtt
 ### Client STDIO Server
 
 ```bash
-npm install -g @tiangong-lca/mcp-server
+corepack install --global pnpm@11.23.0
+pnpm add --global @tiangong-lca/mcp-server
 
-npx dotenv -e .env -- \
-npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
+pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 ```
 
 ### Using Docker
@@ -69,18 +72,22 @@ docker run -d \
 ```bash
 # Install Node.js
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-nvm install 24
-nvm use 24
+nvm install 24.19.0
+nvm use 24.19.0
 
-# Install dependencies
-npm ci
+# Install the exact package manager and frozen dependency graph
+corepack install --global pnpm@11.23.0
+pnpm install --frozen-lockfile
 ```
 
 ### Code Formatting
 
 ```bash
-# Format code using the linter
-npm run lint
+# Read-only lint, format check, and TypeScript 7 typecheck
+pnpm lint
+
+# Explicit formatting write
+pnpm format
 ```
 
 ### Local Testing
@@ -89,28 +96,29 @@ npm run lint
 
 ```bash
 # Launch the STDIO Server using MCP Inspector
-npm start
+pnpm start
 ```
 
 #### Launch MCP Inspector
 
+Use `pnpm start:server` or `pnpm start:server-local`. The cross-platform launcher starts the matching HTTP server and Inspector without POSIX-only environment syntax.
+
+### Canonical Validation
+
 ```bash
-npx @modelcontextprotocol/inspector
+pnpm prepush:gate
 ```
+
+This runs read-only lint/typecheck, offline behavior tests, packed-consumer validation, build, exact toolchain checks, audit, dry-run pack, and a frozen clean-worktree rerun. Production, GLAD, Supabase, and OpenLCA calls are not part of this offline gate.
 
 ### Publishing
 
-```bash
-npm version patch
-git push origin main --follow-tags
-```
-
-Publishing is handled by GitHub Actions trusted publishing. Tags must keep the existing single-package format `v<package.version>`; for example, package version `0.0.31` must be released from tag `v0.0.31`.
+Publishing is handled by a separately tracked release task after the feature change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; for example, package version `0.0.31` maps to `v0.0.31`.
 
 ### scaffold
 
 ```bash
-npx tsx src/tools/openlca_ipc_test.ts
+pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```
 
 ### Deployment

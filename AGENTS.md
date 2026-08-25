@@ -23,7 +23,12 @@ checkPaths:
   - .docpact/config.yaml
   - docs/agents/**
   - package.json
+  - pnpm-lock.yaml
+  - pnpm-workspace.yaml
   - .nvmrc
+  - tsconfig.json
+  - tsconfig.build.json
+  - .oxlintrc.json
   - Dockerfile
   - .env.example
   - mcp_config.json
@@ -32,12 +37,13 @@ checkPaths:
   - test/**
   - scripts/ci/**
   - .github/workflows/publish.yml
+  - .github/workflows/quality-gate.yml
   - .githooks/**
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-06-01
-lastReviewedCommit: afbb47af17b81da4cd4bad31a8e13c498612c4cd
+lastReviewedAt: 2026-08-25
+lastReviewedCommit: 50a55156b840b79f282540a69fb2847a55cc50b8
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -101,23 +107,26 @@ Route those tasks to:
 ## Runtime Facts
 
 - Repo-local documentation governance is encoded in `.docpact/config.yaml` and enforced locally by the pre-push docpact gate; `.github/workflows/ai-doc-lint.yml` is manual-dispatch fallback.
+- The only supported package-management path is pnpm `11.23.0`, selected by `packageManager`; installs use the root `pnpm-lock.yaml` with `--frozen-lockfile`.
+- Runtime and compiler baselines are Node `24.19.0`, TypeScript `7.0.2`, and `@tiangong-lca/tidas-sdk` `0.2.0`; TypeScript 5/6 and compiler-API formatting plugins are not allowed in the direct or recursive graph.
+- `pnpm lint` is read-only: type-aware Oxlint, Prettier check, and TypeScript typecheck run without rewriting source. Use `pnpm format` for explicit formatting writes.
+- `pnpm test` runs real Node assertions for tool registration, every declared TIDAS dataset validation boundary, CRUD/search guards, LifecycleModel `validationIssues`, authenticated/local Streamable HTTP envelopes, and cancellation.
+- `pnpm prepush:gate` is the canonical gate. It also proves the packed runtime consumer, a clean arbitrary-path worktree, build, audit, and pack contract.
+- `.github/workflows/quality-gate.yml` runs the canonical gate on Linux x64, Windows x64, macOS arm64, and Linux arm64.
 - Published binaries:
   - `tiangong-lca-mcp-stdio`
   - `tiangong-lca-mcp-http`
   - `tiangong-lca-mcp-http-local`
 - Release tags use `v<package.json version>`; canonical `main` branch pushes whose package version changes create the matching tag when missing, run the release gate, and publish `@tiangong-lca/mcp-server` to npm in the same workflow run
 - Manual `v*` tag pushes and `workflow_dispatch` runs for an existing release tag whose target commit is already on `main` remain supported for recovery/backfill releases
-- The checked-in runtime prerequisites are currently inconsistent:
-  - `.nvmrc` and `Dockerfile` imply Node 24
-  - `DEV_EN.md` still says Node 22
-- `npm run lint` is mutating because it runs Prettier with `--write`
-- `npm test` is currently a demo/manual script for TIDAS validation examples, not an assertion-heavy test suite
+- HTTP entry modules are side-effect free when imported. `src/http_app.ts` and `src/http_app_local.ts` own app construction; the executable entry files only listen when they are the process entrypoint.
 
 ## Hard Boundaries
 
 - Do not treat the MCP repo as the source of truth for remote Edge search semantics
 - Do not move product UI or app workflow behavior into this repo
-- Do not document `npm test` as a strong automated regression suite; it is currently a manual/demo path
+- Do not add npm/package-lock paths, TypeScript 5/6, or compiler-API formatter plugins back into this repository
+- Do not weaken offline behavior assertions to make a dependency upgrade pass; transport and tool contracts must be characterized first
 - Do not treat a merged repo PR here as workspace-delivery complete if the root repo still needs a submodule bump
 
 ## Workspace Integration

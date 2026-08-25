@@ -19,8 +19,10 @@ checkPaths:
   - src/index.ts
   - src/index_server.ts
   - src/index_server_local.ts
-lastReviewedAt: 2026-04-24
-lastReviewedCommit: bf48b7fd4c9115350b00fddba3d302188007f2f4
+  - src/http_app.ts
+  - src/http_app_local.ts
+lastReviewedAt: 2026-08-25
+lastReviewedCommit: 50a55156b840b79f282540a69fb2847a55cc50b8
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -48,27 +50,27 @@ GLAD_API_BASE_URL=https://www.globallcadataaccess.org/api/v1
 ### 客户端 STDIO 服务器
 
 ```bash
-npm install -g @tiangong-lca/mcp-server
+corepack install --global pnpm@11.23.0
+pnpm add --global @tiangong-lca/mcp-server
 
-npx dotenv -e .env -- \
-npx -p @tiangong-lca/mcp-server tiangong-lca-mcp-stdio
+pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 ```
 
 ### 使用 Docker
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.0.5 .
+docker build -t linancn/tiangong-lca-mcp-server:0.0.31 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.0.5
+docker pull linancn/tiangong-lca-mcp-server:0.0.31
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.0.5
+    linancn/tiangong-lca-mcp-server:0.0.31
 ```
 
 ### 本地测试
@@ -77,23 +79,19 @@ docker run -d \
 
 ```bash
 # 使用 MCP Inspector 启动 STDIO 服务器
-npm start
+pnpm start
 ```
 
 #### Streamable Http 服务器
 
 ```bash
-npm run start:server
+pnpm start:server
 ```
 
 #### Streamable Http Local 服务器
 
 ```bash
-npm run start:server-local
+pnpm start:server-local
 ```
 
-#### 启动 MCP Inspector
-
-```bash
-DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector
-```
+HTTP 启动命令通过跨平台 Node argv wrapper 启动 MCP Inspector，并在 wrapper 内注入仅用于开发的 Inspector 环境，不依赖 POSIX shell 语法。
