@@ -22,7 +22,7 @@ checkPaths:
   - src/http_app.ts
   - src/http_app_local.ts
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 50a55156b840b79f282540a69fb2847a55cc50b8
+lastReviewedCommit: f50772e9c6165cc88c0ca3d4af681784bc4f14c9
 related:
   - AGENTS.md
   - .docpact/config.yaml

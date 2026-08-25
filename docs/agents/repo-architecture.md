@@ -33,7 +33,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-25
-lastReviewedCommit: 50a55156b840b79f282540a69fb2847a55cc50b8
+lastReviewedCommit: f50772e9c6165cc88c0ca3d4af681784bc4f14c9
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -112,7 +112,7 @@ The MCP-side write and preprocessing logic clusters around:
 - `src/tools/db_crud.ts`
 - `src/tools/life_cycle_model_file_tools.ts`
 
-This path derives `json_tg` and `rule_verification` for lifecycle model writes.
+This path derives `json_tg` and `rule_verification` for lifecycle model writes. LifecycleModel insert/update responses also return the exact normalized `validationIssueCount` and `validationIssues` produced by preprocessing; those fields are response evidence and are not added to the database row.
 
 ### Local OpenLCA and TIDAS validation
 
