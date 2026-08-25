@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import { getServer } from './_shared/init_server_http_local.js';
 
 const app = express();

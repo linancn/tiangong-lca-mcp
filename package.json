@@ -8,6 +8,7 @@
     "type": "git",
     "url": "https://github.com/linancn/tiangong-lca-mcp"
   },
+  "packageManager": "pnpm@11.23.0",
   "type": "module",
   "bin": {
     "tiangong-lca-mcp-stdio": "dist/src/index.js",
@@ -18,39 +19,53 @@
     "dist"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "shx rm -rf dist && tsc && shx cp -r public dist/ && shx chmod +x dist/src/*.js",
-    "build:clean": "shx rm -rf dist",
-    "start": "npm run build && npx dotenv -e .env -- npx @modelcontextprotocol/inspector node dist/src/index.js",
-    "start:server": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
-    "start:server-local": "npm run build && concurrently \"npx dotenv -e .env -- node dist/src/index_server_local.js\" \"DANGEROUSLY_OMIT_AUTH=true npx @modelcontextprotocol/inspector\"",
-    "test": "node test/tidas_validation_test.js",
-    "prepush:gate": "npm run build && npm run lint && npm test",
-    "lint": "prettier -c --write \"**/**.{js,jsx,tsx,ts,less,md,json}\"",
-    "ncu": "npx npm-check-updates",
-    "ncu:update": "npx npm-check-updates -u"
+    "build": "node ./scripts/build.mjs",
+    "build:clean": "node ./scripts/build.mjs --clean",
+    "typecheck": "pnpm exec tsc --noEmit",
+    "start": "pnpm build && pnpm exec dotenv -e .env -- pnpm exec mcp-inspector node dist/src/index.js",
+    "start:server": "pnpm build && pnpm exec concurrently \"pnpm exec dotenv -e .env -- node dist/src/index_server.js\" \"DANGEROUSLY_OMIT_AUTH=true pnpm exec mcp-inspector\"",
+    "start:server-local": "pnpm build && pnpm exec concurrently \"pnpm exec dotenv -e .env -- node dist/src/index_server_local.js\" \"DANGEROUSLY_OMIT_AUTH=true pnpm exec mcp-inspector\"",
+    "test": "node ./scripts/run-tests.mjs",
+    "test:toolchain": "node --test test/toolchain-contract.test.mjs",
+    "test:pack": "pnpm --filter @tiangong-lca/mcp-server --fail-if-no-match pack --dry-run >/dev/null",
+    "audit": "pnpm audit --audit-level high",
+    "lint": "pnpm lint:oxlint && pnpm lint:prettier && pnpm typecheck",
+    "lint:oxlint": "pnpm exec oxlint --type-aware --format=stylish --deny-warnings ./src ./test ./scripts",
+    "lint:prettier": "pnpm exec prettier --check \"{src,test,docs,scripts}/**/*.{js,cjs,mjs,jsx,tsx,ts,md,json}\" \"*.{js,cjs,mjs,jsx,tsx,ts,md,json}\"",
+    "format": "pnpm exec prettier --write \"{src,test,docs,scripts}/**/*.{js,cjs,mjs,jsx,tsx,ts,md,json}\" \"*.{js,cjs,mjs,jsx,tsx,ts,md,json}\"",
+    "prepush:gate": "pnpm lint && pnpm test && pnpm build && pnpm test:toolchain && pnpm audit && pnpm test:pack",
+    "prepack": "pnpm build",
+    "prepublishOnly": "pnpm prepush:gate"
+  },
+  "engines": {
+    "node": ">=24.19.0 <25",
+    "pnpm": "11.23.0"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^3.0.0",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "@supabase/supabase-js": "^2.106.1",
-    "@tiangong-lca/tidas-sdk": "^0.1.40",
-    "@types/express": "^5.0.6",
-    "@upstash/redis": "^1.38.0",
-    "aws-jwt-verify": "^5.1.1",
-    "olca-ipc": "^2.6.2",
-    "zod": "^4.4.3"
+    "@dagrejs/dagre": "3.1.1",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@supabase/supabase-js": "2.112.4",
+    "@tiangong-lca/tidas-sdk": "0.2.0",
+    "@upstash/redis": "1.38.2",
+    "aws-jwt-verify": "5.2.1",
+    "express": "5.2.1",
+    "olca-ipc": "2.6.2",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "^0.21.2",
-    "dotenv-cli": "^11.0.0",
-    "npm-check-updates": "^22.2.1",
-    "prettier": "^3.8.3",
-    "prettier-plugin-organize-imports": "^4.3.0",
-    "shx": "^0.4.0",
-    "tsx": "^4.22.3",
-    "typescript": "^6.0.3"
+    "@modelcontextprotocol/inspector": "2.3.0",
+    "@types/express": "5.0.6",
+    "@types/node": "24.13.3",
+    "concurrently": "10.0.5",
+    "dotenv-cli": "11.0.0",
+    "oxlint": "1.80.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "prettier": "3.9.6",
+    "tsx": "4.23.12",
+    "typescript": "7.0.2"
   }
 }

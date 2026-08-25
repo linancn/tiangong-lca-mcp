@@ -1,0 +1,37 @@
+packages: []
+
+strictDepBuilds: true
+
+allowBuilds:
+  '@modelcontextprotocol/inspector': true
+  esbuild: true
+  fsevents: false
+
+minimumReleaseAgeExclude:
+  - '@oxlint/binding-android-arm-eabi@1.80.0'
+  - '@oxlint/binding-android-arm64@1.80.0'
+  - '@oxlint/binding-darwin-arm64@1.80.0'
+  - '@oxlint/binding-darwin-x64@1.80.0'
+  - '@oxlint/binding-freebsd-x64@1.80.0'
+  - '@oxlint/binding-linux-arm-gnueabihf@1.80.0'
+  - '@oxlint/binding-linux-arm-musleabihf@1.80.0'
+  - '@oxlint/binding-linux-arm64-gnu@1.80.0'
+  - '@oxlint/binding-linux-arm64-musl@1.80.0'
+  - '@oxlint/binding-linux-ppc64-gnu@1.80.0'
+  - '@oxlint/binding-linux-riscv64-gnu@1.80.0'
+  - '@oxlint/binding-linux-riscv64-musl@1.80.0'
+  - '@oxlint/binding-linux-s390x-gnu@1.80.0'
+  - '@oxlint/binding-linux-x64-gnu@1.80.0'
+  - '@oxlint/binding-linux-x64-musl@1.80.0'
+  - '@oxlint/binding-openharmony-arm64@1.80.0'
+  - '@oxlint/binding-win32-arm64-msvc@1.80.0'
+  - '@oxlint/binding-win32-ia32-msvc@1.80.0'
+  - '@oxlint/binding-win32-x64-msvc@1.80.0'
+  - '@supabase/auth-js@2.112.4'
+  - '@supabase/functions-js@2.112.4'
+  - '@supabase/postgrest-js@2.112.4'
+  - '@supabase/realtime-js@2.112.4'
+  - '@supabase/storage-js@2.112.4'
+  - '@supabase/supabase-js@2.112.4'
+  - '@tiangong-lca/tidas-sdk@0.2.0'
+  - oxlint@1.80.0

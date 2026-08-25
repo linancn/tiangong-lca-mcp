@@ -15,10 +15,15 @@ const toolNames = async (server: ReturnType<typeof initializeStdioServer>) => {
   }
 };
 
-const responseText = (result: Awaited<ReturnType<typeof callTool>>) =>
-  result.content
+type TextToolResult = {
+  content: Array<{ type: string; text?: string }>;
+  isError?: boolean;
+};
+
+const responseText = (result: unknown) =>
+  ((result as TextToolResult).content ?? [])
     .filter((item) => item.type === 'text')
-    .map((item) => item.text)
+    .map((item) => item.text ?? '')
     .join('\n');
 
 async function callTool(
@@ -129,7 +134,10 @@ describe('remote read and CRUD boundaries', () => {
       assert.equal(requests.length, 1);
       assert.match(requests[0]!.input, /\/functions\/v1\/flow_hybrid_search$/u);
       assert.deepEqual(JSON.parse(String(requests[0]!.init?.body)), { query: 'steel' });
-      assert.equal((requests[0]!.init?.headers as Record<string, string>).Authorization, 'Bearer test-bearer');
+      assert.equal(
+        (requests[0]!.init?.headers as Record<string, string>).Authorization,
+        'Bearer test-bearer',
+      );
     } finally {
       globalThis.fetch = originalFetch;
       await connection.close();
@@ -162,7 +170,10 @@ describe('remote read and CRUD boundaries', () => {
     try {
       const cases = [
         [{ operation: 'insert', table: 'contacts', id }, /jsonOrdered is required/u],
-        [{ operation: 'update', table: 'contacts', id, version: '01.00.000' }, /jsonOrdered is required/u],
+        [
+          { operation: 'update', table: 'contacts', id, version: '01.00.000' },
+          /jsonOrdered is required/u,
+        ],
         [{ operation: 'delete', table: 'contacts', id }, /version is required/u],
       ] as const;
       for (const [args, expected] of cases) {

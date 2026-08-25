@@ -4,7 +4,7 @@ import { regFlowSearchTool } from '../tools/flow_hybrid_search.js';
 import { regGladDatasetTools } from '../tools/glad_dataset_search.js';
 import { regLifecycleModelSearchTool } from '../tools/life_cycle_model_hybrid_search.js';
 import { regProcessSearchTool } from '../tools/process_hybrid_search.js';
-import { SupabaseSessionPayload } from './auth_middleware.js';
+import type { SupabaseSessionPayload } from './auth_middleware.js';
 
 export function initializeServer(
   bearerKey?: string,

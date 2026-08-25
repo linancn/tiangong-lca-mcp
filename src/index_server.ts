@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import express, { NextFunction, Request, Response } from 'express';
+import express from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { authenticateRequest, SupabaseSessionPayload } from './_shared/auth_middleware.js';
+import { authenticateRequest } from './_shared/auth_middleware.js';
+import type { SupabaseSessionPayload } from './_shared/auth_middleware.js';
 import { getServer } from './_shared/init_server_http.js';
 import authApp from './auth_app.js';
 
