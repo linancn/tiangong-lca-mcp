@@ -184,8 +184,8 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
       if (ttlSeconds) {
         try {
           await redis?.expire(cacheKey, ttlSeconds);
-        } catch (error) {
-          console.warn('Failed to refresh Redis TTL for cached Supabase session:', error);
+        } catch {
+          console.warn('MCP_AUTHENTICATION_CACHE_FAILED', { category: 'redis_ttl' });
         }
       }
 

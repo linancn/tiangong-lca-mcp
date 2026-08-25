@@ -93,15 +93,12 @@ authApp.get('/callback', async (req, res) => {
   const code = queryText(req.query.code);
   const state = queryText(req.query.state);
   const error = queryText(req.query.error);
-  const errorDescription = queryText(req.query.error_description);
 
   // console.log('OAuth callback received:', { code: !!code, state, error, error_description });
 
   if (error) {
-    console.error('OAuth error:', error, errorDescription);
-    return res
-      .status(400)
-      .send(`OAuth Error: ${escapeHtml(error)} - ${escapeHtml(errorDescription)}`);
+    console.error('MCP_AUTHENTICATION_FAILED', { category: 'oauth_callback' });
+    return res.status(400).send('OAuth authorization failed');
   }
 
   if (!code) {
@@ -419,10 +416,13 @@ authApp.post('/token', async (req, res) => {
     // });
 
     if (!tokenResponse.ok) {
-      console.error('Token exchange failed:', responseText);
+      console.error('MCP_AUTHENTICATION_FAILED', {
+        category: 'token_exchange',
+        status: tokenResponse.status,
+      });
       return res.status(tokenResponse.status).json({
         error: 'invalid_grant',
-        error_description: `Token exchange failed: ${responseText}`,
+        error_description: 'Token exchange failed',
       });
     }
 
@@ -445,8 +445,8 @@ authApp.post('/token', async (req, res) => {
     // });
 
     res.json(response);
-  } catch (error) {
-    console.error('Token exchange error:', error);
+  } catch {
+    console.error('MCP_AUTHENTICATION_FAILED', { category: 'token_exchange' });
     res.status(500).json({
       error: 'server_error',
       error_description: 'Internal server error during token exchange',

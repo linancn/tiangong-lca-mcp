@@ -317,7 +317,7 @@ async function createSupabaseClient(
     });
 
     if (setSessionError) {
-      console.warn('Failed to set Supabase session for CRUD tool:', setSessionError.message);
+      console.warn('DATABASE_CRUD_SESSION_FAILED', { category: 'supabase_session' });
     }
   }
 
