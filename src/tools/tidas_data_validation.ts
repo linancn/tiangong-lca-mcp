@@ -136,8 +136,8 @@ function validateTidasData(
         break;
       }
       default: {
-        const exhaustiveCheck: never = entityType;
-        throw new Error(`Unsupported entity type: ${entityType}`);
+        const _exhaustiveCheck: never = entityType;
+        throw new Error('Unsupported entity type.');
       }
     }
 
@@ -147,9 +147,6 @@ function validateTidasData(
         message: `✓ Validation passed for ${ENTITY_METADATA[entityType].name}`,
       };
     } else {
-      const errorDetails = validationResult.error?.issues
-        ? JSON.stringify(validationResult.error.issues, null, 2)
-        : JSON.stringify(validationResult.error);
       return {
         success: false,
         error: validationResult.error,

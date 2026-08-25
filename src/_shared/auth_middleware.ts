@@ -91,7 +91,7 @@ export function getTokenType(bearerKey: string): 'cognito' | 'supabase' | 'api_k
       if (payload.iss && payload.iss.includes('cognito')) {
         return 'cognito';
       }
-    } catch (error) {
+    } catch {
       // 如果解析失败，可能是其他格式的 JWT
     }
   }
@@ -141,7 +141,7 @@ async function authenticateCognitoRequest(bearerKey: string): Promise<AuthResult
 async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult> {
   const credentials = decodeApiKey(bearerKey);
   if (credentials) {
-    const { email = '', password = '' } = credentials;
+    const { email, password } = credentials;
     const cacheKey = 'lca_' + email;
     const cachedPayload = (await redis.get(cacheKey)) as CachedAuthPayload | null;
 
@@ -167,7 +167,7 @@ async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult>
         try {
           const parsed = JSON.parse(cachedPayload) as Record<string, unknown>;
           applyCachedObject(parsed);
-        } catch (_error) {
+        } catch {
           cachedUserId = cachedPayload;
         }
       } else if (typeof cachedPayload === 'object') {

@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "overrides": [
+    {
+      "files": ["test/**/*.ts"],
+      "rules": {
+        "typescript/no-floating-promises": "off"
+      }
+    },
+    {
+      "files": ["src/tools/openlca_grpc.ts"],
+      "rules": {
+        "unicorn/no-empty-file": "off"
+      }
+    }
+  ]
+}

@@ -209,7 +209,12 @@ function appendParam(params: URLSearchParams, key: string, value: unknown): void
     return;
   }
 
-  params.append(key, String(value));
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    params.append(key, String(value));
+    return;
+  }
+
+  throw new TypeError(`Unsupported GLAD query parameter value for ${key}.`);
 }
 
 function appendSearchParams(url: URL, input: GladSearchInput): void {

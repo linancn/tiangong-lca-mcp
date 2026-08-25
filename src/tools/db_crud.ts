@@ -526,7 +526,7 @@ async function performCrud(
         return handleDelete(supabase, input);
 
       default: {
-        const exhaustiveCheck: never = input;
+        const _exhaustiveCheck: never = input;
         throw new Error('Unsupported operation supplied to CRUD tool.');
       }
     }

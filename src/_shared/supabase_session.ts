@@ -63,7 +63,7 @@ export function normalizeSupabaseSession(input: unknown): SupabaseSessionPayload
     try {
       const parsed = JSON.parse(trimmed);
       return normalizeSupabaseSession(parsed);
-    } catch (_error) {
+    } catch {
       return undefined;
     }
   }

@@ -57,7 +57,7 @@ async function calculateLcaImpacts({
   }));
 
   // Dispose the result
-  result.dispose();
+  await result.dispose();
 
   return JSON.stringify(resultsObj);
 }

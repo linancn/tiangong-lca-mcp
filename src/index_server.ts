@@ -89,8 +89,7 @@ app.post('/mcp', authenticateBearer, async (req: AuthenticatedRequest, res: Resp
     await transport.handleRequest(req, res, req.body);
     res.on('close', () => {
       console.log('Request closed');
-      transport.close();
-      server.close();
+      void Promise.allSettled([transport.close(), server.close()]);
     });
   } catch (error) {
     console.error('Error handling MCP request:', error);

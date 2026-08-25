@@ -119,7 +119,9 @@ describe('remote read and CRUD boundaries', () => {
     const originalFetch = globalThis.fetch;
     const requests: Array<{ input: string; init?: RequestInit }> = [];
     globalThis.fetch = async (input, init) => {
-      requests.push({ input: String(input), init });
+      const inputUrl =
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      requests.push({ input: inputUrl, init });
       return new Response(JSON.stringify({ rows: [{ id: 'flow-1' }] }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
@@ -132,12 +134,15 @@ describe('remote read and CRUD boundaries', () => {
       assert.equal(result.isError, undefined);
       assert.deepEqual(JSON.parse(responseText(result)), { rows: [{ id: 'flow-1' }] });
       assert.equal(requests.length, 1);
-      assert.match(requests[0]!.input, /\/functions\/v1\/flow_hybrid_search$/u);
-      assert.deepEqual(JSON.parse(String(requests[0]!.init?.body)), { query: 'steel' });
-      assert.equal(
-        (requests[0]!.init?.headers as Record<string, string>).Authorization,
-        'Bearer test-bearer',
-      );
+      const request = requests[0];
+      assert.ok(request);
+      assert.match(request.input, /\/functions\/v1\/flow_hybrid_search$/u);
+      const body = request.init?.body;
+      if (typeof body !== 'string') {
+        assert.fail('Expected a string request body.');
+      }
+      assert.deepEqual(JSON.parse(body), { query: 'steel' });
+      assert.equal(new Headers(request.init?.headers).get('authorization'), 'Bearer test-bearer');
     } finally {
       globalThis.fetch = originalFetch;
       await connection.close();
