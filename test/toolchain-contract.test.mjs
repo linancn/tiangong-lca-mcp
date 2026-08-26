@@ -87,7 +87,10 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
 
     assert.match(
       readText('Dockerfile'),
-      new RegExp(`corepack install --global pnpm@${expectedPnpmVersion.replaceAll('.', '\\.')}\\b`, 'u'),
+      new RegExp(
+        `corepack install --global pnpm@${expectedPnpmVersion.replaceAll('.', '\\.')}\\b`,
+        'u',
+      ),
     );
   });
 
