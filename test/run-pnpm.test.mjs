@@ -5,11 +5,31 @@ import { resolvePnpmInvocation, runPnpm } from '../scripts/lib/run-pnpm.mjs';
 const successfulVersion = {
   error: undefined,
   status: 0,
-  stdout: '11.23.0\n',
+  stdout: '11.24.0\n',
   stderr: '',
 };
 
 describe('nested pnpm resolver', () => {
+  it('rejects the superseded pnpm 11.23.0 binary', () => {
+    const candidate = '/opt/pnpm/bin/pnpm';
+    assert.throws(
+      () =>
+        resolvePnpmInvocation({
+          cwd: '/tmp/work tree',
+          env: { PATH: '/opt/pnpm/bin' },
+          platform: 'linux',
+          isNativeExecutable: (path) => path === candidate,
+          spawnSync: () => ({
+            error: undefined,
+            status: 0,
+            stdout: '11.23.0\n',
+            stderr: '',
+          }),
+        }),
+      /expected 11\.24\.0, received 11\.23\.0/u,
+    );
+  });
+
   it('resolves a verified POSIX native pnpm without COREPACK_ROOT', () => {
     const candidate = '/opt/pnpm native/bin/pnpm';
     const calls = [];
