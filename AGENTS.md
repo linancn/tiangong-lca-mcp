@@ -43,9 +43,9 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-08-25
-lastReviewedCommit: d585506bee3c2436d3be0fd7a04671723cb34222
-lastReviewedNote: 'Reviewed for release Issue #48: version 0.1.0 changes package, Docker, tag, and public documentation evidence only; the pnpm/TS7 runtime and MCP behavior remain unchanged.'
+lastReviewedAt: 2026-08-26
+lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
+lastReviewedNote: 'Reviewed for release Issue #48: version 0.1.0 changes package, Docker, tag, and public documentation evidence only; the then-current pnpm 11.23.0/TS7 runtime and MCP behavior remained unchanged. Reviewed for Issue #50: the active pnpm contract is 11.24.0 while Node, TypeScript, SDK, MCP behavior, package version, tag, and publication state remain unchanged.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -109,7 +109,7 @@ Route those tasks to:
 ## Runtime Facts
 
 - Repo-local documentation governance is encoded in `.docpact/config.yaml` and enforced locally by the pre-push docpact gate; `.github/workflows/ai-doc-lint.yml` is manual-dispatch fallback.
-- The only supported package-management path is pnpm `11.23.0`, selected by `packageManager`; installs use the root `pnpm-lock.yaml` with `--frozen-lockfile`.
+- The only supported package-management path is pnpm `11.24.0`, selected by `packageManager`; installs use the root `pnpm-lock.yaml` with `--frozen-lockfile`.
 - Runtime and compiler baselines are Node `24.19.0`, TypeScript `7.0.2`, and `@tiangong-lca/tidas-sdk` `0.2.0`; TypeScript 5/6 and compiler-API formatting plugins are not allowed in the direct or recursive graph.
 - `pnpm lint` is read-only: type-aware Oxlint, Prettier check, and TypeScript typecheck run without rewriting source. Use `pnpm format` for explicit formatting writes.
 - `pnpm test` runs real Node assertions for tool registration, every declared TIDAS dataset validation boundary, CRUD/search guards, LifecycleModel `validationIssues`, authenticated/local Streamable HTTP envelopes, and cancellation.

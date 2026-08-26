@@ -21,9 +21,9 @@ checkPaths:
   - src/**
   - test/**
   - scripts/**
-lastReviewedAt: 2026-08-25
-lastReviewedCommit: d585506bee3c2436d3be0fd7a04671723cb34222
-lastReviewedNote: 'Reviewed for release Issue #48: every maintainer Docker, tag, package, and deployment example consistently targets 0.1.0.'
+lastReviewedAt: 2026-08-26
+lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
+lastReviewedNote: 'Reviewed for release Issue #48: every maintainer Docker, tag, package, and deployment example consistently targets 0.1.0 under the then-current pnpm 11.23.0 baseline. Reviewed for Issue #50: active setup commands now pin pnpm 11.24.0 without changing release 0.1.0 evidence.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -43,7 +43,7 @@ TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO 和 StreamableHttp
 ### 客户端 STDIO 服务器
 
 ```bash
-corepack install --global pnpm@11.23.0
+corepack install --global pnpm@11.24.0
 pnpm add --global @tiangong-lca/mcp-server
 
 pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
@@ -77,7 +77,7 @@ nvm install 24.19.0
 nvm use 24.19.0
 
 # 安装精确包管理器并按冻结 lock 安装依赖
-corepack install --global pnpm@11.23.0
+corepack install --global pnpm@11.24.0
 pnpm install --frozen-lockfile
 ```
 

@@ -38,9 +38,9 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-08-25
-lastReviewedCommit: d585506bee3c2436d3be0fd7a04671723cb34222
-lastReviewedNote: 'Reviewed for release Issue #48: package, Docker, and docs now bind 0.1.0 while all canonical feature gates remain mandatory.'
+lastReviewedAt: 2026-08-26
+lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
+lastReviewedNote: 'Reviewed for release Issue #48: package, Docker, and docs bind 0.1.0 under the then-current pnpm 11.23.0 baseline while all canonical feature gates remain mandatory. Reviewed for Issue #50: exact pnpm 11.24.0 changes only the package-manager baseline; all canonical gates remain mandatory.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -85,7 +85,7 @@ The gate is intentionally non-mutating and includes:
 
 Facts that matter today:
 
-- `.nvmrc`, `Dockerfile`, package engines, pnpm workspace policy, and maintainer docs must stay aligned on Node `24.19.0` and pnpm `11.23.0`
+- `.nvmrc`, `Dockerfile`, package engines, pnpm workspace policy, and maintainer docs must stay aligned on Node `24.19.0` and pnpm `11.24.0`
 - the only compiler in the direct or recursive graph is TypeScript `7.0.2`; SDK `0.2.0` must not reintroduce `ts-to-zod` or TypeScript 5/6
 - local tests do not contact TianGong production, GLAD, Supabase, or OpenLCA; external proof must be separately authorized and recorded
 - the four-platform workflow is the authoritative portability proof after PR submission; local macOS proof alone is not four-platform evidence
