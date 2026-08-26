@@ -7,13 +7,14 @@ const repoRoot = new URL('../', import.meta.url);
 const readText = (path) => readFileSync(new URL(path, repoRoot), 'utf8');
 const pathExists = (path) => existsSync(fileURLToPath(new URL(path, repoRoot)));
 const packageJson = JSON.parse(readText('package.json'));
+const expectedPnpmVersion = '11.24.0';
 
 describe('pnpm and TypeScript 7 toolchain contract', () => {
   it('pins the workspace runtime and package manager', () => {
-    assert.equal(packageJson.packageManager, 'pnpm@11.23.0');
+    assert.equal(packageJson.packageManager, `pnpm@${expectedPnpmVersion}`);
     assert.deepEqual(packageJson.engines, {
       node: '>=24.19.0 <25',
-      pnpm: '11.23.0',
+      pnpm: expectedPnpmVersion,
     });
     assert.equal(readText('.nvmrc').trim(), '24.19.0');
   });
@@ -78,6 +79,19 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     }
     assert.match(qualityGate, /pnpm install --frozen-lockfile/u);
     assert.match(qualityGate, /pnpm run prepush:gate/u);
+
+    for (const workflow of [qualityGate, readText('.github/workflows/publish.yml')]) {
+      assert.match(workflow, /uses: pnpm\/setup@/u);
+      assert.doesNotMatch(workflow, /^\s+version:\s*/mu);
+    }
+
+    assert.match(
+      readText('Dockerfile'),
+      new RegExp(
+        `corepack install --global pnpm@${expectedPnpmVersion.replaceAll('.', '\\.')}\\b`,
+        'u',
+      ),
+    );
   });
 
   it('binds the 0.1.0 release across package, Docker, and active docs', () => {

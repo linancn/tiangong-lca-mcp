@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/linancn/tiangong-lca-mcp"
   },
-  "packageManager": "pnpm@11.23.0",
+  "packageManager": "pnpm@11.24.0",
   "type": "module",
   "bin": {
     "tiangong-lca-mcp-stdio": "dist/src/index.js",
@@ -45,7 +45,7 @@
   },
   "engines": {
     "node": ">=24.19.0 <25",
-    "pnpm": "11.23.0"
+    "pnpm": "11.24.0"
   },
   "dependencies": {
     "@dagrejs/dagre": "3.1.1",

@@ -33,9 +33,9 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-08-25
-lastReviewedCommit: d585506bee3c2436d3be0fd7a04671723cb34222
-lastReviewedNote: 'Reviewed for release Issue #48: the 0.1.0 version alignment does not change transport, auth, tool, or release-workflow ownership.'
+lastReviewedAt: 2026-08-26
+lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
+lastReviewedNote: 'Reviewed for release Issue #48: the 0.1.0 version alignment under pnpm 11.23.0 does not change transport, auth, tool, or release-workflow ownership. Reviewed for Issue #50: pnpm 11.24.0 changes only the package-manager baseline and leaves those ownership boundaries unchanged.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -140,9 +140,9 @@ The active local OpenLCA integration uses `olca-ipc`. The `openlca_grpc.ts` file
 
 `main` pushes whose `package.json` version changes create the matching `v<version>` tag, install with pnpm's frozen lock, run the canonical pre-push gate, and publish `@tiangong-lca/mcp-server` through pnpm. Manual `v*` tag pushes and workflow-dispatch runs for existing tags remain recovery/backfill paths.
 
-The package graph is single-track Node `24.19.0`, pnpm `11.23.0`, TypeScript `7.0.2`, and TIDAS SDK `0.2.0`. The packed-consumer proof imports all three packaged entry modules from an arbitrary path and verifies that compiler/lint/test tooling is absent from the production install.
+The package graph is single-track Node `24.19.0`, pnpm `11.24.0`, TypeScript `7.0.2`, and TIDAS SDK `0.2.0`. The packed-consumer proof imports all three packaged entry modules from an arbitrary path and verifies that compiler/lint/test tooling is absent from the production install.
 
-Nested consumer and clean-worktree commands cannot assume Corepack environment variables: they scan `PATH` for the official native `pnpm` or `pnpm.exe`, verify exact version `11.23.0`, and execute with argv plus `shell: false`. A verified `COREPACK_ROOT/dist/pnpm.js` invocation remains a fallback for local Corepack shells.
+Nested consumer and clean-worktree commands cannot assume Corepack environment variables: they scan `PATH` for the official native `pnpm` or `pnpm.exe`, verify exact version `11.24.0`, and execute with argv plus `shell: false`. A verified `COREPACK_ROOT/dist/pnpm.js` invocation remains a fallback for local Corepack shells.
 
 ## Common Misreads
 

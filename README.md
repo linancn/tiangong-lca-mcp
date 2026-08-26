@@ -21,9 +21,9 @@ checkPaths:
   - src/index_server_local.ts
   - src/http_app.ts
   - src/http_app_local.ts
-lastReviewedAt: 2026-08-25
-lastReviewedCommit: 6871ce361cc6f382654424be1064a24c1edf2031
-lastReviewedNote: 'Reviewed for release Issue #48: public Docker examples consistently target MCP server 0.1.0.'
+lastReviewedAt: 2026-08-26
+lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
+lastReviewedNote: 'Reviewed for release Issue #48: public Docker examples consistently target MCP server 0.1.0 under the then-current pnpm 11.23.0 baseline. Reviewed for Issue #50: the active client setup command now pins pnpm 11.24.0 without changing the 0.1.0 package or Docker evidence.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -51,7 +51,7 @@ GLAD_API_BASE_URL=https://www.globallcadataaccess.org/api/v1
 ### Client STDIO Server
 
 ```bash
-corepack install --global pnpm@11.23.0
+corepack install --global pnpm@11.24.0
 pnpm add --global @tiangong-lca/mcp-server
 
 pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio

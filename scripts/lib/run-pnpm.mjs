@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { posix, win32 } from 'node:path';
 
-const EXPECTED_PNPM_VERSION = '11.23.0';
+const EXPECTED_PNPM_VERSION = '11.24.0';
 const POSIX_NATIVE_HEADERS = new Set([
   '7f454c46', // ELF
   'cafebabe', // Mach-O universal
