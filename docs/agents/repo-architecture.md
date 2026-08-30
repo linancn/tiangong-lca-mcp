@@ -34,8 +34,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ffd98dd53f0927e246fb1f315a10bc343bdd3167
-lastReviewedNote: 'Reviewed for Issue #52: the authenticated HTTP mode now uses the strict Supabase-backed MCP OAuth broker and encrypted Redis session state, while STDIO, local HTTP, tool ownership, release automation, and package version remain unchanged.'
+lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
+lastReviewedNote: 'Reviewed for Issue #52: authenticated HTTP uses the strict Supabase-backed MCP OAuth broker; its downstream actor token now reaches PostgREST reads, ordinary actor commands, and LifecycleModel bundle commands without raw DML.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -109,7 +109,7 @@ The MCP-side write and preprocessing logic clusters around:
 - `src/tools/db_crud.ts`
 - `src/tools/life_cycle_model_file_tools.ts`
 
-This path calls SDK `validateEnhanced()` once before graph construction or Supabase process lookup. Database insert/update computes that prepared payload once before constructing the CRUD Supabase client or applying a refresh-token session, then passes it into the operation handler without repeating validation. Strict-invalid LifecycleModels throw a stable `TIDAS_VALIDATION_FAILED` envelope with normalized code/path/severity, make zero auth/REST/process-lookup requests, and never reach a write. A strict-success result alone may derive `json_tg` and `rule_verification`; insert/update responses echo the exact SDK `validationIssueCount` and `validationIssues` (normally zero/empty in strict success), and those response-evidence fields are not added to the database row.
+This path calls SDK `validateEnhanced()` once before graph construction or Supabase process lookup. Select remains an actor-bound PostgREST read. Ordinary insert/update computes the prepared payload once, then calls `app_dataset_create` or `app_dataset_save_draft`; ordinary delete calls `app_dataset_delete`. LifecycleModel insert/update instead sends the prepared `jsonOrdered`/`jsonTg` parent through `save_lifecycle_model_bundle`, and delete uses `delete_lifecycle_model_bundle`, preserving the existing atomic bundle contract. These Edge commands preserve the downstream Supabase actor/client token and invoke the existing command-cutover RPCs: the MCP client receives `DB-CORE-WRITE-01` for ordinary dataset commands and `EDGE-BUNDLE-01` for LifecycleModels, so raw core-table DML never reopens. Strict-invalid LifecycleModels throw a stable `TIDAS_VALIDATION_FAILED` envelope with normalized code/path/severity, make zero auth/REST/process-lookup requests, and never reach a write. A strict-success result alone may derive `json_tg` and `rule_verification`; insert/update responses echo the exact SDK `validationIssueCount` and `validationIssues` (normally zero/empty in strict success), and those response-evidence fields are not added to the database row.
 
 ### Local OpenLCA and TIDAS validation
 

@@ -44,8 +44,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ffd98dd53f0927e246fb1f315a10bc343bdd3167
-lastReviewedNote: 'Reviewed for Issue #52: remote HTTP now owns a fixed-client OAuth 2.1 broker, encrypted Upstash state, exact MCP resource binding, distinct inbound/downstream tokens, standard discovery/challenges, and a bounded legacy API-key mode; STDIO/local HTTP and package version remain unchanged.'
+lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
+lastReviewedNote: 'Reviewed for Issue #52: remote HTTP owns the fixed-client OAuth 2.1 broker and isolated downstream token; CRUD reads stay on PostgREST, ordinary writes use actor commands, and LifecycleModel writes use the bundle commands without reopening raw DML.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -113,7 +113,7 @@ Route those tasks to:
 - Runtime and compiler baselines are Node `24.19.0`, TypeScript `7.0.2`, and `@tiangong-lca/tidas-sdk` `0.2.0`; TypeScript 5/6 and compiler-API formatting plugins are not allowed in the direct or recursive graph.
 - `pnpm lint` is read-only: type-aware Oxlint, Prettier check, and TypeScript typecheck run without rewriting source. Use `pnpm format` for explicit formatting writes.
 - `pnpm test` runs real Node assertions for tool registration, every declared TIDAS dataset validation boundary, CRUD/search guards, LifecycleModel `validationIssues`, authenticated/local Streamable HTTP envelopes, cancellation, OAuth discovery/PKCE/resource binding, token separation, encrypted state, refresh races, revocation, and Origin rejection.
-- SDK validation uses `validateEnhanced()` exactly once per entity and consumes normalized `validationIssues`. Insert/update prepares and validates once before creating the CRUD Supabase client or applying a refresh-token session. Strict-invalid LifecycleModels therefore perform zero auth/REST/process-lookup requests and can never reach a write; their stable error envelope exposes normalized code/path/severity without raw Zod parsing.
+- SDK validation uses `validateEnhanced()` exactly once per entity and consumes normalized `validationIssues`. Insert/update prepares and validates once before transport. Reads use actor-bound PostgREST; ordinary create/save/delete uses `app_dataset_create`, `app_dataset_save_draft`, and `app_dataset_delete` (`DB-CORE-WRITE-01`), while LifecycleModels use `save_lifecycle_model_bundle` and `delete_lifecycle_model_bundle` (`EDGE-BUNDLE-01`). No MCP write uses raw table DML. Strict-invalid LifecycleModels therefore perform zero auth/REST/process-lookup requests and can never reach a write; their stable error envelope exposes normalized code/path/severity without raw Zod parsing.
 - `pnpm prepush:gate` is the canonical gate. It also proves the packed runtime consumer, a clean arbitrary-path worktree, build, audit, and pack contract.
 - Nested package tests resolve and verify the exact native `pnpm`/`pnpm.exe` executable first with `shell: false`; Corepack JavaScript is only a fallback. Do not assume `COREPACK_ROOT` exists in `pnpm/setup` runners.
 - `.github/workflows/quality-gate.yml` runs the canonical gate on Linux x64, Windows x64, macOS arm64, and Linux arm64.

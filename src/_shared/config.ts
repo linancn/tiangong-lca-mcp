@@ -11,6 +11,7 @@ export const supabase_base_url =
   process.env.SUPABASE_BASE_URL ?? 'https://qgzvkongdjqiiamzbbts.supabase.co';
 export const supabase_publishable_key =
   process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_EFWH4E61tpAtf82WQ37xTA_Fxa5OPyg';
+export const supabase_functions_base_url = `${supabase_base_url.replace(/\/+$/u, '')}/functions/v1`;
 export const x_region = process.env.X_REGION ?? 'us-east-1';
 
 export const redis_url = process.env.UPSTASH_REDIS_REST_URL ?? '';

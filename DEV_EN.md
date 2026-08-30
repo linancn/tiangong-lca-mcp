@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ffd98dd53f0927e246fb1f315a10bc343bdd3167
-lastReviewedNote: 'Reviewed for Issue #52: maintainer guidance now covers fixed-client Supabase OAuth broker setup, secret/Redis boundaries, Dev callback and discovery checks, migration modes, and live-proof ownership while retaining the existing toolchain and 0.1.0 release evidence.'
+lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
+lastReviewedNote: 'Reviewed for Issue #52: maintainer guidance covers the fixed-client OAuth broker and the downstream actor-token path across PostgREST reads, ordinary dataset commands, and LifecycleModel bundle commands.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -103,6 +103,8 @@ curl --fail http://localhost:9278/.well-known/oauth-authorization-server
 ```
 
 The live Dev proof must record PKCE, refresh rotation, replay failure, local revoke, database actor/client behavior, and inbound/downstream token inequality without printing any token or secret. Offline tests use a fake Supabase endpoint and do not replace that proof.
+
+`Database_CRUD_Tool` keeps selects on actor-bound PostgREST. Ordinary create/save/delete calls the three `app_dataset_*` Edge commands and requires `DB-CORE-WRITE-01`; LifecycleModel create/save/delete calls the existing save/delete bundle endpoints and requires `EDGE-BUNDLE-01`. The fixed MCP OAuth client also needs `DB-CORE-READ-01`. Do not grant direct table DML or replace these commands with service-role writes.
 
 ### Code Formatting
 
