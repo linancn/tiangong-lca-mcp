@@ -21,9 +21,9 @@ checkPaths:
   - src/**
   - test/**
   - scripts/**
-lastReviewedAt: 2026-08-26
-lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
-lastReviewedNote: 'Reviewed for release Issue #48: every maintainer Docker, tag, package, and deployment example consistently targets 0.1.0 under the then-current pnpm 11.23.0 baseline. Reviewed for Issue #50: active setup commands now pin pnpm 11.24.0 without changing release 0.1.0 evidence.'
+lastReviewedAt: 2026-08-31
+lastReviewedCommit: ffd98dd53f0927e246fb1f315a10bc343bdd3167
+lastReviewedNote: '针对 Issue #52 完成复核：维护说明现覆盖固定 client 的 Supabase OAuth broker、secret/Redis 边界、Dev 回调与发现检查、迁移模式和 live proof 归属；既有工具链与 0.1.0 发布证据不变。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -80,6 +80,28 @@ nvm use 24.19.0
 corepack install --global pnpm@11.24.0
 pnpm install --frozen-lockfile
 ```
+
+### OAuth Broker 配置
+
+远程 HTTP 入口按 `.env.example` 配置。workspace 本地测试时，把非敏感 Supabase broker 配置放进私有 env 文件，并从 `tiangong-lca-edge-functions/.env` 读取 Edge/MCP 共用的 Redis 值；两个 runtime 都使用 `UPSTASH_REDIS_REST_URL` 与 `UPSTASH_REDIS_REST_TOKEN`。不要替换成 Portal 单独保留的 `UPSTASH_REDIS_URL`/`UPSTASH_REDIS_TOKEN`。
+
+Dev 必须具备以下精确控制面事实：
+
+1. 启用 Supabase OAuth Server，关闭 Dynamic Client Registration，authorization path 为 `/oauth/consent`。
+2. 注册固定的 Supabase confidential client，回调精确为 `http://localhost:9278/oauth/callback`。
+3. 在 `MCP_OAUTH_HOST_CLIENTS_JSON` 中至少配置一个固定 public MCP host client；MCP Inspector CLI/TUI 通常使用 `http://127.0.0.1:6276/oauth/callback`。
+4. 使用随机 32 字节 `MCP_OAUTH_SESSION_ENCRYPTION_KEY`，并把它、Supabase client secret 与 Redis REST token 保存在 Git 之外。
+
+资格验证期设置 `MCP_AUTH_MODE=broker_compat`；旧 API key 退役门禁通过后改为 `broker`。`legacy` 是显式回滚配置，不是常规本地或生产模式。
+
+authorization server 暴露 `/authorize`、`/token` 与 `/revoke`；上游回调是 `/oauth/callback`。live flow 前先检查发现文档：
+
+```bash
+curl --fail http://localhost:9278/.well-known/oauth-protected-resource/mcp
+curl --fail http://localhost:9278/.well-known/oauth-authorization-server
+```
+
+Dev live proof 必须记录 PKCE、refresh 轮换、重放失败、本地 revoke、数据库 actor/client 行为以及入站/下游 token 不相等；不得打印 token 或 secret。离线测试使用假的 Supabase endpoint，不能替代该证明。
 
 ### 代码格式化
 

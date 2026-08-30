@@ -33,9 +33,9 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-08-26
-lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
-lastReviewedNote: 'Reviewed for release Issue #48: the 0.1.0 version alignment under pnpm 11.23.0 does not change transport, auth, tool, or release-workflow ownership. Reviewed for Issue #50: pnpm 11.24.0 changes only the package-manager baseline and leaves those ownership boundaries unchanged.'
+lastReviewedAt: 2026-08-31
+lastReviewedCommit: ffd98dd53f0927e246fb1f315a10bc343bdd3167
+lastReviewedNote: 'Reviewed for Issue #52: the authenticated HTTP mode now uses the strict Supabase-backed MCP OAuth broker and encrypted Redis session state, while STDIO, local HTTP, tool ownership, release automation, and package version remain unchanged.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -51,43 +51,36 @@ related:
 | Mode | Entry file | Main surface | Tool families exposed |
 | --- | --- | --- | --- |
 | STDIO | `src/index.ts` | `StdioServerTransport` | search wrappers, GLAD dataset tools, OpenLCA tools, prompts, resources, guidance |
-| HTTP | `src/index_server.ts` | authenticated Streamable HTTP on `POST /mcp` plus `/health` and `/oauth` | search wrappers, GLAD dataset tools, and `Database_CRUD_Tool` |
+| HTTP | `src/index_server.ts` | OAuth-protected Streamable HTTP on `POST /mcp`, `/health`, root discovery, and broker endpoints | search wrappers, GLAD dataset tools, and `Database_CRUD_Tool` |
 | HTTP local | `src/index_server_local.ts` | local Streamable HTTP on `POST /mcp` plus `/health` | OpenLCA tools, TIDAS validation, prompts, resources |
 
 The executable HTTP entries delegate app construction to `src/http_app.ts` and `src/http_app_local.ts`. Importing an entry does not bind a port; each stateless request receives a request-scoped MCP server and transport, and response closure triggers bounded cleanup. Server construction itself is inside the common JSON-RPC error boundary, so both authenticated and local factory throws return a generic JSON 500 without leaking the exception or Express stack HTML. Authenticator, factory, and transport logs expose only stable redacted code/category fields, never the caught message or stack. This split is the offline test seam for health, method guards, auth errors, JSON-RPC errors, discovery, cancellation, and factory cleanup.
 
 ## Auth Decision Tree
 
-The authenticated HTTP path classifies bearer tokens inside `src/_shared/auth_middleware.ts`.
+The authenticated HTTP path has three explicit modes:
 
-Accepted shapes today:
+1. `broker`: accept only audience-bound MCP access tokens issued by this service.
+2. `broker_compat`: accept broker tokens plus the bounded base64 `{ email, password }` migration key. The migration key is exchanged for a distinct Supabase session and is never forwarded.
+3. `legacy`: retain the pre-migration classifier only as an operator rollback surface.
 
-1. Cognito access token
-2. base64 JSON API key payload with `{ email, password }`
-3. Supabase access token
+`src/_shared/oauth_runtime.ts` composes the configured mode. The production path verifies an opaque MCP access token through `SupabaseOAuthBrokerProvider`, attaches the SDK `AuthInfo` to the request, and gives tool wrappers only the separate upstream Supabase access token from encrypted server-side state. Direct Supabase and Cognito bearer tokens are not accepted in broker modes.
 
-Important supporting files:
-
-- `src/_shared/cognito_auth.ts`
-- `src/_shared/decode_api_key.ts`
-- `src/_shared/supabase_session.ts`
-- `src/_shared/config.ts`
-
-API-key auth signs into Supabase and can reuse cached sessions through Upstash Redis.
-
-All credential denials at the authenticated HTTP boundary are generic `Forbidden`. Provider-specific strings are internal-only, and Cognito verification failures emit only the stable redacted `MCP_AUTHENTICATION_FAILED`/`cognito` log category.
+Broker access/refresh tokens, authorization codes, and states are random handles. Redis keys contain SHA-256 handle digests; values are AES-256-GCM envelopes whose additional authenticated data binds each value to its logical key. Refresh handles are consumed atomically, so one request wins a rotation race and replay fails closed. `broker_compat` constructs Redis only after the bearer decodes as an eligible legacy API key and uses `auth:legacy-user-api-key:v2:<sha256>` rather than email-derived keys.
 
 ## OAuth Surface
 
-The MCP OAuth router lives in `src/auth_app.ts`.
+The MCP OAuth router lives in `src/auth_app.ts`, backed by `src/_shared/supabase_oauth_broker.ts` and `src/_shared/oauth_broker_store.ts`.
 
-The authenticated HTTP server mounts:
+The authenticated HTTP server publishes:
 
-- `/oauth`
-- `/oauth/index`
-- `/oauth/demo`
+- `/.well-known/oauth-protected-resource/mcp` for the canonical MCP resource;
+- `/.well-known/oauth-authorization-server` for authorization-server discovery;
+- `/authorize`, `/token`, and `/revoke` for the fixed MCP host clients;
+- `/oauth/callback` as the exact confidential Supabase broker callback;
+- `POST /mcp` with a `WWW-Authenticate` challenge that points to protected-resource metadata.
 
-Static assets for that flow live in `public/**`.
+The broker starts a second PKCE transaction against Supabase. It consumes the Supabase code itself, encrypts the upstream refresh session, then returns a new broker authorization code to the MCP host. The host never receives a Supabase token. Dynamic client registration and the previous code-display/demo pages are absent from the first release.
 
 ## Tool Families
 
@@ -147,7 +140,7 @@ Nested consumer and clean-worktree commands cannot assume Corepack environment v
 ## Common Misreads
 
 - this repo is not the source of truth for remote search algorithms
-- the OAuth demo pages here are not the product app
+- the broker callback is not a consent UI; Next owns Supabase login and consent at `/oauth/consent`
 - `pnpm test` is an offline assertion suite; it does not imply live OpenLCA, GLAD, Supabase, or production proof
 - a merged child PR does not finish workspace delivery
 

@@ -1,10 +1,10 @@
 {
   "tiangong_lca": {
+    "oauth": {
+      "clientId": "tiangong-mcp-inspector-dev",
+      "scopes": "mcp:tools"
+    },
     "transport": "streamable_http",
-    "url": "http://host.docker.internal:9278/mcp",
-    "headers": {
-      "Accept": "application/json, text/event-stream",
-      "Authorization": "Bearer YOUR_TOKEN_HERE"
-    }
+    "url": "http://host.docker.internal:9278/mcp"
   }
 }

@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { z } from 'zod';
 import { createOAuthBrokerApp } from '../src/auth_app.js';
@@ -186,6 +187,23 @@ async function authorize(baseUrl: string): Promise<{
 }
 
 describe('Supabase-backed MCP OAuth broker', () => {
+  it('pins Edge/MCP Redis names and removes credential-display pages', () => {
+    const environment = readFileSync('.env.example', 'utf8');
+    const clientExample = readFileSync('mcp_config.json', 'utf8');
+    const runtimeConfig = readFileSync('src/_shared/config.ts', 'utf8');
+    const legacyAuth = readFileSync('src/_shared/auth_middleware.ts', 'utf8');
+    assert.match(environment, /^UPSTASH_REDIS_REST_URL=/mu);
+    assert.match(environment, /^UPSTASH_REDIS_REST_TOKEN=/mu);
+    assert.doesNotMatch(environment, /^UPSTASH_REDIS_(?:URL|TOKEN)=/mu);
+    assert.match(runtimeConfig, /process\.env\.UPSTASH_REDIS_REST_URL/u);
+    assert.match(runtimeConfig, /process\.env\.UPSTASH_REDIS_REST_TOKEN/u);
+    assert.match(legacyAuth, /auth:legacy-user-api-key:v2:/u);
+    assert.doesNotMatch(legacyAuth, /['"]lca_['"]\s*\+/u);
+    assert.doesNotMatch(clientExample, /Authorization|YOUR_TOKEN/u);
+    assert.equal(existsSync('public/oauth-demo.html'), false);
+    assert.equal(existsSync('public/oauth-index.html'), false);
+  });
+
   it('publishes fixed-client discovery and a standards-compliant challenge', async () => {
     const harness = createHarness();
     await withHttpServer(harness.app, async (baseUrl) => {

@@ -21,9 +21,9 @@ checkPaths:
   - src/index_server_local.ts
   - src/http_app.ts
   - src/http_app_local.ts
-lastReviewedAt: 2026-08-26
-lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
-lastReviewedNote: 'Reviewed for release Issue #48: public Docker examples consistently target MCP server 0.1.0 under the then-current pnpm 11.23.0 baseline. Reviewed for Issue #50: the active client setup command now pins pnpm 11.24.0 without changing the 0.1.0 package or Docker evidence.'
+lastReviewedAt: 2026-08-31
+lastReviewedCommit: ffd98dd53f0927e246fb1f315a10bc343bdd3167
+lastReviewedNote: 'Reviewed for Issue #52: remote Streamable HTTP now documents browser-based OAuth 2.1, fixed clients, broker token separation, shared Edge/MCP Redis names, and transition modes without changing STDIO/local HTTP or package version 0.1.0.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -39,12 +39,28 @@ TianGong LCA Model Context Protocol (MCP) Server supports STDIO and Streamable H
 
 ## Environment
 
-GLAD dataset search tools require a GLAD API key in the server environment:
+Copy `.env.example` and populate its Supabase, Redis, and MCP broker values. The remote server uses `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`, intentionally not Portal's separately retained `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` pair.
+
+GLAD dataset search tools additionally require a GLAD API key:
 
 ```bash
 GLAD_API_KEY=your-glad-api-key
 GLAD_API_BASE_URL=https://www.globallcadataaccess.org/api/v1
 ```
+
+## Remote OAuth
+
+Remote Streamable HTTP is an OAuth 2.1 protected resource. A compatible MCP host discovers `/.well-known/oauth-protected-resource/mcp`, opens the user's browser, and completes Authorization Code with S256 PKCE. The user signs in and consents in Next; usernames and passwords are never entered into the AI or MCP host.
+
+The service is a token broker: the host receives a short-lived opaque MCP token, while the server keeps a distinct Supabase access/refresh session encrypted in Upstash. Only that Supabase access token reaches Edge or PostgREST. The first release uses operator-configured fixed host clients and does not expose Dynamic Client Registration.
+
+`MCP_AUTH_MODE` controls migration:
+
+- `broker_compat`: broker tokens plus the legacy encoded user API key, with identifier-free transition telemetry;
+- `broker`: broker tokens only;
+- `legacy`: rollback-only pre-migration authentication.
+
+There is no OAuth demo or authorization-code display page. Operators register the exact broker callback `${MCP_PUBLIC_ORIGIN}/oauth/callback` as a confidential Supabase client and keep its secret plus `MCP_OAUTH_SESSION_ENCRYPTION_KEY` in an approved secret store.
 
 ## Starting MCP Server
 
