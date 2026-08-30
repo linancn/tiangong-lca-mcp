@@ -13,8 +13,8 @@ export const supabase_publishable_key =
   process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_EFWH4E61tpAtf82WQ37xTA_Fxa5OPyg';
 export const x_region = process.env.X_REGION ?? 'us-east-1';
 
-export const redis_url = process.env.UPSTASH_REDIS_URL ?? '';
-export const redis_token = process.env.UPSTASH_REDIS_TOKEN ?? '';
+export const redis_url = process.env.UPSTASH_REDIS_REST_URL ?? '';
+export const redis_token = process.env.UPSTASH_REDIS_REST_TOKEN ?? '';
 
 export const glad_api_base_url =
   process.env.GLAD_API_BASE_URL ?? 'https://www.globallcadataaccess.org/api/v1';

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
+import { createHash } from 'node:crypto';
 import { authenticateCognitoToken } from './cognito_auth.js';
 import { redis_token, redis_url, supabase_base_url, supabase_publishable_key } from './config.js';
 import decodeApiKey from './decode_api_key.js';
@@ -10,13 +11,15 @@ export type { SupabaseSessionPayload } from './supabase_session.js';
 
 const supabase = createClient(supabase_base_url, supabase_publishable_key);
 
-const redis =
-  redis_url && redis_token
-    ? new Redis({
-        url: redis_url,
-        token: redis_token,
-      })
-    : undefined;
+let legacyRedis: Redis | undefined;
+
+function getLegacyRedis(): Redis | undefined {
+  if (!redis_url || !redis_token) {
+    return undefined;
+  }
+  legacyRedis ??= new Redis({ url: redis_url, token: redis_token });
+  return legacyRedis;
+}
 
 export interface AuthResult {
   isAuthenticated: boolean;
@@ -117,7 +120,7 @@ export async function authenticateRequest(bearerKey: string): Promise<AuthResult
       return await authenticateCognitoRequest(bearerKey);
 
     case 'api_key':
-      return await authenticateApiKeyRequest(bearerKey);
+      return await authenticateLegacyApiKeyRequest(bearerKey);
 
     case 'supabase':
     default:
@@ -141,11 +144,14 @@ async function authenticateCognitoRequest(bearerKey: string): Promise<AuthResult
 /**
  * 使用 API Key 认证
  */
-async function authenticateApiKeyRequest(bearerKey: string): Promise<AuthResult> {
+export async function authenticateLegacyApiKeyRequest(bearerKey: string): Promise<AuthResult> {
   const credentials = decodeApiKey(bearerKey);
   if (credentials) {
     const { email, password } = credentials;
-    const cacheKey = 'lca_' + email;
+    const redis = getLegacyRedis();
+    const cacheKey = `auth:legacy-user-api-key:v2:${createHash('sha256')
+      .update(bearerKey, 'utf8')
+      .digest('hex')}`;
     const cachedPayload = redis ? ((await redis.get(cacheKey)) as CachedAuthPayload | null) : null;
 
     let cachedUserId: string | undefined;
