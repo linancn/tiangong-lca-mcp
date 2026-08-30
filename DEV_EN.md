@@ -22,9 +22,9 @@ checkPaths:
   - src/**
   - test/**
   - scripts/**
-lastReviewedAt: 2026-08-26
-lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
-lastReviewedNote: 'Reviewed for release Issue #48: every maintainer Docker, tag, package, and deployment example consistently targets 0.1.0 under the then-current pnpm 11.23.0 baseline. Reviewed for Issue #50: active setup commands now pin pnpm 11.24.0 without changing release 0.1.0 evidence.'
+lastReviewedAt: 2026-08-31
+lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
+lastReviewedNote: 'Reviewed for Issue #52: maintainer guidance covers the fixed-client OAuth broker and the downstream actor-token path across PostgREST reads, ordinary dataset commands, and LifecycleModel bundle commands.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -81,6 +81,30 @@ nvm use 24.19.0
 corepack install --global pnpm@11.24.0
 pnpm install --frozen-lockfile
 ```
+
+### OAuth Broker Setup
+
+The remote HTTP entry is configured from `.env.example`. For local workspace testing, copy the non-secret Supabase broker settings into a private env file and load the Edge/MCP Redis values from `tiangong-lca-edge-functions/.env`; both runtimes use `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Never substitute Portal's separate `UPSTASH_REDIS_URL`/`UPSTASH_REDIS_TOKEN` pair.
+
+Dev requires these exact control-plane facts:
+
+1. Supabase OAuth Server enabled with Dynamic Client Registration disabled and authorization path `/oauth/consent`.
+2. A fixed confidential Supabase client whose redirect is `http://localhost:9278/oauth/callback`.
+3. At least one fixed public MCP host client in `MCP_OAUTH_HOST_CLIENTS_JSON`; MCP Inspector CLI/TUI normally uses `http://127.0.0.1:6276/oauth/callback`.
+4. A 32-byte random `MCP_OAUTH_SESSION_ENCRYPTION_KEY`, the Supabase client secret, and Redis REST token held outside Git.
+
+Set `MCP_AUTH_MODE=broker_compat` for qualification, then `broker` after the legacy API-key retirement gate. `legacy` is an explicit rollback setting, not the normal local or production mode.
+
+The authorization server exposes `/authorize`, `/token`, and `/revoke`; its upstream callback is `/oauth/callback`. Verify discovery before a live flow:
+
+```bash
+curl --fail http://localhost:9278/.well-known/oauth-protected-resource/mcp
+curl --fail http://localhost:9278/.well-known/oauth-authorization-server
+```
+
+The live Dev proof must record PKCE, refresh rotation, replay failure, local revoke, database actor/client behavior, and inbound/downstream token inequality without printing any token or secret. Offline tests use a fake Supabase endpoint and do not replace that proof.
+
+`Database_CRUD_Tool` keeps selects on actor-bound PostgREST. Ordinary create/save/delete calls the three `app_dataset_*` Edge commands and requires `DB-CORE-WRITE-01`; LifecycleModel create/save/delete calls the existing save/delete bundle endpoints and requires `EDGE-BUNDLE-01`. The fixed MCP OAuth client also needs `DB-CORE-READ-01`. Do not grant direct table DML or replace these commands with service-role writes.
 
 ### Code Formatting
 

@@ -2,7 +2,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { EnhancedValidationResult } from '@tiangong-lca/tidas-sdk/core';
 import { z } from 'zod';
-import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
+import {
+  supabase_base_url,
+  supabase_functions_base_url,
+  supabase_publishable_key,
+  x_region,
+} from '../_shared/config.js';
 import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
 import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
 import { TidasValidationError } from '../_shared/tidas_validation.js';
@@ -175,7 +180,7 @@ async function getTidasValidationFactoryMap(): Promise<TidasValidationFactoryMap
 function requireAccessToken(accessToken?: string): string {
   if (!accessToken) {
     throw new Error(
-      'An authenticated Supabase session is required for update operations. Provide a valid access token.',
+      'An authenticated Supabase session is required for write operations. Provide a valid access token.',
     );
   }
 
@@ -188,6 +193,114 @@ function ensureRows(rows: unknown, errorMessage: string): JsonValue[] {
   }
 
   return rows as JsonValue[];
+}
+
+type DatasetCommandName = 'app_dataset_create' | 'app_dataset_save_draft' | 'app_dataset_delete';
+type LifecycleBundleCommandName = 'save_lifecycle_model_bundle' | 'delete_lifecycle_model_bundle';
+type EdgeCommandName = DatasetCommandName | LifecycleBundleCommandName;
+
+const DATASET_COMMAND_RESPONSE_MAX_BYTES = 1024 * 1024;
+
+function commandDataRows(data: unknown): JsonValue[] {
+  if (Array.isArray(data)) {
+    return data as JsonValue[];
+  }
+  if (data && typeof data === 'object') {
+    return [data as JsonValue];
+  }
+  return [];
+}
+
+async function executeEdgeCommand(
+  command: EdgeCommandName,
+  accessToken: string,
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const response = await fetch(`${supabase_functions_base_url}/${command}`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      apikey: supabase_publishable_key,
+      'x-region': x_region,
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const text = await response.text();
+  if (Buffer.byteLength(text, 'utf8') > DATASET_COMMAND_RESPONSE_MAX_BYTES) {
+    throw new Error('Dataset command response exceeded the byte limit.');
+  }
+  if (!response.ok) {
+    throw new Error(`Dataset command failed with HTTP ${response.status}.`);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('Dataset command returned invalid JSON.');
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Dataset command returned an invalid envelope.');
+  }
+  const envelope = parsed as Record<string, unknown>;
+  if (envelope['ok'] !== true) {
+    throw new Error('Dataset command returned an unsuccessful envelope.');
+  }
+  return envelope;
+}
+
+async function executeDatasetCommand(
+  command: DatasetCommandName,
+  accessToken: string,
+  payload: Record<string, unknown>,
+): Promise<unknown> {
+  const envelope = await executeEdgeCommand(command, accessToken, payload);
+  if (!('data' in envelope)) {
+    throw new Error('Dataset command returned an invalid envelope.');
+  }
+  return envelope['data'];
+}
+
+type LifecycleBundleSaveResult = {
+  modelId: string;
+  version: string;
+  lifecycleModel: Record<string, unknown>;
+};
+
+async function executeLifecycleBundleSave(
+  accessToken: string,
+  payload: Record<string, unknown>,
+): Promise<LifecycleBundleSaveResult> {
+  const envelope = await executeEdgeCommand('save_lifecycle_model_bundle', accessToken, payload);
+  const modelId = envelope['modelId'];
+  const version = envelope['version'];
+  const lifecycleModel = envelope['lifecycleModel'];
+  if (
+    typeof modelId !== 'string' ||
+    typeof version !== 'string' ||
+    !lifecycleModel ||
+    typeof lifecycleModel !== 'object' ||
+    Array.isArray(lifecycleModel)
+  ) {
+    throw new Error('Lifecycle model save returned an invalid envelope.');
+  }
+  return { modelId, version, lifecycleModel: lifecycleModel as Record<string, unknown> };
+}
+
+async function executeLifecycleBundleDelete(
+  accessToken: string,
+  payload: Record<string, unknown>,
+): Promise<{ modelId: string; version: string }> {
+  const envelope = await executeEdgeCommand('delete_lifecycle_model_bundle', accessToken, payload);
+  const modelId = envelope['modelId'];
+  const version = envelope['version'];
+  if (typeof modelId !== 'string' || typeof version !== 'string') {
+    throw new Error('Lifecycle model delete returned an invalid envelope.');
+  }
+  return { modelId, version };
 }
 
 /**
@@ -231,6 +344,50 @@ type PreparedWritePayload = {
   validationIssueCount?: number;
   validationIssues?: unknown[];
 };
+
+function buildLifecycleBundleSavePlan(
+  mode: 'create' | 'update',
+  modelId: string,
+  version: string | undefined,
+  preparedWrite: PreparedWritePayload,
+): Record<string, unknown> {
+  const jsonOrdered = preparedWrite.payload.json_ordered;
+  const jsonTg = preparedWrite.payload.json_tg;
+  if (jsonOrdered === undefined || jsonTg === undefined) {
+    throw new Error('Lifecycle model writes require prepared jsonOrdered and jsonTg payloads.');
+  }
+  if (mode === 'update' && version === undefined) {
+    throw new Error('Lifecycle model update requires a version.');
+  }
+
+  return {
+    mode,
+    modelId,
+    ...(mode === 'update' ? { version } : {}),
+    parent: {
+      jsonOrdered,
+      jsonTg,
+      ...(typeof preparedWrite.payload.rule_verification === 'boolean'
+        ? { ruleVerification: preparedWrite.payload.rule_verification }
+        : {}),
+    },
+    processMutations: [],
+  };
+}
+
+function lifecycleBundleResultRow(result: LifecycleBundleSaveResult): JsonValue {
+  const lifecycleModel = result.lifecycleModel;
+  return {
+    id: result.modelId,
+    version: result.version,
+    json_ordered: (lifecycleModel['json'] ?? null) as JsonValue,
+    json_tg: (lifecycleModel['json_tg'] ?? null) as JsonValue,
+    rule_verification:
+      typeof lifecycleModel['ruleVerification'] === 'boolean'
+        ? lifecycleModel['ruleVerification']
+        : null,
+  };
+}
 
 type PrepareWritePayload = typeof prepareWritePayload;
 
@@ -363,7 +520,7 @@ async function handleSelect(supabase: SupabaseClient, input: SelectInput): Promi
 }
 
 async function handleInsert(
-  supabase: SupabaseClient,
+  accessToken: string | undefined,
   input: InsertInput,
   preparedWrite: PreparedWritePayload,
 ): Promise<string> {
@@ -379,28 +536,44 @@ async function handleInsert(
 
   const resolvedId = preparedWrite.resolvedId ?? id;
   const resolvedVersion = preparedWrite.resolvedVersion ?? version;
-
-  const keyColumn = getPrimaryKeyColumn(table);
-  const { data, error } = await supabase
-    .from(table)
-    .insert([
-      {
-        [keyColumn]: resolvedId,
-        ...(resolvedVersion !== undefined ? { version: resolvedVersion } : {}),
-        ...preparedWrite.payload,
-      },
-    ])
-    .select();
-
-  if (error) {
-    console.error('Error inserting into the database:', error);
-    throw error;
+  if (table === 'lifecyclemodels') {
+    const result = await executeLifecycleBundleSave(
+      requireAccessToken(accessToken),
+      buildLifecycleBundleSavePlan('create', resolvedId, undefined, preparedWrite),
+    );
+    return JSON.stringify({
+      id: result.modelId,
+      version: result.version,
+      ...(preparedWrite.validationIssueCount === undefined
+        ? {}
+        : {
+            validationIssueCount: preparedWrite.validationIssueCount,
+            validationIssues: preparedWrite.validationIssues ?? [],
+          }),
+      data: sanitizeRowsForOutput(table, [lifecycleBundleResultRow(result)]),
+    });
   }
 
-  const rows = sanitizeRowsForOutput(table, (data ?? []) as JsonValue[]);
+  const commandData = await executeDatasetCommand(
+    'app_dataset_create',
+    requireAccessToken(accessToken),
+    {
+      table,
+      id: resolvedId,
+      jsonOrdered: preparedWrite.payload.json_ordered,
+      ...(typeof preparedWrite.payload.rule_verification === 'boolean'
+        ? { ruleVerification: preparedWrite.payload.rule_verification }
+        : {}),
+    },
+  );
+  const rows = sanitizeRowsForOutput(table, commandDataRows(commandData));
+  const commandVersion =
+    commandData && typeof commandData === 'object' && !Array.isArray(commandData)
+      ? (commandData as Record<string, unknown>)['version']
+      : undefined;
   return JSON.stringify({
     id: resolvedId,
-    version: resolvedVersion,
+    version: resolvedVersion ?? (typeof commandVersion === 'string' ? commandVersion : undefined),
     ...(preparedWrite.validationIssueCount === undefined
       ? {}
       : {
@@ -412,7 +585,6 @@ async function handleInsert(
 }
 
 async function handleUpdate(
-  supabase: SupabaseClient,
   accessToken: string | undefined,
   input: UpdateInput,
   preparedWrite: PreparedWritePayload,
@@ -433,23 +605,42 @@ async function handleUpdate(
 
   requireAccessToken(accessToken);
 
-  const keyColumn = getPrimaryKeyColumn(table);
   const resolvedId = preparedWrite.resolvedId ?? id;
   const resolvedVersion = preparedWrite.resolvedVersion ?? version;
-  const { data, error } = await supabase
-    .from(table)
-    .update(preparedWrite.payload)
-    .eq(keyColumn, resolvedId)
-    .eq('version', resolvedVersion)
-    .select();
-
-  if (error) {
-    console.error('Error updating the database:', error);
-    throw error;
+  if (table === 'lifecyclemodels') {
+    const result = await executeLifecycleBundleSave(
+      requireAccessToken(accessToken),
+      buildLifecycleBundleSavePlan('update', resolvedId, resolvedVersion, preparedWrite),
+    );
+    return JSON.stringify({
+      id: result.modelId,
+      version: result.version,
+      ...(preparedWrite.validationIssueCount === undefined
+        ? {}
+        : {
+            validationIssueCount: preparedWrite.validationIssueCount,
+            validationIssues: preparedWrite.validationIssues ?? [],
+          }),
+      data: sanitizeRowsForOutput(table, [lifecycleBundleResultRow(result)]),
+    });
   }
+
+  const commandData = await executeDatasetCommand(
+    'app_dataset_save_draft',
+    requireAccessToken(accessToken),
+    {
+      table,
+      id: resolvedId,
+      version: resolvedVersion,
+      jsonOrdered: preparedWrite.payload.json_ordered,
+      ...(typeof preparedWrite.payload.rule_verification === 'boolean'
+        ? { ruleVerification: preparedWrite.payload.rule_verification }
+        : {}),
+    },
+  );
   const rows = ensureRows(
-    data,
-    `Update affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${resolvedId}) and version (${resolvedVersion}) exist and are accessible.`,
+    commandDataRows(commandData),
+    'Save-draft command returned no row evidence.',
   );
 
   return JSON.stringify({
@@ -465,7 +656,7 @@ async function handleUpdate(
   });
 }
 
-async function handleDelete(supabase: SupabaseClient, input: DeleteInput): Promise<string> {
+async function handleDelete(accessToken: string | undefined, input: DeleteInput): Promise<string> {
   const { table, id, version } = input;
 
   if (id === undefined) {
@@ -476,23 +667,24 @@ async function handleDelete(supabase: SupabaseClient, input: DeleteInput): Promi
     throw new Error('version is required for delete operations.');
   }
 
-  const keyColumn = getPrimaryKeyColumn(table);
-  const { data, error } = await supabase
-    .from(table)
-    .delete()
-    .eq(keyColumn, id)
-    .eq('version', version)
-    .select();
-
-  if (error) {
-    console.error('Error deleting from the database:', error);
-    throw error;
+  if (table === 'lifecyclemodels') {
+    const result = await executeLifecycleBundleDelete(requireAccessToken(accessToken), {
+      modelId: id,
+      version,
+    });
+    return JSON.stringify({
+      id: result.modelId,
+      version: result.version,
+      data: [{ id: result.modelId, version: result.version }],
+    });
   }
 
-  const rows = ensureRows(
-    data,
-    `Delete affected 0 rows for table "${table}"; verify the provided ${keyColumn} (${id}) and version (${version}) exist and are accessible.`,
+  const commandData = await executeDatasetCommand(
+    'app_dataset_delete',
+    requireAccessToken(accessToken),
+    { table, id, version },
   );
+  const rows = ensureRows(commandDataRows(commandData), 'Delete command returned no row evidence.');
 
   return JSON.stringify({ id, version, data: sanitizeRowsForOutput(table, rows) });
 }
@@ -520,8 +712,8 @@ async function performCrud(
           input.version,
           bearerKey,
         );
-        const { supabase } = await createSupabaseClient(bearerKey);
-        return handleInsert(supabase, input, preparedWrite);
+        const { accessToken } = resolveSupabaseAccessToken(bearerKey);
+        return handleInsert(accessToken, input, preparedWrite);
       }
 
       case 'update': {
@@ -535,13 +727,13 @@ async function performCrud(
           input.version,
           bearerKey,
         );
-        const { supabase, accessToken } = await createSupabaseClient(bearerKey);
-        return handleUpdate(supabase, accessToken, input, preparedWrite);
+        const { accessToken } = resolveSupabaseAccessToken(bearerKey);
+        return handleUpdate(accessToken, input, preparedWrite);
       }
 
       case 'delete': {
-        const { supabase } = await createSupabaseClient(bearerKey);
-        return handleDelete(supabase, input);
+        const { accessToken } = resolveSupabaseAccessToken(bearerKey);
+        return handleDelete(accessToken, input);
       }
 
       default: {

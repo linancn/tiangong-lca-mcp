@@ -1,31 +1,39 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
+import type { OAuthTokenVerifier } from '@modelcontextprotocol/sdk/server/auth/provider.js';
+import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import express from 'express';
 import type { Express, NextFunction, Request, Response } from 'express';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { authenticateRequest } from './_shared/auth_middleware.js';
 import type { AuthResult, SupabaseSessionPayload } from './_shared/auth_middleware.js';
 import { getServer } from './_shared/init_server_http.js';
+import { createOAuthBrokerRuntimeFromEnv } from './_shared/oauth_runtime.js';
 import {
   handleStatelessMcpRequest,
   installCors,
   installHealthRoute,
   installMcpMethodGuards,
 } from './_shared/http_transport.js';
-import authApp from './auth_app.js';
+import { normalizeSupabaseSession } from './_shared/supabase_session.js';
 
 interface AuthenticatedRequest extends Request {
-  bearerKey?: string;
   supabaseSession?: SupabaseSessionPayload;
 }
 
 type Authenticator = (bearerKey: string) => Promise<AuthResult>;
-type ServerFactory = (bearerKey?: string, supabaseSession?: SupabaseSessionPayload) => McpServer;
+type ServerFactory = (
+  downstreamAccessToken?: string,
+  supabaseSession?: SupabaseSessionPayload,
+  authInfo?: AuthInfo,
+) => McpServer;
 
 export type HttpAppOptions = {
+  allowedOrigins?: string[];
   authenticator?: Authenticator;
   oauthApp?: Express;
+  resourceMetadataUrl?: string;
   serverFactory?: ServerFactory;
+  tokenVerifier?: OAuthTokenVerifier;
 };
 
 function authenticateBearer(authenticator: Authenticator) {
@@ -73,39 +81,89 @@ function authenticateBearer(authenticator: Authenticator) {
       return;
     }
 
-    req.bearerKey = bearerKey;
     req.supabaseSession = authResult.supabaseSession;
+    req.auth = {
+      token: bearerKey,
+      clientId: 'legacy-transport',
+      scopes: ['mcp:tools'],
+      expiresAt: authResult.supabaseSession?.expires_at ?? Math.floor(Date.now() / 1_000) + 300,
+      extra: {
+        authMethod: 'legacy_transport',
+        downstreamAccessToken: authResult.supabaseSession?.access_token ?? bearerKey,
+        email: authResult.email,
+        subject: authResult.userId,
+        supabaseSession: authResult.supabaseSession,
+      },
+    };
     next();
   };
 }
 
+function requestCredentials(req: AuthenticatedRequest): {
+  accessToken?: string;
+  authInfo?: AuthInfo;
+  session?: SupabaseSessionPayload;
+} {
+  const authInfo = req.auth;
+  const extra = authInfo?.extra;
+  const session = normalizeSupabaseSession(extra?.supabaseSession) ?? req.supabaseSession;
+  const candidate = extra?.downstreamAccessToken;
+  const accessToken =
+    typeof candidate === 'string' && candidate.length > 0 ? candidate : session?.access_token;
+  return { accessToken, authInfo, session };
+}
+
 export function createHttpApp(options: HttpAppOptions = {}): Express {
+  const runtime =
+    options.tokenVerifier || options.authenticator || options.oauthApp
+      ? undefined
+      : createOAuthBrokerRuntimeFromEnv();
   const authenticator = options.authenticator ?? authenticateRequest;
-  const oauthRouter = options.oauthApp ?? authApp;
+  const verifier = options.tokenVerifier ?? runtime?.verifier;
+  const oauthRouter = options.oauthApp ?? runtime?.app;
+  const resourceMetadataUrl = options.resourceMetadataUrl ?? runtime?.resourceMetadataUrl;
   const serverFactory = options.serverFactory ?? getServer;
   const app = express();
-  const publicPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
   app.set('trust proxy', 1);
+  app.disable('x-powered-by');
   app.use(express.json());
-  installCors(app);
-  app.post('/mcp', authenticateBearer(authenticator), async (req: AuthenticatedRequest, res) => {
+  const allowedOrigins = options.allowedOrigins ?? runtime?.allowedOrigins;
+  installCors(app, allowedOrigins ? new Set(allowedOrigins) : undefined);
+  const authentication = verifier
+    ? requireBearerAuth({
+        verifier,
+        requiredScopes: ['mcp:tools'],
+        resourceMetadataUrl,
+      })
+    : authenticateBearer(authenticator);
+  app.post('/mcp', authentication, async (req: AuthenticatedRequest, res) => {
+    const credentials = requestCredentials(req);
+    if (verifier && (!credentials.accessToken || !credentials.session)) {
+      console.error('MCP_AUTHENTICATION_FAILED', { category: 'downstream_session' });
+      res.status(500).json({
+        jsonrpc: '2.0',
+        error: { code: -32603, message: 'Internal server error' },
+        id: null,
+      });
+      return;
+    }
     await handleStatelessMcpRequest(req, res, () =>
-      serverFactory(req.bearerKey, req.supabaseSession),
+      serverFactory(credentials.accessToken, credentials.session, credentials.authInfo),
     );
   });
   installMcpMethodGuards(app);
   installHealthRoute(app);
 
-  app.use('/oauth', oauthRouter);
+  if (oauthRouter) {
+    app.use(oauthRouter);
+  }
   app.get('/', (_req, res) => {
-    res.redirect('/oauth/index');
-  });
-  app.get('/oauth/index', (_req, res) => {
-    res.sendFile(join(publicPath, 'oauth-index.html'));
-  });
-  app.get('/oauth/demo', (_req, res) => {
-    res.sendFile(join(publicPath, 'oauth-demo.html'));
+    res.status(200).json({
+      authorization: oauthRouter ? 'oauth-2.1' : 'legacy-transition',
+      mcp: '/mcp',
+      status: 'ok',
+    });
   });
 
   return app;

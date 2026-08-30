@@ -38,9 +38,9 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-08-26
-lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
-lastReviewedNote: 'Reviewed for release Issue #48: package, Docker, and docs bind 0.1.0 under the then-current pnpm 11.23.0 baseline while all canonical feature gates remain mandatory. Reviewed for Issue #50: exact pnpm 11.24.0 changes only the package-manager baseline; all canonical gates remain mandatory.'
+lastReviewedAt: 2026-08-31
+lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
+lastReviewedNote: 'Reviewed for Issue #52: the canonical gate covers OAuth broker boundaries plus actor-bound PostgREST reads, ordinary Edge dataset commands, and atomic LifecycleModel bundle commands; live Dev/Production proofs remain separate.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -73,12 +73,12 @@ The gate is intentionally non-mutating and includes:
 | Change type | Minimum local proof | Additional proof when risk is higher | Notes |
 | --- | --- | --- | --- |
 | `src/index*.ts`, `src/http_app*.ts`, or transport init helpers | `pnpm test`; `pnpm build` | run the relevant built entrypoint through the intended start script when the task explicitly includes an interactive smoke check | Offline tests cover import side effects, health, method guards, JSON-RPC parsing, discovery, cleanup, cancellation, and repeated authenticated/local factory throws with sentinel leak checks. |
-| auth middleware, config, or OAuth flow | `pnpm test`; `pnpm lint` | record any live-token proof separately and only when the task authorizes it | Authenticator exceptions remain a generic JSON-RPC 500; missing bearer is 401 and any presented-but-denied credential is generic 403 `Forbidden`; provider messages, token/issuer sentinels, and stacks must not appear in responses or logs, which retain only stable failure code/category. |
-| search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `pnpm test`; `pnpm lint` | run an authorized remote case only when its external owner and safety boundary are explicit | Offline tests mock search transport, reject malformed CRUD input before network access, cover exact select/insert/update/delete success URLs, methods, headers, bodies and envelopes, run all declared TIDAS types through SDK `validateEnhanced()`, and prove a real strict-invalid LifecycleModel with a structurally valid access JWT plus refresh token returns normalized issues with fetch count zero before any auth/session/REST/write action. |
+| auth middleware, config, or OAuth flow | `pnpm test`; `pnpm lint` | run the authorized Dev PKCE/refresh/revoke proof, then record it separately | Broker tests must cover path-aware protected-resource metadata, fixed-client discovery without DCR, exact resource audience, two independent PKCE pairs, encrypted Redis values, inbound/downstream token inequality, SDK request auth context, allowlisted Origin behavior, one-winner refresh rotation, callback/code replay, and local revocation. Broker denials use OAuth-standard 401/403 responses and never expose provider details. |
+| search wrappers, GLAD dataset tools, DB CRUD wrapper, or lifecyclemodel preprocessing | `pnpm test`; `pnpm lint` | run an authorized remote case only when its external owner and safety boundary are explicit | Offline tests mock search transport, reject malformed CRUD input before network access, prove select uses PostgREST, ordinary writes use the three exact dataset-command URLs, and LifecycleModel writes use save/delete bundle URLs with the prepared parent plan (never raw table DML). They run all declared TIDAS types through SDK `validateEnhanced()` and prove a real strict-invalid LifecycleModel with a structurally valid access JWT plus refresh token returns normalized issues with fetch count zero before any auth/session/REST/write action. |
 | local OpenLCA helpers | `pnpm build`; `pnpm lint` | run `pnpm exec tsx scripts/openlca-ipc-smoke.ts` only when the task explicitly includes a local OpenLCA smoke check | The active runtime path is `olca-ipc`, not the commented gRPC scaffold. |
 | package, pnpm, Node, TypeScript, lint, Docker, or client config | `pnpm prepush:gate` | inspect `pnpm list --depth Infinity` when compiler or runtime leakage is in scope | Recheck `DEV_EN.md` and `DEV_CN.md` whenever the exact baseline or startup path changes. |
 | release automation under `scripts/ci/**` or `.github/workflows/publish.yml` | inspect the workflow/script diff; `pnpm prepush:gate` | record tag naming, `main` ancestry, and unpublished-version checks | The feature task prepares release-ready artifacts; version/tag/publish remains a separately tracked release action. |
-| `public/**` only | `pnpm build`; `pnpm lint` | inspect the served page path if the task changes OAuth demo or index behavior | Static pages are part of the transport surface here. |
+| `public/**` only | `pnpm build`; `pnpm lint` | confirm no authorization code/token display page became reachable | The directory is packaging-compatible only; remote OAuth protocol endpoints are runtime routes and no static demo is served. |
 | governed docs only | `scripts/docpact validate-config --root . --strict`; `scripts/docpact lint --root . --staged --mode enforce` | run one focused route check such as `transport-auth`, `mcp-tools`, or `openlca-tidas` when routing changes | Refresh review metadata even when prose-only docs change. |
 
 ## Known Caveats
@@ -88,6 +88,7 @@ Facts that matter today:
 - `.nvmrc`, `Dockerfile`, package engines, pnpm workspace policy, and maintainer docs must stay aligned on Node `24.19.0` and pnpm `11.24.0`
 - the only compiler in the direct or recursive graph is TypeScript `7.0.2`; SDK `0.2.0` must not reintroduce `ts-to-zod` or TypeScript 5/6
 - local tests do not contact TianGong production, GLAD, Supabase, or OpenLCA; external proof must be separately authorized and recorded
+- local OAuth tests use a fake upstream and in-memory raw store; they prove protocol/state behavior but do not prove a Supabase client registration, Upstash account, ALB route, or ECS secret wiring
 - the four-platform workflow is the authoritative portability proof after PR submission; local macOS proof alone is not four-platform evidence
 - `.gitattributes` enforces LF for tracked text so Windows checkout cannot turn a read-only Prettier check into a whole-repository false failure
 - `pnpm/setup` native distributions do not guarantee `COREPACK_ROOT`; nested tests must pass with that variable absent, exact native `pnpm`/`pnpm.exe`, paths containing spaces, and `shell: false`

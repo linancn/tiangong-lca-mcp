@@ -2,9 +2,22 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Express, Request, Response } from 'express';
 
-export function installCors(app: Express): void {
+export function installCors(app: Express, allowedOrigins?: ReadonlySet<string>): void {
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins && !allowedOrigins.has(origin)) {
+      res.status(403).json({
+        error: 'origin_not_allowed',
+        error_description: 'The request origin is not allowed',
+      });
+      return;
+    }
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', allowedOrigins ? origin : '*');
+      res.vary('Origin');
+    } else if (!allowedOrigins) {
+      res.header('Access-Control-Allow-Origin', '*');
+    }
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 

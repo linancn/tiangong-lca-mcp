@@ -7,7 +7,7 @@ authoritative: true
 owner: mcp
 language: en
 whenToUse:
-  - when a task may change MCP transports, auth surfaces, tool registration, OAuth demo pages, or lifecycle-model preprocessing in tiangong-lca-mcp
+  - when a task may change MCP transports, auth surfaces, tool registration, OAuth broker behavior, or lifecycle-model preprocessing in tiangong-lca-mcp
   - when routing work from the workspace root into tiangong-lca-mcp
   - when deciding whether a change belongs here, in tiangong-lca-edge-functions, in tiangong-lca-next, or in tidas-tools
 whenToUpdate:
@@ -43,9 +43,9 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-08-26
-lastReviewedCommit: 9286ade85e175e5327231cfeebdb5698674b7935
-lastReviewedNote: 'Reviewed for release Issue #48: version 0.1.0 changes package, Docker, tag, and public documentation evidence only; the then-current pnpm 11.23.0/TS7 runtime and MCP behavior remained unchanged. Reviewed for Issue #50: the active pnpm contract is 11.24.0 while Node, TypeScript, SDK, MCP behavior, package version, tag, and publication state remain unchanged.'
+lastReviewedAt: 2026-08-31
+lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
+lastReviewedNote: 'Reviewed for Issue #52: remote HTTP owns the fixed-client OAuth 2.1 broker and isolated downstream token; CRUD reads stay on PostgREST, ordinary writes use actor commands, and LifecycleModel writes use the bundle commands without reopening raw DML.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -89,7 +89,7 @@ This repo owns:
 - auth middleware, config, and OAuth helpers under `src/_shared/**` and `src/auth_app.ts`
 - MCP tool registration and tool wrappers under `src/tools/**`
 - MCP prompts and resources under `src/prompts/**` and `src/resources/**`
-- static OAuth demo pages under `public/**`
+- the fixed-client OAuth 2.1 broker, discovery, callback, token, refresh, and revocation routes
 - the checked-in client example in `mcp_config.json`
 
 This repo does not own:
@@ -112,8 +112,8 @@ Route those tasks to:
 - The only supported package-management path is pnpm `11.24.0`, selected by `packageManager`; installs use the root `pnpm-lock.yaml` with `--frozen-lockfile`.
 - Runtime and compiler baselines are Node `24.19.0`, TypeScript `7.0.2`, and `@tiangong-lca/tidas-sdk` `0.2.0`; TypeScript 5/6 and compiler-API formatting plugins are not allowed in the direct or recursive graph.
 - `pnpm lint` is read-only: type-aware Oxlint, Prettier check, and TypeScript typecheck run without rewriting source. Use `pnpm format` for explicit formatting writes.
-- `pnpm test` runs real Node assertions for tool registration, every declared TIDAS dataset validation boundary, CRUD/search guards, LifecycleModel `validationIssues`, authenticated/local Streamable HTTP envelopes, and cancellation.
-- SDK validation uses `validateEnhanced()` exactly once per entity and consumes normalized `validationIssues`. Insert/update prepares and validates once before creating the CRUD Supabase client or applying a refresh-token session. Strict-invalid LifecycleModels therefore perform zero auth/REST/process-lookup requests and can never reach a write; their stable error envelope exposes normalized code/path/severity without raw Zod parsing.
+- `pnpm test` runs real Node assertions for tool registration, every declared TIDAS dataset validation boundary, CRUD/search guards, LifecycleModel `validationIssues`, authenticated/local Streamable HTTP envelopes, cancellation, OAuth discovery/PKCE/resource binding, token separation, encrypted state, refresh races, revocation, and Origin rejection.
+- SDK validation uses `validateEnhanced()` exactly once per entity and consumes normalized `validationIssues`. Insert/update prepares and validates once before transport. Reads use actor-bound PostgREST; ordinary create/save/delete uses `app_dataset_create`, `app_dataset_save_draft`, and `app_dataset_delete` (`DB-CORE-WRITE-01`), while LifecycleModels use `save_lifecycle_model_bundle` and `delete_lifecycle_model_bundle` (`EDGE-BUNDLE-01`). No MCP write uses raw table DML. Strict-invalid LifecycleModels therefore perform zero auth/REST/process-lookup requests and can never reach a write; their stable error envelope exposes normalized code/path/severity without raw Zod parsing.
 - `pnpm prepush:gate` is the canonical gate. It also proves the packed runtime consumer, a clean arbitrary-path worktree, build, audit, and pack contract.
 - Nested package tests resolve and verify the exact native `pnpm`/`pnpm.exe` executable first with `shell: false`; Corepack JavaScript is only a fallback. Do not assume `COREPACK_ROOT` exists in `pnpm/setup` runners.
 - `.github/workflows/quality-gate.yml` runs the canonical gate on Linux x64, Windows x64, macOS arm64, and Linux arm64.
@@ -125,7 +125,9 @@ Route those tasks to:
 - Manual `v*` tag pushes and `workflow_dispatch` runs for an existing release tag whose target commit is already on `main` remain supported for recovery/backfill releases
 - HTTP entry modules are side-effect free when imported. `src/http_app.ts` and `src/http_app_local.ts` own app construction; the executable entry files only listen when they are the process entrypoint.
 - Authenticated and local request-scoped MCP server factory failures share the generic JSON-RPC 500 boundary; internal exception messages and stacks must never fall through to Express HTML responses or logs. Failure logs contain only stable redacted code/category fields.
-- Any presented credential that fails authentication receives generic `Forbidden`; provider-specific denial details are never copied into the HTTP response. Cognito verification failures log only `MCP_AUTHENTICATION_FAILED` with category `cognito`, never token, issuer, message, or stack.
+- Broker mode uses OAuth-standard `401 invalid_token` and `403 insufficient_scope` responses with the canonical `resource_metadata` challenge. Provider details, tokens, secrets, and stacks never enter responses or logs. Legacy mode keeps the older generic denial boundary; broker modes do not accept Cognito or a direct Supabase bearer.
+- `MCP_AUTH_MODE=broker_compat` accepts only the transition base64 user API key in addition to broker tokens, exchanges it for a distinct Supabase session, and emits identifier-free telemetry. `broker` removes that path; `legacy` is rollback-only.
+- OAuth state and upstream Supabase sessions are AES-256-GCM encrypted before storage. Redis keys contain only SHA-256 handle digests under `auth:mcp-oauth:v1:*`; the old email-derived `lca_` key is forbidden.
 
 ## Hard Boundaries
 
