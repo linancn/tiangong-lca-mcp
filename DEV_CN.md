@@ -53,17 +53,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.1 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.2 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.1
+docker pull linancn/tiangong-lca-mcp-server:0.1.2
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.1
+    linancn/tiangong-lca-mcp-server:0.1.2
 ```
 
 ## 开发
@@ -133,7 +133,7 @@ pnpm prepush:gate
 
 ### 发布
 
-功能变更合并后，由单独跟踪的 release task 执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.1` 对应 `v0.1.1`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 packed-consumer 门禁证明过的 broker store/runtime、Supabase broker、auth middleware 与 HTTP app。
+本次依赖发布任务在变更合并后执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.2` 对应 `v0.1.2`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 packed-consumer 门禁证明过的 broker store/runtime、Supabase broker、auth middleware 与 HTTP app。
 
 ### 测试脚手架
 
@@ -146,7 +146,7 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```bash
 set -euo pipefail
 
-image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
+image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.2"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
 docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .

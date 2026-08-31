@@ -1,6 +1,6 @@
 {
   "name": "@tiangong-lca/mcp-server",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "TianGong LCA MCP Server",
   "license": "MIT",
   "author": "Nan LI",
@@ -35,11 +35,12 @@
     "test:toolchain": "node --test test/toolchain-contract.test.mjs",
     "test:pack": "pnpm --filter @tiangong-lca/mcp-server --fail-if-no-match pack --dry-run",
     "audit": "pnpm audit --audit-level high",
+    "peers:check": "pnpm peers check",
     "lint": "pnpm lint:oxlint && pnpm lint:prettier && pnpm typecheck",
     "lint:oxlint": "pnpm exec oxlint --type-aware --format=stylish --deny-warnings ./src ./test ./scripts",
     "lint:prettier": "pnpm exec prettier --check \"{src,test,docs,scripts}/**/*.{js,cjs,mjs,jsx,tsx,ts,md,json}\" \"*.{js,cjs,mjs,jsx,tsx,ts,md,json}\"",
     "format": "pnpm exec prettier --write \"{src,test,docs,scripts}/**/*.{js,cjs,mjs,jsx,tsx,ts,md,json}\" \"*.{js,cjs,mjs,jsx,tsx,ts,md,json}\"",
-    "prepush:gate": "pnpm lint && pnpm test && pnpm test:consumer && pnpm build && pnpm test:toolchain && pnpm audit && pnpm test:pack && pnpm test:clean-worktree",
+    "prepush:gate": "pnpm lint && pnpm peers:check && pnpm test && pnpm test:consumer && pnpm build && pnpm test:toolchain && pnpm audit && pnpm test:pack && pnpm test:clean-worktree",
     "prepack": "pnpm build",
     "prepublishOnly": "pnpm prepush:gate"
   },
@@ -52,20 +53,21 @@
     "@modelcontextprotocol/sdk": "1.30.0",
     "@supabase/supabase-js": "2.112.4",
     "@tiangong-lca/tidas-sdk": "0.2.0",
-    "@upstash/redis": "1.38.2",
+    "@upstash/redis": "1.38.3",
     "aws-jwt-verify": "5.2.1",
     "express": "5.2.1",
     "olca-ipc": "2.6.2",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "2.3.0",
+    "@modelcontextprotocol/inspector": "2.4.0",
     "@types/express": "5.0.6",
     "@types/node": "24.13.3",
     "oxlint": "1.80.0",
     "oxlint-tsgolint": "7.0.2001",
     "prettier": "3.9.6",
-    "tsx": "4.23.12",
+    "react-dom": "19.2.8",
+    "tsx": "4.23.13",
     "typescript": "7.0.2"
   }
 }

@@ -54,17 +54,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.1.1 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.2 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.1.1
+docker pull linancn/tiangong-lca-mcp-server:0.1.2
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.1
+    linancn/tiangong-lca-mcp-server:0.1.2
 ```
 
 ## Development
@@ -141,7 +141,7 @@ This runs read-only lint/typecheck, offline behavior tests, packed-consumer vali
 
 ### Publishing
 
-Publishing is handled by a separately tracked release task after the feature change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.1` maps to `v0.1.1`. Before building the ECS image, read back the registry integrity and verify that the published archive contains the broker store/runtime, Supabase broker, auth middleware, and HTTP app proved by the packed-consumer gate.
+Publishing is handled by this tracked dependency-release task after the change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.2` maps to `v0.1.2`. Before building the ECS image, read back the registry integrity and verify that the published archive contains the broker store/runtime, Supabase broker, auth middleware, and HTTP app proved by the packed-consumer gate.
 
 ### scaffold
 
@@ -154,7 +154,7 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```bash
 set -euo pipefail
 
-image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
+image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.2"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
 docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .
