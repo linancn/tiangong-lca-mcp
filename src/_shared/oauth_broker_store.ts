@@ -47,9 +47,12 @@ export class MemoryOAuthBrokerRawStore implements OAuthBrokerRawStore {
   }
 
   async take(key: string): Promise<string | undefined> {
-    const value = await this.get(key);
+    const entry = this.#entries.get(key);
+    if (!entry) {
+      return undefined;
+    }
     this.#entries.delete(key);
-    return value;
+    return entry.expiresAt <= this.#now() ? undefined : entry.value;
   }
 
   async remove(key: string): Promise<void> {
