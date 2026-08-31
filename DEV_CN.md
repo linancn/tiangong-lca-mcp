@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 976e61ef5ba3c43f459a82512fe1b4d98970b7d7
-lastReviewedNote: '针对 Issue #62 完成复核：无缓存 ARM64 ECR 路径会禁用 provenance、验证单一可扫描 manifest，并保留已修复 OpenSSL 的明确读回与 HIGH/CRITICAL 为零的门禁。'
+lastReviewedCommit: fb616dd83ff231f63ee14fd974617a48c2167e91
+lastReviewedNote: '针对 Issue #62 与 PR #63 完成复核：无缓存 ARM64 ECR 路径会生成单一可扫描 manifest；扫描不为 COMPLETE 或 HIGH/CRITICAL 不全为零时，必须在运行镜像前退出。'
 related:
   - AGENTS.md
   - .docpact/config.yaml

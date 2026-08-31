@@ -1,8 +1,8 @@
 version: 1
 layout: repo
 lastReviewedAt: '2026-08-31'
-lastReviewedCommit: '976e61ef5ba3c43f459a82512fe1b4d98970b7d7'
-lastReviewedNote: 'Reviewed for Issue #62: Docker/test/maintainer routing covers a no-provenance single ARM64 manifest, explicit patched-OpenSSL readback, one SHA-bearing tag, and the zero-HIGH/CRITICAL ECR gate.'
+lastReviewedCommit: 'fb616dd83ff231f63ee14fd974617a48c2167e91'
+lastReviewedNote: 'Reviewed for Issue #62 and PR #63: Docker/test/maintainer routing covers a no-provenance single ARM64 manifest and a fail-closed COMPLETE/zero-HIGH/zero-CRITICAL assertion before any run.'
 
 catalog:
   repos:

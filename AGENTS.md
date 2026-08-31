@@ -44,8 +44,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 976e61ef5ba3c43f459a82512fe1b4d98970b7d7
-lastReviewedNote: 'Reviewed for Issue #62: the no-cache ARM64 qualification build disables provenance so ECR receives one scan-compatible manifest, while retaining explicit OpenSSL readback, one SHA-bearing tag, and the zero-HIGH/CRITICAL gate.'
+lastReviewedCommit: fb616dd83ff231f63ee14fd974617a48c2167e91
+lastReviewedNote: 'Reviewed for Issue #62 and PR #63: the no-cache ARM64 qualification path emits one scan-compatible manifest and fails closed before run unless ECR reports COMPLETE with exactly zero HIGH/CRITICAL findings.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -125,7 +125,7 @@ Route those tasks to:
 - `Dockerfile` must install the exact version in `package.json`. The packed-consumer gate must find the broker store, OAuth runtime, Supabase broker, auth middleware, and HTTP app in that package before a registry release or ECS image can claim the reviewed source.
 - The Docker runtime must run `corepack enable pnpm` before exact global activation, keep both `/pnpm/bin` and `/pnpm` on OCI `PATH`, and pass a real no-cache Linux ARM64 build; a source-only regex check is not image evidence.
 - The same no-cache build must run `apk upgrade --no-cache` before package-manager setup, read back the patched OpenSSL package, and reach a COMPLETE ECR scan with zero CRITICAL/HIGH findings before ECS may use the digest.
-- The ECR qualification build must use `--provenance=false` and resolve to one scan-compatible ARM64 image manifest. An OCI index rejected by ECR basic scanning is evidence only and cannot be pushed again, run, or registered in ECS.
+- The ECR qualification build must use `--provenance=false` and resolve to one scan-compatible ARM64 image manifest. The deployment script must exit before `docker run` unless ECR reports COMPLETE with exactly zero CRITICAL and HIGH findings. An OCI index rejected by ECR basic scanning is evidence only and cannot be pushed again, run, or registered in ECS.
 - Release tags use `v<package.json version>`; canonical `main` branch pushes whose package version changes create the matching tag when missing, run the release gate, and publish `@tiangong-lca/mcp-server` to npm in the same workflow run
 - Manual `v*` tag pushes and `workflow_dispatch` runs for an existing release tag whose target commit is already on `main` remain supported for recovery/backfill releases
 - HTTP entry modules are side-effect free when imported. `src/http_app.ts` and `src/http_app_local.ts` own app construction; the executable entry files only listen when they are the process entrypoint.

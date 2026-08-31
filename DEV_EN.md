@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 976e61ef5ba3c43f459a82512fe1b4d98970b7d7
-lastReviewedNote: 'Reviewed for Issue #62: the no-cache ARM64 ECR path now disables provenance, verifies one scan-compatible manifest, and retains explicit patched-OpenSSL readback plus the zero-HIGH/CRITICAL gate.'
+lastReviewedCommit: fb616dd83ff231f63ee14fd974617a48c2167e91
+lastReviewedNote: 'Reviewed for Issue #62 and PR #63: the no-cache ARM64 ECR path emits one scan-compatible manifest and exits before run unless the scan is COMPLETE with exactly zero HIGH/CRITICAL findings.'
 related:
   - AGENTS.md
   - .docpact/config.yaml

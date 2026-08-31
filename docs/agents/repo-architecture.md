@@ -34,8 +34,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 976e61ef5ba3c43f459a82512fe1b4d98970b7d7
-lastReviewedNote: 'Reviewed for Issue #62: the image path emits one no-provenance ARM64 manifest that ECR can scan, records patched OpenSSL, and accepts only a SHA-bearing zero-HIGH/CRITICAL digest for ECS.'
+lastReviewedCommit: fb616dd83ff231f63ee14fd974617a48c2167e91
+lastReviewedNote: 'Reviewed for Issue #62 and PR #63: the image path emits one scan-compatible ARM64 manifest and fails closed before run unless ECR is COMPLETE with exactly zero HIGH/CRITICAL.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -137,7 +137,7 @@ The Docker runtime installs that same exact package version. Packed-consumer pro
 
 On Node Alpine, Corepack activation and pnpm global installation are separate boundaries: `corepack enable pnpm` creates the executable shim, exact global install activates `11.24.0`, and `/pnpm/bin` must remain in the final OCI `PATH` so the packaged MCP bins are the default container command. A real no-cache Linux ARM64 build is the required proof for this path.
 
-The build upgrades Alpine packages before package-manager setup and records the installed OpenSSL version. The ECR qualification command disables provenance so the tag resolves to one scan-compatible ARM64 image manifest instead of an OCI index. The tag is commit-bearing and must be absent before push; its scan must complete with zero CRITICAL/HIGH findings. A vulnerable or unscannable image remains evidence only and is never an ECS task input.
+The build upgrades Alpine packages before package-manager setup and records the installed OpenSSL version. The ECR qualification command disables provenance so the tag resolves to one scan-compatible ARM64 image manifest instead of an OCI index. The tag is commit-bearing and must be absent before push; its script exits before run unless the scan is COMPLETE with exactly zero CRITICAL and HIGH findings. A vulnerable or unscannable image remains evidence only and is never an ECS task input.
 
 The package graph is single-track Node `24.19.0`, pnpm `11.24.0`, TypeScript `7.0.2`, and TIDAS SDK `0.2.0`. The packed-consumer proof imports all three packaged entry modules from an arbitrary path and verifies that compiler/lint/test tooling is absent from the production install.
 
