@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ed04e9637890f2953169d984742021e91ad205ce
-lastReviewedNote: 'Reviewed for Issue #58: the Node Alpine Docker path now creates the Corepack pnpm shim, activates exact 11.24.0, exposes global bins, and requires a real ARM64 build.'
+lastReviewedCommit: 66b624ded9831316e7c1b5b77373233df4463bb4
+lastReviewedNote: 'Reviewed for Issue #60: the Node Alpine image now upgrades security packages before Corepack and requires patched OpenSSL plus a zero-HIGH/CRITICAL ECR scan.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -162,3 +162,5 @@ docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazon
 ```
 
 The checked-in Dockerfile enables the pnpm Corepack shim before activating exact pnpm `11.24.0`, and retains `/pnpm/bin` in the final OCI `PATH`. Before ECR push, run a no-cache `linux/arm64` build and verify the image architecture plus the default `tiangong-lca-mcp-http` executable; regex-only Dockerfile proof is insufficient.
+
+That build first runs `apk upgrade --no-cache`. Read back the installed OpenSSL packages, use a previously absent commit-bearing ECR tag, and wait for scan status COMPLETE with zero CRITICAL/HIGH findings before registering an ECS task revision.

@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ed04e9637890f2953169d984742021e91ad205ce
-lastReviewedNote: '针对 Issue #58 完成复核：Node Alpine Docker 路径现会先创建 Corepack pnpm shim、激活精确 11.24.0、暴露 global bin，并要求真实 ARM64 build。'
+lastReviewedCommit: 66b624ded9831316e7c1b5b77373233df4463bb4
+lastReviewedNote: '针对 Issue #60 完成复核：Node Alpine 镜像现会在 Corepack 前升级安全包，并要求修复后的 OpenSSL 与零 HIGH/CRITICAL ECR 扫描。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -154,3 +154,5 @@ docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazon
 ```
 
 仓库 Dockerfile 会先启用 pnpm Corepack shim，再激活精确 pnpm `11.24.0`，并在最终 OCI `PATH` 中保留 `/pnpm/bin`。推送 ECR 前必须执行无缓存 `linux/arm64` 构建，并验证镜像架构与默认 `tiangong-lca-mcp-http` executable；只检查 Dockerfile 文本不足以证明镜像可用。
+
+该构建会先执行 `apk upgrade --no-cache`。必须读回安装后的 OpenSSL package，使用推送前不存在且包含 commit 的 ECR tag，并等待扫描状态 COMPLETE 且 CRITICAL/HIGH 都为零，才可注册 ECS task revision。

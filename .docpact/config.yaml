@@ -1,8 +1,8 @@
 version: 1
 layout: repo
 lastReviewedAt: '2026-08-31'
-lastReviewedCommit: 'ed04e9637890f2953169d984742021e91ad205ce'
-lastReviewedNote: 'Reviewed for Issue #58: runtime/package and test routing cover the Corepack shim, exact pnpm activation, global-bin PATH, and real Linux ARM64 image proof.'
+lastReviewedCommit: '66b624ded9831316e7c1b5b77373233df4463bb4'
+lastReviewedNote: 'Reviewed for Issue #60: Docker/test routing covers the Alpine security upgrade, patched OpenSSL readback, real ARM64 build, and zero-HIGH/CRITICAL ECR gate.'
 
 catalog:
   repos:
