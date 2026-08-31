@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: fb616dd83ff231f63ee14fd974617a48c2167e91
-lastReviewedNote: '针对 Issue #62 与 PR #63 完成复核：无缓存 ARM64 ECR 路径会生成单一可扫描 manifest；扫描不为 COMPLETE 或 HIGH/CRITICAL 不全为零时，必须在运行镜像前退出。'
+lastReviewedCommit: 6c318ecf51b667580f77fb3f0af71f26f9790dc5
+lastReviewedNote: '针对 Issue #62 与 PR #63 完成复核：ARM64 ECR 路径会复用已有扫描或启动缺失扫描；结果不为 COMPLETE 或 HIGH/CRITICAL 不全为零时，必须在运行镜像前退出。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -175,4 +175,4 @@ docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"
 
 仓库 Dockerfile 会先启用 pnpm Corepack shim，再激活精确 pnpm `11.24.0`，并在最终 OCI `PATH` 中保留 `/pnpm/bin`。推送 ECR 前必须执行无缓存 `linux/arm64` 构建，并验证镜像架构与默认 `tiangong-lca-mcp-http` executable；只检查 Dockerfile 文本不足以证明镜像可用。
 
-该构建会先执行 `apk upgrade --no-cache`。必须读回安装后的 OpenSSL package，并使用推送前不存在且包含 commit 的 ECR tag。必须保留 `--provenance=false`：Amazon ECR 基础扫描不接受 OCI index，因此推送产物必须解析为单一 image manifest。只有扫描状态 COMPLETE 且 CRITICAL/HIGH 都为零，才能运行该镜像或注册 ECS task revision。
+该构建会先执行 `apk upgrade --no-cache`。必须读回安装后的 OpenSSL package，并使用推送前不存在且包含 commit 的 ECR tag。必须保留 `--provenance=false`：Amazon ECR 基础扫描不接受 OCI index，因此推送产物必须解析为单一 image manifest。应复用 scan-on-push 已产生的扫描，只在没有扫描时启动新扫描。只有扫描状态 COMPLETE 且 CRITICAL/HIGH 都为零，才能运行该镜像或注册 ECS task revision。

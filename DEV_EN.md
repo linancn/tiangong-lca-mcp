@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: fb616dd83ff231f63ee14fd974617a48c2167e91
-lastReviewedNote: 'Reviewed for Issue #62 and PR #63: the no-cache ARM64 ECR path emits one scan-compatible manifest and exits before run unless the scan is COMPLETE with exactly zero HIGH/CRITICAL findings.'
+lastReviewedCommit: 6c318ecf51b667580f77fb3f0af71f26f9790dc5
+lastReviewedNote: 'Reviewed for Issue #62 and PR #63: the ARM64 ECR path reuses an existing scan or starts a missing one, then exits before run unless the result is COMPLETE with exactly zero HIGH/CRITICAL.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -183,4 +183,4 @@ docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"
 
 The checked-in Dockerfile enables the pnpm Corepack shim before activating exact pnpm `11.24.0`, and retains `/pnpm/bin` in the final OCI `PATH`. Before ECR push, run a no-cache `linux/arm64` build and verify the image architecture plus the default `tiangong-lca-mcp-http` executable; regex-only Dockerfile proof is insufficient.
 
-That build first runs `apk upgrade --no-cache`. Read back the installed OpenSSL packages and use a previously absent commit-bearing ECR tag. Keep `--provenance=false`: Amazon ECR basic scanning rejects an OCI index, so the pushed artifact must resolve to a single image manifest. Wait for scan status COMPLETE with zero CRITICAL/HIGH findings before running it or registering an ECS task revision.
+That build first runs `apk upgrade --no-cache`. Read back the installed OpenSSL packages and use a previously absent commit-bearing ECR tag. Keep `--provenance=false`: Amazon ECR basic scanning rejects an OCI index, so the pushed artifact must resolve to a single image manifest. Reuse an existing scan-on-push result and start a scan only when none exists. Wait for scan status COMPLETE with zero CRITICAL/HIGH findings before running it or registering an ECS task revision.

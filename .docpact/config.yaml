@@ -1,8 +1,8 @@
 version: 1
 layout: repo
 lastReviewedAt: '2026-08-31'
-lastReviewedCommit: 'fb616dd83ff231f63ee14fd974617a48c2167e91'
-lastReviewedNote: 'Reviewed for Issue #62 and PR #63: Docker/test/maintainer routing covers a no-provenance single ARM64 manifest and a fail-closed COMPLETE/zero-HIGH/zero-CRITICAL assertion before any run.'
+lastReviewedCommit: '6c318ecf51b667580f77fb3f0af71f26f9790dc5'
+lastReviewedNote: 'Reviewed for Issue #62 and PR #63: Docker/test/maintainer routing covers scan-on-push reuse, missing-scan start, a single ARM64 manifest, and the fail-closed COMPLETE/zero-HIGH/zero-CRITICAL assertion.'
 
 catalog:
   repos:
