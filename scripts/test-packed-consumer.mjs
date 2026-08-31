@@ -49,7 +49,15 @@ try {
   ]) {
     assert.equal(existsSync(join(packageRoot, runtimeFile)), true, runtimeFile);
   }
-  for (const tool of ['typescript', 'tsx', 'oxlint', 'oxlint-tsgolint']) {
+  for (const tool of [
+    'typescript',
+    'tsx',
+    'oxlint',
+    'oxlint-tsgolint',
+    '@modelcontextprotocol/inspector',
+    'react',
+    'react-dom',
+  ]) {
     assert.equal(existsSync(join(temporaryRoot, 'node_modules', tool)), false, tool);
   }
 
