@@ -22,8 +22,8 @@ checkPaths:
   - src/http_app.ts
   - src/http_app_local.ts
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ffd98dd53f0927e246fb1f315a10bc343bdd3167
-lastReviewedNote: '针对 Issue #52 完成复核：远程 Streamable HTTP 现已说明浏览器 OAuth 2.1、固定客户端、broker token 隔离、Edge/MCP 共用 Redis 变量名和迁移模式；STDIO、本地 HTTP 与 0.1.1 包版本不变。'
+lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
+lastReviewedNote: '针对 Issue #56 完成复核：用户安装与 Docker 示例改为 MCP 0.1.1；这是首个包含已合并 Supabase OAuth broker 与一次性原子消费修复的包。'
 related:
   - AGENTS.md
   - .docpact/config.yaml

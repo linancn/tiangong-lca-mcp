@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 4aae3907de854f7c431ce3b89895249d478818a4
-lastReviewedNote: 'Reviewed for Issue #54: the in-memory qualification store now atomically consumes one-time OAuth handles before Promise handoff, matching production Redis single-winner behavior.'
+lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
+lastReviewedNote: 'Reviewed for Issue #56: trusted publishing, Docker, and packed-consumer instructions now bind exact MCP 0.1.1 and its broker runtime files before ECS image use.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -141,7 +141,7 @@ This runs read-only lint/typecheck, offline behavior tests, packed-consumer vali
 
 ### Publishing
 
-Publishing is handled by a separately tracked release task after the feature change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.1` maps to `v0.1.1`.
+Publishing is handled by a separately tracked release task after the feature change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.1` maps to `v0.1.1`. Before building the ECS image, read back the registry integrity and verify that the published archive contains the broker store/runtime, Supabase broker, auth middleware, and HTTP app proved by the packed-consumer gate.
 
 ### scaffold
 

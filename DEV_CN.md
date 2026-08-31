@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 4aae3907de854f7c431ce3b89895249d478818a4
-lastReviewedNote: '针对 Issue #54 完成复核：内存 qualification store 在 Promise handoff 前同步消费一次性 OAuth handle，与生产 Redis 单赢家语义一致。'
+lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
+lastReviewedNote: '针对 Issue #56 完成复核：trusted publishing、Docker 和 packed-consumer 说明现已绑定精确 MCP 0.1.1 及其 broker runtime 文件，再允许 ECS 镜像使用。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -133,7 +133,7 @@ pnpm prepush:gate
 
 ### 发布
 
-功能变更合并后，由单独跟踪的 release task 执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.1` 对应 `v0.1.1`。
+功能变更合并后，由单独跟踪的 release task 执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.1` 对应 `v0.1.1`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 packed-consumer 门禁证明过的 broker store/runtime、Supabase broker、auth middleware 与 HTTP app。
 
 ### 测试脚手架
 

@@ -22,8 +22,8 @@ checkPaths:
   - src/http_app.ts
   - src/http_app_local.ts
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ffd98dd53f0927e246fb1f315a10bc343bdd3167
-lastReviewedNote: 'Reviewed for Issue #52: remote Streamable HTTP now documents browser-based OAuth 2.1, fixed clients, broker token separation, shared Edge/MCP Redis names, and transition modes without changing STDIO/local HTTP or package version 0.1.1.'
+lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
+lastReviewedNote: 'Reviewed for Issue #56: user setup and Docker examples now select MCP 0.1.1, the first package carrying the merged Supabase OAuth broker and atomic one-time consumption fixes.'
 related:
   - AGENTS.md
   - .docpact/config.yaml

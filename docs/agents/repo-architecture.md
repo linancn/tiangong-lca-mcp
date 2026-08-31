@@ -34,8 +34,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 4aae3907de854f7c431ce3b89895249d478818a4
-lastReviewedNote: 'Reviewed for Issue #54: the in-memory qualification store now provides the same single-winner one-time consumption invariant as Redis GETDEL; broker topology and token separation are unchanged.'
+lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
+lastReviewedNote: 'Reviewed for Issue #56: release 0.1.1 binds Docker and the packed production consumer to the merged Supabase broker/atomic store modules without changing broker topology.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -132,6 +132,8 @@ The active local OpenLCA integration uses `olca-ipc`. The `openlca_grpc.ts` file
 ## Release Architecture
 
 `main` pushes whose `package.json` version changes create the matching `v<version>` tag, install with pnpm's frozen lock, run the canonical pre-push gate, and publish `@tiangong-lca/mcp-server` through pnpm. Manual `v*` tag pushes and workflow-dispatch runs for existing tags remain recovery/backfill paths.
+
+The Docker runtime installs that same exact package version. Packed-consumer proof must import all three entrypoints and assert that the production archive contains auth middleware, OAuth broker store/runtime, the Supabase broker, and the HTTP app. A registry tarball published before those modules existed is not an eligible image input even when the repository Dockerfile itself comes from a newer commit.
 
 The package graph is single-track Node `24.19.0`, pnpm `11.24.0`, TypeScript `7.0.2`, and TIDAS SDK `0.2.0`. The packed-consumer proof imports all three packaged entry modules from an arbitrary path and verifies that compiler/lint/test tooling is absent from the production install.
 
