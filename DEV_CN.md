@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
-lastReviewedNote: '针对 Issue #60 与 PR #61 完成复核：无缓存 ARM64 构建日志会在 Alpine 升级后明确读回已修复的 OpenSSL，并继续要求 ECR 扫描 HIGH/CRITICAL 为零。'
+lastReviewedCommit: 5bfd3bba2398104eb153f2d1374fa7506d2f7798
+lastReviewedNote: '针对 Issue #62 与 PR #63 完成复核：ARM64 ECR 路径只会在 ScanNotFoundException 时启动扫描，保留其他探测错误，并在非 COMPLETE/零 HIGH/CRITICAL 时退出。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -144,18 +144,43 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ### 发布
 
 ```bash
+set -euo pipefail
+
 image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
-docker build --no-cache --platform linux/arm64 -t "${image_uri}:${image_tag}" .
+docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
 docker push "${image_uri}:${image_tag}"
+
+aws ecr describe-images --region us-east-1 --repository-name tiangong-lca-mcp --image-ids "imageTag=${image_tag}" --query 'imageDetails[0].imageManifestMediaType' --output text
+
+scan_probe_status=0
+scan_status="$(aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query 'imageScanStatus.status' --output text 2>&1)" || scan_probe_status=$?
+if [ "${scan_probe_status}" -ne 0 ]; then
+  case "${scan_status}" in
+    *ScanNotFoundException*) aws ecr start-image-scan --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" ;;
+    *)
+      printf 'ECR scan probe failed: %s\n' "${scan_status}" >&2
+      exit "${scan_probe_status}"
+      ;;
+  esac
+fi
+
+aws ecr wait image-scan-complete --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}"
+
+scan_gate="$(aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query '[imageScanStatus.status, imageScanFindings.findingSeverityCounts.CRITICAL || `0`, imageScanFindings.findingSeverityCounts.HIGH || `0`]' --output text)"
+expected_scan_gate="$(printf 'COMPLETE\t0\t0')"
+if [ "${scan_gate}" != "${expected_scan_gate}" ]; then
+  printf 'ECR scan gate failed: %s\n' "${scan_gate}" >&2
+  exit 1
+fi
 
 docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"
 ```
 
 仓库 Dockerfile 会先启用 pnpm Corepack shim，再激活精确 pnpm `11.24.0`，并在最终 OCI `PATH` 中保留 `/pnpm/bin`。推送 ECR 前必须执行无缓存 `linux/arm64` 构建，并验证镜像架构与默认 `tiangong-lca-mcp-http` executable；只检查 Dockerfile 文本不足以证明镜像可用。
 
-该构建会先执行 `apk upgrade --no-cache`。必须读回安装后的 OpenSSL package，使用推送前不存在且包含 commit 的 ECR tag，并等待扫描状态 COMPLETE 且 CRITICAL/HIGH 都为零，才可注册 ECS task revision。
+该构建会先执行 `apk upgrade --no-cache`。必须读回安装后的 OpenSSL package，并使用推送前不存在且包含 commit 的 ECR tag。必须保留 `--provenance=false`：Amazon ECR 基础扫描不接受 OCI index，因此推送产物必须解析为单一 image manifest。应复用 scan-on-push 已产生的扫描，只在明确返回 `ScanNotFoundException` 时启动新扫描；其他探测错误必须原样失败。只有扫描状态 COMPLETE 且 CRITICAL/HIGH 都为零，才能运行该镜像或注册 ECS task revision。

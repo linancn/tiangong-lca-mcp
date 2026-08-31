@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
-lastReviewedNote: 'Reviewed for Issue #60 and PR #61: the no-cache ARM64 build log now explicitly reads back patched OpenSSL after the Alpine upgrade and still requires a zero-HIGH/CRITICAL ECR scan.'
+lastReviewedCommit: 5bfd3bba2398104eb153f2d1374fa7506d2f7798
+lastReviewedNote: 'Reviewed for Issue #62 and PR #63: the ARM64 ECR path starts only on ScanNotFoundException, preserves other probe failures, and exits before run unless the result is COMPLETE with zero HIGH/CRITICAL.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -152,18 +152,43 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ### Deployment
 
 ```bash
+set -euo pipefail
+
 image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
-docker build --no-cache --platform linux/arm64 -t "${image_uri}:${image_tag}" .
+docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
 docker push "${image_uri}:${image_tag}"
+
+aws ecr describe-images --region us-east-1 --repository-name tiangong-lca-mcp --image-ids "imageTag=${image_tag}" --query 'imageDetails[0].imageManifestMediaType' --output text
+
+scan_probe_status=0
+scan_status="$(aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query 'imageScanStatus.status' --output text 2>&1)" || scan_probe_status=$?
+if [ "${scan_probe_status}" -ne 0 ]; then
+  case "${scan_status}" in
+    *ScanNotFoundException*) aws ecr start-image-scan --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" ;;
+    *)
+      printf 'ECR scan probe failed: %s\n' "${scan_status}" >&2
+      exit "${scan_probe_status}"
+      ;;
+  esac
+fi
+
+aws ecr wait image-scan-complete --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}"
+
+scan_gate="$(aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query '[imageScanStatus.status, imageScanFindings.findingSeverityCounts.CRITICAL || `0`, imageScanFindings.findingSeverityCounts.HIGH || `0`]' --output text)"
+expected_scan_gate="$(printf 'COMPLETE\t0\t0')"
+if [ "${scan_gate}" != "${expected_scan_gate}" ]; then
+  printf 'ECR scan gate failed: %s\n' "${scan_gate}" >&2
+  exit 1
+fi
 
 docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"
 ```
 
 The checked-in Dockerfile enables the pnpm Corepack shim before activating exact pnpm `11.24.0`, and retains `/pnpm/bin` in the final OCI `PATH`. Before ECR push, run a no-cache `linux/arm64` build and verify the image architecture plus the default `tiangong-lca-mcp-http` executable; regex-only Dockerfile proof is insufficient.
 
-That build first runs `apk upgrade --no-cache`. Read back the installed OpenSSL packages, use a previously absent commit-bearing ECR tag, and wait for scan status COMPLETE with zero CRITICAL/HIGH findings before registering an ECS task revision.
+That build first runs `apk upgrade --no-cache`. Read back the installed OpenSSL packages and use a previously absent commit-bearing ECR tag. Keep `--provenance=false`: Amazon ECR basic scanning rejects an OCI index, so the pushed artifact must resolve to a single image manifest. Reuse an existing scan-on-push result and start a scan only for an explicit `ScanNotFoundException`; every other probe failure remains fatal. Wait for scan status COMPLETE with zero CRITICAL/HIGH findings before running it or registering an ECS task revision.
