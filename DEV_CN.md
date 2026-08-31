@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ed04e9637890f2953169d984742021e91ad205ce
-lastReviewedNote: '针对 Issue #58 完成复核：Node Alpine Docker 路径现会先创建 Corepack pnpm shim、激活精确 11.24.0、暴露 global bin，并要求真实 ARM64 build。'
+lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
+lastReviewedNote: '针对 Issue #60 与 PR #61 完成复核：无缓存 ARM64 构建日志会在 Alpine 升级后明确读回已修复的 OpenSSL，并继续要求 ECR 扫描 HIGH/CRITICAL 为零。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -144,13 +144,18 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ### 发布
 
 ```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1 .
+image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
+image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
+
+docker build --no-cache --platform linux/arm64 -t "${image_uri}:${image_tag}" .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
+docker push "${image_uri}:${image_tag}"
 
-docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
+docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"
 ```
 
 仓库 Dockerfile 会先启用 pnpm Corepack shim，再激活精确 pnpm `11.24.0`，并在最终 OCI `PATH` 中保留 `/pnpm/bin`。推送 ECR 前必须执行无缓存 `linux/arm64` 构建，并验证镜像架构与默认 `tiangong-lca-mcp-http` executable；只检查 Dockerfile 文本不足以证明镜像可用。
+
+该构建会先执行 `apk upgrade --no-cache`。必须读回安装后的 OpenSSL package，使用推送前不存在且包含 commit 的 ECR tag，并等待扫描状态 COMPLETE 且 CRITICAL/HIGH 都为零，才可注册 ECS task revision。

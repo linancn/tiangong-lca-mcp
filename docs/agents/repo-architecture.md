@@ -34,8 +34,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ed04e9637890f2953169d984742021e91ad205ce
-lastReviewedNote: 'Reviewed for Issue #58: the production image path now creates Corepack shims before activation, exposes pnpm global bins in OCI PATH, and is proved on Linux ARM64.'
+lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
+lastReviewedNote: 'Reviewed for Issue #60 and PR #61: the image path explicitly records patched OpenSSL in the no-cache ARM64 build log and accepts only a SHA-bearing, scanned zero-HIGH/CRITICAL digest for ECS.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -136,6 +136,8 @@ The active local OpenLCA integration uses `olca-ipc`. The `openlca_grpc.ts` file
 The Docker runtime installs that same exact package version. Packed-consumer proof must import all three entrypoints and assert that the production archive contains auth middleware, OAuth broker store/runtime, the Supabase broker, and the HTTP app. A registry tarball published before those modules existed is not an eligible image input even when the repository Dockerfile itself comes from a newer commit.
 
 On Node Alpine, Corepack activation and pnpm global installation are separate boundaries: `corepack enable pnpm` creates the executable shim, exact global install activates `11.24.0`, and `/pnpm/bin` must remain in the final OCI `PATH` so the packaged MCP bins are the default container command. A real no-cache Linux ARM64 build is the required proof for this path.
+
+The build upgrades Alpine packages before package-manager setup and records the installed OpenSSL version. The ECR tag is commit-bearing and must be absent before push; its scan must complete with zero CRITICAL/HIGH findings. A vulnerable image remains evidence only and is never an ECS task input.
 
 The package graph is single-track Node `24.19.0`, pnpm `11.24.0`, TypeScript `7.0.2`, and TIDAS SDK `0.2.0`. The packed-consumer proof imports all three packaged entry modules from an arbitrary path and verifies that compiler/lint/test tooling is absent from the production install.
 

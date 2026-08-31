@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ed04e9637890f2953169d984742021e91ad205ce
-lastReviewedNote: 'Reviewed for Issue #58: the Node Alpine Docker path now creates the Corepack pnpm shim, activates exact 11.24.0, exposes global bins, and requires a real ARM64 build.'
+lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
+lastReviewedNote: 'Reviewed for Issue #60 and PR #61: the no-cache ARM64 build log now explicitly reads back patched OpenSSL after the Alpine upgrade and still requires a zero-HIGH/CRITICAL ECR scan.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -152,13 +152,18 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ### Deployment
 
 ```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1 .
+image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
+image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
+
+docker build --no-cache --platform linux/arm64 -t "${image_uri}:${image_tag}" .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
+docker push "${image_uri}:${image_tag}"
 
-docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
+docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"
 ```
 
 The checked-in Dockerfile enables the pnpm Corepack shim before activating exact pnpm `11.24.0`, and retains `/pnpm/bin` in the final OCI `PATH`. Before ECR push, run a no-cache `linux/arm64` build and verify the image architecture plus the default `tiangong-lca-mcp-http` executable; regex-only Dockerfile proof is insufficient.
+
+That build first runs `apk upgrade --no-cache`. Read back the installed OpenSSL packages, use a previously absent commit-bearing ECR tag, and wait for scan status COMPLETE with zero CRITICAL/HIGH findings before registering an ECS task revision.
