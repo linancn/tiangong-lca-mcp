@@ -133,6 +133,11 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       const dockerRunIndex = text.indexOf(
         'docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"',
       );
+      const existingScanIndex = text.indexOf(
+        'if ! scan_status="$(aws ecr describe-image-scan-findings',
+      );
+      const startScanIndex = text.indexOf('aws ecr start-image-scan');
+      const waitScanIndex = text.indexOf('aws ecr wait image-scan-complete');
       assert.match(text, /image_tag="oauth-\$\(git rev-parse --short=12 HEAD\)-v0\.1\.1"/u);
       assert.match(text, /docker build --no-cache --provenance=false --platform linux\/arm64/u);
       assert.match(text, /imageManifestMediaType/u);
@@ -143,9 +148,12 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       assert.match(text, /exit 1/u);
       assert.ok(scanGateIndex >= 0);
       assert.ok(dockerRunIndex > scanGateIndex);
+      assert.ok(existingScanIndex >= 0);
+      assert.ok(startScanIndex > existingScanIndex);
+      assert.ok(waitScanIndex > startScanIndex);
       assert.doesNotMatch(text, /docker build --no-cache --platform linux\/arm64/u);
       assert.equal(text.match(/"\$\{image_uri\}:\$\{image_tag\}"/gu)?.length, 3);
-      assert.equal(text.match(/"imageTag=\$\{image_tag\}"/gu)?.length, 4);
+      assert.equal(text.match(/"imageTag=\$\{image_tag\}"/gu)?.length, 5);
       assert.doesNotMatch(
         text,
         /339712838008\.dkr\.ecr\.us-east-1\.amazonaws\.com\/tiangong-lca-mcp:0\.1\.1/u,
