@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
-lastReviewedNote: 'Reviewed for Issue #56: trusted publishing, Docker, and packed-consumer instructions now bind exact MCP 0.1.1 and its broker runtime files before ECS image use.'
+lastReviewedCommit: ed04e9637890f2953169d984742021e91ad205ce
+lastReviewedNote: 'Reviewed for Issue #58: the Node Alpine Docker path now creates the Corepack pnpm shim, activates exact 11.24.0, exposes global bins, and requires a real ARM64 build.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -160,3 +160,5 @@ docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
 
 docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
 ```
+
+The checked-in Dockerfile enables the pnpm Corepack shim before activating exact pnpm `11.24.0`, and retains `/pnpm/bin` in the final OCI `PATH`. Before ECR push, run a no-cache `linux/arm64` build and verify the image architecture plus the default `tiangong-lca-mcp-http` executable; regex-only Dockerfile proof is insufficient.

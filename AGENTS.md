@@ -44,8 +44,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
-lastReviewedNote: 'Reviewed for Issue #56: MCP 0.1.1 and the Docker pin now carry the merged Supabase broker and atomic consume runtime; packed-consumer proof rejects a stale registry artifact.'
+lastReviewedCommit: ed04e9637890f2953169d984742021e91ad205ce
+lastReviewedNote: 'Reviewed for Issue #58: the ARM64 Docker runtime enables the Corepack pnpm shim, activates exact 11.24.0, and includes `/pnpm/bin` before installing MCP 0.1.1.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -123,6 +123,7 @@ Route those tasks to:
   - `tiangong-lca-mcp-http`
   - `tiangong-lca-mcp-http-local`
 - `Dockerfile` must install the exact version in `package.json`. The packed-consumer gate must find the broker store, OAuth runtime, Supabase broker, auth middleware, and HTTP app in that package before a registry release or ECS image can claim the reviewed source.
+- The Docker runtime must run `corepack enable pnpm` before exact global activation, keep both `/pnpm/bin` and `/pnpm` on OCI `PATH`, and pass a real no-cache Linux ARM64 build; a source-only regex check is not image evidence.
 - Release tags use `v<package.json version>`; canonical `main` branch pushes whose package version changes create the matching tag when missing, run the release gate, and publish `@tiangong-lca/mcp-server` to npm in the same workflow run
 - Manual `v*` tag pushes and `workflow_dispatch` runs for an existing release tag whose target commit is already on `main` remain supported for recovery/backfill releases
 - HTTP entry modules are side-effect free when imported. `src/http_app.ts` and `src/http_app_local.ts` own app construction; the executable entry files only listen when they are the process entrypoint.

@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
-lastReviewedNote: '针对 Issue #56 完成复核：trusted publishing、Docker 和 packed-consumer 说明现已绑定精确 MCP 0.1.1 及其 broker runtime 文件，再允许 ECS 镜像使用。'
+lastReviewedCommit: ed04e9637890f2953169d984742021e91ad205ce
+lastReviewedNote: '针对 Issue #58 完成复核：Node Alpine Docker 路径现会先创建 Corepack pnpm shim、激活精确 11.24.0、暴露 global bin，并要求真实 ARM64 build。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -152,3 +152,5 @@ docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
 
 docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
 ```
+
+仓库 Dockerfile 会先启用 pnpm Corepack shim，再激活精确 pnpm `11.24.0`，并在最终 OCI `PATH` 中保留 `/pnpm/bin`。推送 ECR 前必须执行无缓存 `linux/arm64` 构建，并验证镜像架构与默认 `tiangong-lca-mcp-http` executable；只检查 Dockerfile 文本不足以证明镜像可用。
