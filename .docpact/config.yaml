@@ -1,8 +1,8 @@
 version: 1
 layout: repo
 lastReviewedAt: '2026-08-31'
-lastReviewedCommit: '35dd22a7161038971c91fcc0d4b30306fae6cd12'
-lastReviewedNote: 'Reviewed for Issue #60 and PR #61: Docker/test/maintainer routing covers explicit patched-OpenSSL build-log readback after the Alpine upgrade, real ARM64 build, zero-HIGH/CRITICAL scan, and one SHA-bearing ECR tag across build/push/run.'
+lastReviewedCommit: '976e61ef5ba3c43f459a82512fe1b4d98970b7d7'
+lastReviewedNote: 'Reviewed for Issue #62: Docker/test/maintainer routing covers a no-provenance single ARM64 manifest, explicit patched-OpenSSL readback, one SHA-bearing tag, and the zero-HIGH/CRITICAL ECR gate.'
 
 catalog:
   repos:

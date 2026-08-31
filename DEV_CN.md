@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
-lastReviewedNote: '针对 Issue #60 与 PR #61 完成复核：无缓存 ARM64 构建日志会在 Alpine 升级后明确读回已修复的 OpenSSL，并继续要求 ECR 扫描 HIGH/CRITICAL 为零。'
+lastReviewedCommit: 976e61ef5ba3c43f459a82512fe1b4d98970b7d7
+lastReviewedNote: '针对 Issue #62 完成复核：无缓存 ARM64 ECR 路径会禁用 provenance、验证单一可扫描 manifest，并保留已修复 OpenSSL 的明确读回与 HIGH/CRITICAL 为零的门禁。'
 related:
   - AGENTS.md
   - .docpact/config.yaml

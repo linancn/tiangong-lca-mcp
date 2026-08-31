@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
-lastReviewedNote: 'Reviewed for Issue #60 and PR #61: the no-cache ARM64 build log now explicitly reads back patched OpenSSL after the Alpine upgrade and still requires a zero-HIGH/CRITICAL ECR scan.'
+lastReviewedCommit: 976e61ef5ba3c43f459a82512fe1b4d98970b7d7
+lastReviewedNote: 'Reviewed for Issue #62: the no-cache ARM64 ECR path now disables provenance, verifies one scan-compatible manifest, and retains explicit patched-OpenSSL readback plus the zero-HIGH/CRITICAL gate.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
