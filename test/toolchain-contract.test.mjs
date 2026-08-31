@@ -129,12 +129,20 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.1/u);
     for (const maintainerDoc of ['DEV_EN.md', 'DEV_CN.md']) {
       const text = readText(maintainerDoc);
+      const scanGateIndex = text.indexOf('if [ "${scan_gate}" != "${expected_scan_gate}" ]; then');
+      const dockerRunIndex = text.indexOf(
+        'docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"',
+      );
       assert.match(text, /image_tag="oauth-\$\(git rev-parse --short=12 HEAD\)-v0\.1\.1"/u);
       assert.match(text, /docker build --no-cache --provenance=false --platform linux\/arm64/u);
       assert.match(text, /imageManifestMediaType/u);
       assert.match(text, /aws ecr start-image-scan/u);
       assert.match(text, /aws ecr wait image-scan-complete/u);
       assert.match(text, /aws ecr describe-image-scan-findings/u);
+      assert.match(text, /set -euo pipefail/u);
+      assert.match(text, /exit 1/u);
+      assert.ok(scanGateIndex >= 0);
+      assert.ok(dockerRunIndex > scanGateIndex);
       assert.doesNotMatch(text, /docker build --no-cache --platform linux\/arm64/u);
       assert.equal(text.match(/"\$\{image_uri\}:\$\{image_tag\}"/gu)?.length, 3);
       assert.equal(text.match(/"imageTag=\$\{image_tag\}"/gu)?.length, 4);

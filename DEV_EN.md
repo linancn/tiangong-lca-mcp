@@ -152,6 +152,8 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ### Deployment
 
 ```bash
+set -euo pipefail
+
 image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
@@ -167,7 +169,12 @@ aws ecr start-image-scan --region us-east-1 --repository-name tiangong-lca-mcp -
 
 aws ecr wait image-scan-complete --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}"
 
-aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query 'imageScanFindings.{status:imageScanStatus.status,severityCounts:findingSeverityCounts}'
+scan_gate="$(aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query '[imageScanStatus.status, imageScanFindings.findingSeverityCounts.CRITICAL || `0`, imageScanFindings.findingSeverityCounts.HIGH || `0`]' --output text)"
+expected_scan_gate="$(printf 'COMPLETE\t0\t0')"
+if [ "${scan_gate}" != "${expected_scan_gate}" ]; then
+  printf 'ECR scan gate failed: %s\n' "${scan_gate}" >&2
+  exit 1
+fi
 
 docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"
 ```
