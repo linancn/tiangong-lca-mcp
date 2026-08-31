@@ -4,6 +4,7 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
 
 RUN apk upgrade --no-cache \
+    && apk list --installed libssl3 libcrypto3 \
     && corepack enable pnpm \
     && corepack install --global pnpm@11.24.0 \
     && pnpm --version \
