@@ -165,8 +165,16 @@ docker push "${image_uri}:${image_tag}"
 
 aws ecr describe-images --region us-east-1 --repository-name tiangong-lca-mcp --image-ids "imageTag=${image_tag}" --query 'imageDetails[0].imageManifestMediaType' --output text
 
-if ! scan_status="$(aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query 'imageScanStatus.status' --output text 2>/dev/null)"; then
-  aws ecr start-image-scan --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}"
+scan_probe_status=0
+scan_status="$(aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query 'imageScanStatus.status' --output text 2>&1)" || scan_probe_status=$?
+if [ "${scan_probe_status}" -ne 0 ]; then
+  case "${scan_status}" in
+    *ScanNotFoundException*) aws ecr start-image-scan --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" ;;
+    *)
+      printf 'ECR scan probe failed: %s\n' "${scan_status}" >&2
+      exit "${scan_probe_status}"
+      ;;
+  esac
 fi
 
 aws ecr wait image-scan-complete --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}"
