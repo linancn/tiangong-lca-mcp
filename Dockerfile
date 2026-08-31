@@ -3,7 +3,8 @@ FROM node:24.19.0-alpine
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
 
-RUN corepack enable pnpm \
+RUN apk upgrade --no-cache \
+    && corepack enable pnpm \
     && corepack install --global pnpm@11.24.0 \
     && pnpm --version \
     && pnpm add --global @tiangong-lca/mcp-server@0.1.1

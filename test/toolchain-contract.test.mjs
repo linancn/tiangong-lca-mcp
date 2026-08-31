@@ -96,6 +96,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
 
   it('creates the Corepack pnpm shim before activating and using the exact version', () => {
     const dockerfile = readText('Dockerfile');
+    const osUpgradeIndex = dockerfile.indexOf('apk upgrade --no-cache');
     const enableIndex = dockerfile.indexOf('corepack enable pnpm');
     const installIndex = dockerfile.indexOf(
       `corepack install --global pnpm@${expectedPnpmVersion}`,
@@ -104,7 +105,8 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     const addIndex = dockerfile.indexOf('pnpm add --global @tiangong-lca/mcp-server@0.1.1');
 
     assert.match(dockerfile, /ENV PATH="\$PNPM_HOME\/bin:\$PNPM_HOME:\$PATH"/u);
-    assert.ok(enableIndex >= 0);
+    assert.ok(osUpgradeIndex >= 0);
+    assert.ok(enableIndex > osUpgradeIndex);
     assert.ok(installIndex > enableIndex);
     assert.ok(versionIndex > installIndex);
     assert.ok(addIndex > versionIndex);
