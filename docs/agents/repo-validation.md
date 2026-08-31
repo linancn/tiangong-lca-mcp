@@ -39,8 +39,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 66b624ded9831316e7c1b5b77373233df4463bb4
-lastReviewedNote: 'Reviewed for Issue #60 and PR #61: Docker validation requires Alpine security readback, one SHA-bearing build/push/run tag, and a COMPLETE ECR scan with zero HIGH/CRITICAL before deployment.'
+lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
+lastReviewedNote: 'Reviewed for Issue #60 and PR #61: Docker validation requires explicit patched-OpenSSL build-log readback after the Alpine upgrade, one SHA-bearing build/push/run tag, and a COMPLETE ECR scan with zero HIGH/CRITICAL before deployment.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml

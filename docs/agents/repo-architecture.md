@@ -34,8 +34,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 66b624ded9831316e7c1b5b77373233df4463bb4
-lastReviewedNote: 'Reviewed for Issue #60 and PR #61: the image path upgrades Alpine packages and accepts only a SHA-bearing, scanned zero-HIGH/CRITICAL ARM64 digest for ECS.'
+lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
+lastReviewedNote: 'Reviewed for Issue #60 and PR #61: the image path explicitly records patched OpenSSL in the no-cache ARM64 build log and accepts only a SHA-bearing, scanned zero-HIGH/CRITICAL digest for ECS.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml

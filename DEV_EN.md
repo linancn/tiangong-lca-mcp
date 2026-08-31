@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 66b624ded9831316e7c1b5b77373233df4463bb4
-lastReviewedNote: 'Reviewed for Issue #60: the Node Alpine image now upgrades security packages before Corepack and requires patched OpenSSL plus a zero-HIGH/CRITICAL ECR scan.'
+lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
+lastReviewedNote: 'Reviewed for Issue #60 and PR #61: the no-cache ARM64 build log now explicitly reads back patched OpenSSL after the Alpine upgrade and still requires a zero-HIGH/CRITICAL ECR scan.'
 related:
   - AGENTS.md
   - .docpact/config.yaml

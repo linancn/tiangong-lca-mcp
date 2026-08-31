@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 66b624ded9831316e7c1b5b77373233df4463bb4
-lastReviewedNote: '针对 Issue #60 完成复核：Node Alpine 镜像现会在 Corepack 前升级安全包，并要求修复后的 OpenSSL 与零 HIGH/CRITICAL ECR 扫描。'
+lastReviewedCommit: 35dd22a7161038971c91fcc0d4b30306fae6cd12
+lastReviewedNote: '针对 Issue #60 与 PR #61 完成复核：无缓存 ARM64 构建日志会在 Alpine 升级后明确读回已修复的 OpenSSL，并继续要求 ECR 扫描 HIGH/CRITICAL 为零。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
