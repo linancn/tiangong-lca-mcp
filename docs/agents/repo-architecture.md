@@ -35,7 +35,7 @@ checkPaths:
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
 lastReviewedCommit: 66b624ded9831316e7c1b5b77373233df4463bb4
-lastReviewedNote: 'Reviewed for Issue #60: the image path upgrades Alpine security packages before Corepack and accepts only a scanned zero-HIGH/CRITICAL ARM64 digest for ECS.'
+lastReviewedNote: 'Reviewed for Issue #60 and PR #61: the image path upgrades Alpine packages and accepts only a SHA-bearing, scanned zero-HIGH/CRITICAL ARM64 digest for ECS.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml

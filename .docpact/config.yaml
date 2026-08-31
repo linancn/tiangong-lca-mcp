@@ -2,7 +2,7 @@ version: 1
 layout: repo
 lastReviewedAt: '2026-08-31'
 lastReviewedCommit: '66b624ded9831316e7c1b5b77373233df4463bb4'
-lastReviewedNote: 'Reviewed for Issue #60: Docker/test routing covers the Alpine security upgrade, patched OpenSSL readback, real ARM64 build, and zero-HIGH/CRITICAL ECR gate.'
+lastReviewedNote: 'Reviewed for Issue #60 and PR #61: Docker/test/maintainer routing covers the Alpine security upgrade, patched OpenSSL, real ARM64 build, zero-HIGH/CRITICAL scan, and one SHA-bearing ECR tag across build/push/run.'
 
 catalog:
   repos:

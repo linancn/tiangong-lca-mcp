@@ -40,7 +40,7 @@ checkPaths:
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
 lastReviewedCommit: 66b624ded9831316e7c1b5b77373233df4463bb4
-lastReviewedNote: 'Reviewed for Issue #60: Docker validation now requires Alpine security upgrade/readback plus a COMPLETE ECR scan with zero HIGH/CRITICAL findings before deployment.'
+lastReviewedNote: 'Reviewed for Issue #60 and PR #61: Docker validation requires Alpine security readback, one SHA-bearing build/push/run tag, and a COMPLETE ECR scan with zero HIGH/CRITICAL before deployment.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml

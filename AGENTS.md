@@ -45,7 +45,7 @@ checkPaths:
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
 lastReviewedCommit: 66b624ded9831316e7c1b5b77373233df4463bb4
-lastReviewedNote: 'Reviewed for Issue #60: the ARM64 image upgrades Alpine security packages before Corepack, reads back OpenSSL 3.5.8-r0, and requires a zero-HIGH/CRITICAL ECR scan.'
+lastReviewedNote: 'Reviewed for Issue #60 and PR #61: the ARM64 image upgrades Alpine security packages, reads back OpenSSL 3.5.8-r0, requires a zero-HIGH/CRITICAL scan, and uses one SHA-bearing tag for build/push/run.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
