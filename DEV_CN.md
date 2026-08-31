@@ -53,17 +53,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.0 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.1 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.0
+docker pull linancn/tiangong-lca-mcp-server:0.1.1
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.0
+    linancn/tiangong-lca-mcp-server:0.1.1
 ```
 
 ## 开发
@@ -133,7 +133,7 @@ pnpm prepush:gate
 
 ### 发布
 
-功能变更合并后，由单独跟踪的 release task 执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.0` 对应 `v0.1.0`。
+功能变更合并后，由单独跟踪的 release task 执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.1` 对应 `v0.1.1`。
 
 ### 测试脚手架
 
@@ -144,11 +144,11 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ### 发布
 
 ```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.0 .
+docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1 .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.0
+docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
 
-docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.0
+docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
 ```

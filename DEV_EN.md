@@ -54,17 +54,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.1.0 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.1 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.1.0
+docker pull linancn/tiangong-lca-mcp-server:0.1.1
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.0
+    linancn/tiangong-lca-mcp-server:0.1.1
 ```
 
 ## Development
@@ -141,7 +141,7 @@ This runs read-only lint/typecheck, offline behavior tests, packed-consumer vali
 
 ### Publishing
 
-Publishing is handled by a separately tracked release task after the feature change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.0` maps to `v0.1.0`.
+Publishing is handled by a separately tracked release task after the feature change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.1` maps to `v0.1.1`.
 
 ### scaffold
 
@@ -152,11 +152,11 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ### Deployment
 
 ```bash
-docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.0 .
+docker build --no-cache -t 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1 .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
-docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.0
+docker push 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
 
-docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.0
+docker run -d -p 9278:9278 --env-file .env 339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp:0.1.1
 ```
