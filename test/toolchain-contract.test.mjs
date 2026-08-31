@@ -30,9 +30,15 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.equal(readText('.gitattributes').trim(), '* text=auto eol=lf');
   });
 
-  it('pins TypeScript 7 and the runtime-clean TIDAS SDK', () => {
+  it('pins the latest compatible dependency graph and runtime-clean TIDAS SDK', () => {
     assert.equal(packageJson.devDependencies?.typescript, '7.0.2');
     assert.equal(packageJson.dependencies?.['@tiangong-lca/tidas-sdk'], '0.2.0');
+    assert.equal(packageJson.dependencies?.['@upstash/redis'], '1.38.3');
+    assert.equal(packageJson.dependencies?.zod, '4.5.4');
+    assert.equal(packageJson.devDependencies?.['@modelcontextprotocol/inspector'], '2.4.0');
+    assert.equal(packageJson.devDependencies?.['@types/node'], '24.13.3');
+    assert.equal(packageJson.devDependencies?.['react-dom'], '19.2.8');
+    assert.equal(packageJson.devDependencies?.tsx, '4.23.13');
     assert.equal(packageJson.devDependencies?.oxlint, '1.80.0');
     assert.equal(packageJson.devDependencies?.['oxlint-tsgolint'], '7.0.2001');
     assert.equal(packageJson.devDependencies?.['prettier-plugin-organize-imports'], undefined);
@@ -51,6 +57,8 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.doesNotMatch(scripts, /(?:^|\s)(?:npm|npx)(?:\s|$)/mu);
     assert.match(packageJson.scripts?.lint ?? '', /lint:oxlint/u);
     assert.match(packageJson.scripts?.lint ?? '', /lint:prettier/u);
+    assert.equal(packageJson.scripts?.['peers:check'], 'pnpm peers check');
+    assert.match(packageJson.scripts?.['prepush:gate'] ?? '', /pnpm peers:check/u);
     assert.doesNotMatch(packageJson.scripts?.lint ?? '', /--write/u);
     assert.match(packageJson.scripts?.format ?? '', /prettier --write/u);
     assert.doesNotMatch(packageJson.scripts?.['test:pack'] ?? '', />\s*\/dev\/null/u);
@@ -103,7 +111,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       `corepack install --global pnpm@${expectedPnpmVersion}`,
     );
     const versionIndex = dockerfile.indexOf('pnpm --version');
-    const addIndex = dockerfile.indexOf('pnpm add --global @tiangong-lca/mcp-server@0.1.1');
+    const addIndex = dockerfile.indexOf('pnpm add --global @tiangong-lca/mcp-server@0.1.2');
 
     assert.match(dockerfile, /ENV PATH="\$PNPM_HOME\/bin:\$PNPM_HOME:\$PATH"/u);
     assert.ok(osUpgradeIndex >= 0);
@@ -114,19 +122,19 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.ok(addIndex > versionIndex);
   });
 
-  it('binds the 0.1.1 release across package, Docker, and active docs', () => {
-    assert.equal(packageJson.version, '0.1.1');
+  it('binds the 0.1.2 release across package, Docker, and active docs', () => {
+    assert.equal(packageJson.version, '0.1.2');
     const surfaces = ['Dockerfile', 'README.md', 'README_CN.md', 'DEV_EN.md', 'DEV_CN.md'];
     for (const surface of surfaces) {
       const text = readText(surface);
-      assert.match(text, /0\.1\.1/u, surface);
+      assert.match(text, /0\.1\.2/u, surface);
       assert.doesNotMatch(
         text,
-        /(?:mcp-server|tiangong-lca-mcp):(?!(?:0\.1\.1)\b)\d+\.\d+\.\d+/u,
+        /(?:mcp-server|tiangong-lca-mcp):(?!(?:0\.1\.2)\b)\d+\.\d+\.\d+/u,
         surface,
       );
     }
-    assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.1/u);
+    assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.2/u);
     for (const maintainerDoc of ['DEV_EN.md', 'DEV_CN.md']) {
       const text = readText(maintainerDoc);
       const scanGateIndex = text.indexOf('if [ "${scan_gate}" != "${expected_scan_gate}" ]; then');
@@ -138,7 +146,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       const waitScanIndex = text.indexOf('aws ecr wait image-scan-complete');
       const scanNotFoundIndex = text.indexOf('*ScanNotFoundException*)');
       const probeFailureIndex = text.indexOf('ECR scan probe failed: %s');
-      assert.match(text, /image_tag="oauth-\$\(git rev-parse --short=12 HEAD\)-v0\.1\.1"/u);
+      assert.match(text, /image_tag="oauth-\$\(git rev-parse --short=12 HEAD\)-v0\.1\.2"/u);
       assert.match(text, /docker build --no-cache --provenance=false --platform linux\/arm64/u);
       assert.match(text, /imageManifestMediaType/u);
       assert.match(text, /aws ecr start-image-scan/u);
@@ -160,7 +168,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       assert.equal(text.match(/"imageTag=\$\{image_tag\}"/gu)?.length, 5);
       assert.doesNotMatch(
         text,
-        /339712838008\.dkr\.ecr\.us-east-1\.amazonaws\.com\/tiangong-lca-mcp:0\.1\.1/u,
+        /339712838008\.dkr\.ecr\.us-east-1\.amazonaws\.com\/tiangong-lca-mcp:0\.1\.2/u,
       );
     }
   });

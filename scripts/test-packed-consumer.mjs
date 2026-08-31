@@ -38,7 +38,7 @@ try {
   const packageRoot = join(temporaryRoot, 'node_modules', '@tiangong-lca', 'mcp-server');
   const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
   assert.equal(packageJson.name, '@tiangong-lca/mcp-server');
-  assert.equal(packageJson.version, '0.1.1');
+  assert.equal(packageJson.version, '0.1.2');
   assert.equal(packageJson.dependencies['@tiangong-lca/tidas-sdk'], '0.2.0');
   for (const runtimeFile of [
     'dist/src/_shared/auth_middleware.js',
@@ -49,7 +49,15 @@ try {
   ]) {
     assert.equal(existsSync(join(packageRoot, runtimeFile)), true, runtimeFile);
   }
-  for (const tool of ['typescript', 'tsx', 'oxlint', 'oxlint-tsgolint']) {
+  for (const tool of [
+    'typescript',
+    'tsx',
+    'oxlint',
+    'oxlint-tsgolint',
+    '@modelcontextprotocol/inspector',
+    'react',
+    'react-dom',
+  ]) {
     assert.equal(existsSync(join(temporaryRoot, 'node_modules', tool)), false, tool);
   }
 

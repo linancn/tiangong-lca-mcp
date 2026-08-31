@@ -22,8 +22,8 @@ checkPaths:
   - src/http_app.ts
   - src/http_app_local.ts
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
-lastReviewedNote: '针对 Issue #56 完成复核：用户安装与 Docker 示例改为 MCP 0.1.1；这是首个包含已合并 Supabase OAuth broker 与一次性原子消费修复的包。'
+lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
+lastReviewedNote: '针对 Issue #64 完成复核：用户安装与 Docker 示例改为 MCP 0.1.2，包含 Node 24 最新兼容直接依赖、TIDAS SDK 0.2 与已合并 OAuth broker。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -77,17 +77,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.1 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.2 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.1
+docker pull linancn/tiangong-lca-mcp-server:0.1.2
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.1
+    linancn/tiangong-lca-mcp-server:0.1.2
 ```
 
 ### 本地测试

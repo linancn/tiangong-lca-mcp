@@ -44,8 +44,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 5bfd3bba2398104eb153f2d1374fa7506d2f7798
-lastReviewedNote: 'Reviewed for Issue #62 and PR #63: the ARM64 path starts a scan only for ScanNotFoundException, preserves all other probe failures, and fails closed unless ECR is COMPLETE with exactly zero HIGH/CRITICAL.'
+lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
+lastReviewedNote: 'Reviewed for Issue #64: MCP 0.1.2 pins the latest Node 24-compatible direct dependencies, keeps TIDAS SDK 0.2.0, and adds a clean peer-dependency gate before package/image release.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -122,6 +122,8 @@ Route those tasks to:
   - `tiangong-lca-mcp-stdio`
   - `tiangong-lca-mcp-http`
   - `tiangong-lca-mcp-http-local`
+- Direct dependencies must use the latest stable versions compatible with Node `24.19.0` and the reviewed MCP v1 transport. Keep `@types/node` on the latest Node 24 line instead of importing Node 26 types, and require `pnpm peers check` because Inspector 2.4 needs a React 19-compatible development peer graph. Development-only Inspector/React packages must remain absent from the packed production install.
+- `@tiangong-lca/tidas-sdk` stays exact at npm latest `0.2.0`; dependency refreshes must still run all declared TIDAS types and the strict-invalid LifecycleModel zero-fetch boundary.
 - `Dockerfile` must install the exact version in `package.json`. The packed-consumer gate must find the broker store, OAuth runtime, Supabase broker, auth middleware, and HTTP app in that package before a registry release or ECS image can claim the reviewed source.
 - The Docker runtime must run `corepack enable pnpm` before exact global activation, keep both `/pnpm/bin` and `/pnpm` on OCI `PATH`, and pass a real no-cache Linux ARM64 build; a source-only regex check is not image evidence.
 - The same no-cache build must run `apk upgrade --no-cache` before package-manager setup, read back the patched OpenSSL package, and reach a COMPLETE ECR scan with zero CRITICAL/HIGH findings before ECS may use the digest.

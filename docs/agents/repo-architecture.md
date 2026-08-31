@@ -34,8 +34,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 5bfd3bba2398104eb153f2d1374fa7506d2f7798
-lastReviewedNote: 'Reviewed for Issue #62 and PR #63: the image path emits one ARM64 manifest, starts only for ScanNotFoundException, preserves other probe failures, and fails closed unless ECR is COMPLETE with zero HIGH/CRITICAL.'
+lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
+lastReviewedNote: 'Reviewed for Issue #64: MCP 0.1.2 uses the latest Node 24-compatible direct graph, TIDAS SDK 0.2.0, a clean Inspector 2.4/React 19 development peer graph, and a runtime-clean package.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -139,7 +139,7 @@ On Node Alpine, Corepack activation and pnpm global installation are separate bo
 
 The build upgrades Alpine packages before package-manager setup and records the installed OpenSSL version. The ECR qualification command disables provenance so the tag resolves to one scan-compatible ARM64 image manifest instead of an OCI index. The tag is commit-bearing and must be absent before push. Qualification reuses scan-on-push, starts only for `ScanNotFoundException`, preserves every other probe error, and exits before run unless the result is COMPLETE with exactly zero CRITICAL and HIGH findings. A vulnerable or unscannable image remains evidence only and is never an ECS task input.
 
-The package graph is single-track Node `24.19.0`, pnpm `11.24.0`, TypeScript `7.0.2`, and TIDAS SDK `0.2.0`. The packed-consumer proof imports all three packaged entry modules from an arbitrary path and verifies that compiler/lint/test tooling is absent from the production install.
+The MCP `0.1.2` package graph is single-track Node `24.19.0`, pnpm `11.24.0`, TypeScript `7.0.2`, TIDAS SDK `0.2.0`, Upstash Redis `1.38.3`, and Zod `4.5.4`. Inspector `2.4.0`, React DOM `19.2.8`, and tsx `4.23.13` are development-only; React DOM supplies Inspector's React 19 peer without entering the production archive. The packed-consumer proof imports all three packaged entry modules from an arbitrary path and verifies that compiler, lint, test, and Inspector/React tooling is absent from the production install.
 
 Nested consumer and clean-worktree commands cannot assume Corepack environment variables: they scan `PATH` for the official native `pnpm` or `pnpm.exe`, verify exact version `11.24.0`, and execute with argv plus `shell: false`. A verified `COREPACK_ROOT/dist/pnpm.js` invocation remains a fallback for local Corepack shells.
 

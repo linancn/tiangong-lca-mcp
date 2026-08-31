@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 5bfd3bba2398104eb153f2d1374fa7506d2f7798
-lastReviewedNote: '针对 Issue #62 与 PR #63 完成复核：ARM64 ECR 路径只会在 ScanNotFoundException 时启动扫描，保留其他探测错误，并在非 COMPLETE/零 HIGH/CRITICAL 时退出。'
+lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
+lastReviewedNote: '针对 Issue #64 完成复核：MCP 0.1.2 更新全部 Node 24 兼容直接依赖、保留 TIDAS SDK 0.2.0，并在发布前校验 Inspector 2.4 的 React peer graph。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -53,17 +53,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.1 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.2 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.1
+docker pull linancn/tiangong-lca-mcp-server:0.1.2
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.1
+    linancn/tiangong-lca-mcp-server:0.1.2
 ```
 
 ## 开发
@@ -133,7 +133,7 @@ pnpm prepush:gate
 
 ### 发布
 
-功能变更合并后，由单独跟踪的 release task 执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.1` 对应 `v0.1.1`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 packed-consumer 门禁证明过的 broker store/runtime、Supabase broker、auth middleware 与 HTTP app。
+本次依赖发布任务在变更合并后执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.2` 对应 `v0.1.2`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 packed-consumer 门禁证明过的 broker store/runtime、Supabase broker、auth middleware 与 HTTP app。
 
 ### 测试脚手架
 
@@ -146,7 +146,7 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```bash
 set -euo pipefail
 
-image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
+image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.2"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
 docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .
