@@ -38,7 +38,17 @@ try {
   const packageRoot = join(temporaryRoot, 'node_modules', '@tiangong-lca', 'mcp-server');
   const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
   assert.equal(packageJson.name, '@tiangong-lca/mcp-server');
+  assert.equal(packageJson.version, '0.1.1');
   assert.equal(packageJson.dependencies['@tiangong-lca/tidas-sdk'], '0.2.0');
+  for (const runtimeFile of [
+    'dist/src/_shared/auth_middleware.js',
+    'dist/src/_shared/oauth_broker_store.js',
+    'dist/src/_shared/oauth_runtime.js',
+    'dist/src/_shared/supabase_oauth_broker.js',
+    'dist/src/http_app.js',
+  ]) {
+    assert.equal(existsSync(join(packageRoot, runtimeFile)), true, runtimeFile);
+  }
   for (const tool of ['typescript', 'tsx', 'oxlint', 'oxlint-tsgolint']) {
     assert.equal(existsSync(join(temporaryRoot, 'node_modules', tool)), false, tool);
   }

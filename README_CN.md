@@ -22,8 +22,8 @@ checkPaths:
   - src/http_app.ts
   - src/http_app_local.ts
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ffd98dd53f0927e246fb1f315a10bc343bdd3167
-lastReviewedNote: '针对 Issue #52 完成复核：远程 Streamable HTTP 现已说明浏览器 OAuth 2.1、固定客户端、broker token 隔离、Edge/MCP 共用 Redis 变量名和迁移模式；STDIO、本地 HTTP 与 0.1.0 包版本不变。'
+lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
+lastReviewedNote: '针对 Issue #56 完成复核：用户安装与 Docker 示例改为 MCP 0.1.1；这是首个包含已合并 Supabase OAuth broker 与一次性原子消费修复的包。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -77,17 +77,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.0 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.1 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.0
+docker pull linancn/tiangong-lca-mcp-server:0.1.1
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.0
+    linancn/tiangong-lca-mcp-server:0.1.1
 ```
 
 ### 本地测试

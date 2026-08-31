@@ -94,18 +94,18 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     );
   });
 
-  it('binds the 0.1.0 release across package, Docker, and active docs', () => {
-    assert.equal(packageJson.version, '0.1.0');
+  it('binds the 0.1.1 release across package, Docker, and active docs', () => {
+    assert.equal(packageJson.version, '0.1.1');
     const surfaces = ['Dockerfile', 'README.md', 'README_CN.md', 'DEV_EN.md', 'DEV_CN.md'];
     for (const surface of surfaces) {
       const text = readText(surface);
-      assert.match(text, /0\.1\.0/u, surface);
+      assert.match(text, /0\.1\.1/u, surface);
       assert.doesNotMatch(
         text,
-        /(?:mcp-server|tiangong-lca-mcp):(?!(?:0\.1\.0)\b)\d+\.\d+\.\d+/u,
+        /(?:mcp-server|tiangong-lca-mcp):(?!(?:0\.1\.1)\b)\d+\.\d+\.\d+/u,
         surface,
       );
     }
-    assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.0/u);
+    assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.1/u);
   });
 });

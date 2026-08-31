@@ -1,7 +1,8 @@
 version: 1
 layout: repo
 lastReviewedAt: '2026-08-31'
-lastReviewedCommit: '4aae3907de854f7c431ce3b89895249d478818a4'
+lastReviewedCommit: 'ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9'
+lastReviewedNote: 'Reviewed for Issue #56: package, Docker, packed-consumer, maintainer, and release routes bind the OAuth broker runtime to exact unpublished version 0.1.1 before trusted publishing.'
 
 catalog:
   repos:
