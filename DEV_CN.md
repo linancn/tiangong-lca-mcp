@@ -147,15 +147,23 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
-docker build --no-cache --platform linux/arm64 -t "${image_uri}:${image_tag}" .
+docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
 docker push "${image_uri}:${image_tag}"
+
+aws ecr describe-images --region us-east-1 --repository-name tiangong-lca-mcp --image-ids "imageTag=${image_tag}" --query 'imageDetails[0].imageManifestMediaType' --output text
+
+aws ecr start-image-scan --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}"
+
+aws ecr wait image-scan-complete --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}"
+
+aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query 'imageScanFindings.{status:imageScanStatus.status,severityCounts:findingSeverityCounts}'
 
 docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"
 ```
 
 仓库 Dockerfile 会先启用 pnpm Corepack shim，再激活精确 pnpm `11.24.0`，并在最终 OCI `PATH` 中保留 `/pnpm/bin`。推送 ECR 前必须执行无缓存 `linux/arm64` 构建，并验证镜像架构与默认 `tiangong-lca-mcp-http` executable；只检查 Dockerfile 文本不足以证明镜像可用。
 
-该构建会先执行 `apk upgrade --no-cache`。必须读回安装后的 OpenSSL package，使用推送前不存在且包含 commit 的 ECR tag，并等待扫描状态 COMPLETE 且 CRITICAL/HIGH 都为零，才可注册 ECS task revision。
+该构建会先执行 `apk upgrade --no-cache`。必须读回安装后的 OpenSSL package，并使用推送前不存在且包含 commit 的 ECR tag。必须保留 `--provenance=false`：Amazon ECR 基础扫描不接受 OCI index，因此推送产物必须解析为单一 image manifest。只有扫描状态 COMPLETE 且 CRITICAL/HIGH 都为零，才能运行该镜像或注册 ECS task revision。

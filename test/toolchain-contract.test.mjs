@@ -130,6 +130,14 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     for (const maintainerDoc of ['DEV_EN.md', 'DEV_CN.md']) {
       const text = readText(maintainerDoc);
       assert.match(text, /image_tag="oauth-\$\(git rev-parse --short=12 HEAD\)-v0\.1\.1"/u);
+      assert.match(text, /docker build --no-cache --provenance=false --platform linux\/arm64/u);
+      assert.match(text, /imageManifestMediaType/u);
+      assert.match(text, /aws ecr start-image-scan/u);
+      assert.match(text, /aws ecr wait image-scan-complete/u);
+      assert.match(text, /aws ecr describe-image-scan-findings/u);
+      assert.doesNotMatch(text, /docker build --no-cache --platform linux\/arm64/u);
+      assert.equal(text.match(/"\$\{image_uri\}:\$\{image_tag\}"/gu)?.length, 3);
+      assert.equal(text.match(/"imageTag=\$\{image_tag\}"/gu)?.length, 4);
       assert.doesNotMatch(
         text,
         /339712838008\.dkr\.ecr\.us-east-1\.amazonaws\.com\/tiangong-lca-mcp:0\.1\.1/u,

@@ -155,15 +155,23 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.1"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
-docker build --no-cache --platform linux/arm64 -t "${image_uri}:${image_tag}" .
+docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .
 
 aws ecr get-login-password --region us-east-1  | docker login --username AWS --password-stdin 339712838008.dkr.ecr.us-east-1.amazonaws.com
 
 docker push "${image_uri}:${image_tag}"
+
+aws ecr describe-images --region us-east-1 --repository-name tiangong-lca-mcp --image-ids "imageTag=${image_tag}" --query 'imageDetails[0].imageManifestMediaType' --output text
+
+aws ecr start-image-scan --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}"
+
+aws ecr wait image-scan-complete --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}"
+
+aws ecr describe-image-scan-findings --region us-east-1 --repository-name tiangong-lca-mcp --image-id "imageTag=${image_tag}" --query 'imageScanFindings.{status:imageScanStatus.status,severityCounts:findingSeverityCounts}'
 
 docker run -d -p 9278:9278 --env-file .env "${image_uri}:${image_tag}"
 ```
 
 The checked-in Dockerfile enables the pnpm Corepack shim before activating exact pnpm `11.24.0`, and retains `/pnpm/bin` in the final OCI `PATH`. Before ECR push, run a no-cache `linux/arm64` build and verify the image architecture plus the default `tiangong-lca-mcp-http` executable; regex-only Dockerfile proof is insufficient.
 
-That build first runs `apk upgrade --no-cache`. Read back the installed OpenSSL packages, use a previously absent commit-bearing ECR tag, and wait for scan status COMPLETE with zero CRITICAL/HIGH findings before registering an ECS task revision.
+That build first runs `apk upgrade --no-cache`. Read back the installed OpenSSL packages and use a previously absent commit-bearing ECR tag. Keep `--provenance=false`: Amazon ECR basic scanning rejects an OCI index, so the pushed artifact must resolve to a single image manifest. Wait for scan status COMPLETE with zero CRITICAL/HIGH findings before running it or registering an ECS task revision.
