@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
-lastReviewedNote: '针对 Issue #52 完成复核：维护说明覆盖固定 client OAuth broker，以及下游 actor token 在 PostgREST 读取、普通数据集命令和 LifecycleModel bundle 命令中的完整路径。'
+lastReviewedCommit: 4aae3907de854f7c431ce3b89895249d478818a4
+lastReviewedNote: '针对 Issue #54 完成复核：内存 qualification store 在 Promise handoff 前同步消费一次性 OAuth handle，与生产 Redis 单赢家语义一致。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -102,6 +102,8 @@ curl --fail http://localhost:9278/.well-known/oauth-authorization-server
 ```
 
 Dev live proof 必须记录 PKCE、refresh 轮换、重放失败、本地 revoke、数据库 actor/client 行为以及入站/下游 token 不相等；不得打印 token 或 secret。离线测试使用假的 Supabase endpoint，不能替代该证明。
+
+离线 qualification 还会并发调用内存 raw store 的两次 `take()`，并要求准确一个 winner；这与生产 Upstash `GETDEL` 一致。一次性 OAuth state、code 或 refresh handle 禁止恢复为 `get()` / `await` / `delete()` 序列。
 
 `Database_CRUD_Tool` 的读取继续使用绑定 actor 的 PostgREST。普通 create/save/delete 调用三条 `app_dataset_*` Edge 命令，并要求 `DB-CORE-WRITE-01`；LifecycleModel 的 create/save/delete 调用既有 save/delete bundle endpoint，并要求 `EDGE-BUNDLE-01`。固定 MCP OAuth client 还需要 `DB-CORE-READ-01`。禁止授予直接 table DML，也不要用 service-role 写入替代这些命令。
 

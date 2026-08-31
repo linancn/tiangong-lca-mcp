@@ -44,8 +44,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
-lastReviewedNote: 'Reviewed for Issue #52: remote HTTP owns the fixed-client OAuth 2.1 broker and isolated downstream token; CRUD reads stay on PostgREST, ordinary writes use actor commands, and LifecycleModel writes use the bundle commands without reopening raw DML.'
+lastReviewedCommit: 4aae3907de854f7c431ce3b89895249d478818a4
+lastReviewedNote: 'Reviewed for Issue #54: in-memory OAuth state/code/refresh consumption now deletes synchronously before Promise handoff, matching Redis one-winner semantics without changing protocol or package boundaries.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -117,6 +117,7 @@ Route those tasks to:
 - `pnpm prepush:gate` is the canonical gate. It also proves the packed runtime consumer, a clean arbitrary-path worktree, build, audit, and pack contract.
 - Nested package tests resolve and verify the exact native `pnpm`/`pnpm.exe` executable first with `shell: false`; Corepack JavaScript is only a fallback. Do not assume `COREPACK_ROOT` exists in `pnpm/setup` runners.
 - `.github/workflows/quality-gate.yml` runs the canonical gate on Linux x64, Windows x64, macOS arm64, and Linux arm64.
+- The in-memory qualification store implements one-time `take()` without an await gap: it reads and deletes synchronously, then returns the live value. Concurrent state/code/refresh consumers therefore have exactly one winner, matching Upstash `GETDEL`; expired or missing handles fail closed.
 - Published binaries:
   - `tiangong-lca-mcp-stdio`
   - `tiangong-lca-mcp-http`

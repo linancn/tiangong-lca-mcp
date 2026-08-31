@@ -34,8 +34,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
-lastReviewedNote: 'Reviewed for Issue #52: authenticated HTTP uses the strict Supabase-backed MCP OAuth broker; its downstream actor token now reaches PostgREST reads, ordinary actor commands, and LifecycleModel bundle commands without raw DML.'
+lastReviewedCommit: 4aae3907de854f7c431ce3b89895249d478818a4
+lastReviewedNote: 'Reviewed for Issue #54: the in-memory qualification store now provides the same single-winner one-time consumption invariant as Redis GETDEL; broker topology and token separation are unchanged.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -66,7 +66,7 @@ The authenticated HTTP path has three explicit modes:
 
 `src/_shared/oauth_runtime.ts` composes the configured mode. The production path verifies an opaque MCP access token through `SupabaseOAuthBrokerProvider`, attaches the SDK `AuthInfo` to the request, and gives tool wrappers only the separate upstream Supabase access token from encrypted server-side state. Direct Supabase and Cognito bearer tokens are not accepted in broker modes.
 
-Broker access/refresh tokens, authorization codes, and states are random handles. Redis keys contain SHA-256 handle digests; values are AES-256-GCM envelopes whose additional authenticated data binds each value to its logical key. Refresh handles are consumed atomically, so one request wins a rotation race and replay fails closed. `broker_compat` constructs Redis only after the bearer decodes as an eligible legacy API key and uses `auth:legacy-user-api-key:v2:<sha256>` rather than email-derived keys.
+Broker access/refresh tokens, authorization codes, and states are random handles. Redis keys contain SHA-256 handle digests; values are AES-256-GCM envelopes whose additional authenticated data binds each value to its logical key. Refresh handles are consumed atomically, so one request wins a rotation race and replay fails closed. Upstash uses `GETDEL`; the in-memory qualification store performs map read/delete synchronously before returning its Promise, so it cannot yield between observation and consumption. `broker_compat` constructs Redis only after the bearer decodes as an eligible legacy API key and uses `auth:legacy-user-api-key:v2:<sha256>` rather than email-derived keys.
 
 ## OAuth Surface
 

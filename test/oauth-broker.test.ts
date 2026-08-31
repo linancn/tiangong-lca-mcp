@@ -187,6 +187,23 @@ async function authorize(baseUrl: string): Promise<{
 }
 
 describe('Supabase-backed MCP OAuth broker', () => {
+  it('allows exactly one concurrent take from the in-memory one-time store', async () => {
+    let now = 10_000;
+    const store = new MemoryOAuthBrokerRawStore(() => now);
+    await store.put('one-time', 'grant', 60);
+
+    const results = await Promise.all([store.take('one-time'), store.take('one-time')]);
+    assert.equal(results.filter((value) => value === 'grant').length, 1);
+    assert.equal(results.filter((value) => value === undefined).length, 1);
+    assert.equal(store.snapshot().has('one-time'), false);
+
+    await store.put('expired', 'stale-grant', 1);
+    now += 1_001;
+    assert.equal(await store.take('expired'), undefined);
+    assert.equal(store.snapshot().has('expired'), false);
+    assert.equal(await store.take('missing'), undefined);
+  });
+
   it('pins Edge/MCP Redis names and removes credential-display pages', () => {
     const environment = readFileSync('.env.example', 'utf8');
     const clientExample = readFileSync('mcp_config.json', 'utf8');
