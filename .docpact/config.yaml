@@ -1,8 +1,8 @@
 version: 1
 layout: repo
 lastReviewedAt: '2026-08-31'
-lastReviewedCommit: 'ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9'
-lastReviewedNote: 'Reviewed for Issue #56: package, Docker, packed-consumer, maintainer, and release routes bind the OAuth broker runtime to exact unpublished version 0.1.1 before trusted publishing.'
+lastReviewedCommit: 'ed04e9637890f2953169d984742021e91ad205ce'
+lastReviewedNote: 'Reviewed for Issue #58: runtime/package and test routing cover the Corepack shim, exact pnpm activation, global-bin PATH, and real Linux ARM64 image proof.'
 
 catalog:
   repos:
