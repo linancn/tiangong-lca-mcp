@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 5bfd3bba2398104eb153f2d1374fa7506d2f7798
-lastReviewedNote: 'Reviewed for Issue #62 and PR #63: the ARM64 ECR path starts only on ScanNotFoundException, preserves other probe failures, and exits before run unless the result is COMPLETE with zero HIGH/CRITICAL.'
+lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
+lastReviewedNote: 'Reviewed for Issue #64: MCP 0.1.2 refreshes all Node 24-compatible direct dependencies, retains TIDAS SDK 0.2.0, and gates the Inspector 2.4 React peer graph before release.'
 related:
   - AGENTS.md
   - .docpact/config.yaml

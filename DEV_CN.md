@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 5bfd3bba2398104eb153f2d1374fa7506d2f7798
-lastReviewedNote: '针对 Issue #62 与 PR #63 完成复核：ARM64 ECR 路径只会在 ScanNotFoundException 时启动扫描，保留其他探测错误，并在非 COMPLETE/零 HIGH/CRITICAL 时退出。'
+lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
+lastReviewedNote: '针对 Issue #64 完成复核：MCP 0.1.2 更新全部 Node 24 兼容直接依赖、保留 TIDAS SDK 0.2.0，并在发布前校验 Inspector 2.4 的 React peer graph。'
 related:
   - AGENTS.md
   - .docpact/config.yaml

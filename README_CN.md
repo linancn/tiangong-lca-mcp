@@ -22,7 +22,7 @@ checkPaths:
   - src/http_app.ts
   - src/http_app_local.ts
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: ea2a23d94e9e83f5ad1f463b5e890d8ed03445b9
+lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
 lastReviewedNote: '针对 Issue #64 完成复核：用户安装与 Docker 示例改为 MCP 0.1.2，包含 Node 24 最新兼容直接依赖、TIDAS SDK 0.2 与已合并 OAuth broker。'
 related:
   - AGENTS.md
