@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-08-31
-lastReviewedCommit: 5e442454172593bcaaa69dbefe32e9dbe8e92dc7
-lastReviewedNote: 'Reviewed for Issue #52: maintainer guidance covers the fixed-client OAuth broker and the downstream actor-token path across PostgREST reads, ordinary dataset commands, and LifecycleModel bundle commands.'
+lastReviewedCommit: 4aae3907de854f7c431ce3b89895249d478818a4
+lastReviewedNote: 'Reviewed for Issue #54: the in-memory qualification store now atomically consumes one-time OAuth handles before Promise handoff, matching production Redis single-winner behavior.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -103,6 +103,8 @@ curl --fail http://localhost:9278/.well-known/oauth-authorization-server
 ```
 
 The live Dev proof must record PKCE, refresh rotation, replay failure, local revoke, database actor/client behavior, and inbound/downstream token inequality without printing any token or secret. Offline tests use a fake Supabase endpoint and do not replace that proof.
+
+Offline qualification also calls the in-memory raw store with two concurrent `take()` operations and requires exactly one winner. This mirrors production Upstash `GETDEL`; do not reintroduce a `get()`/`await`/`delete()` sequence for one-time OAuth state, code, or refresh handles.
 
 `Database_CRUD_Tool` keeps selects on actor-bound PostgREST. Ordinary create/save/delete calls the three `app_dataset_*` Edge commands and requires `DB-CORE-WRITE-01`; LifecycleModel create/save/delete calls the existing save/delete bundle endpoints and requires `EDGE-BUNDLE-01`. The fixed MCP OAuth client also needs `DB-CORE-READ-01`. Do not grant direct table DML or replace these commands with service-role writes.
 
