@@ -39,7 +39,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-09-01
-lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
+lastReviewedCommit: a0ef9c9389726734730282488c952cda80e6a0ca
 lastReviewedNote: 'Reviewed for Issue #68: broker-only validation rejects removed API-key/Cognito modes, proves no fallback I/O, and retains full OAuth/package/global-bin evidence.'
 related:
   - ../../AGENTS.md
