@@ -23,7 +23,7 @@ checkPaths:
   - src/http_app_local.ts
 lastReviewedAt: 2026-09-01
 lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: '针对 Issue #66 完成复核：MCP 0.1.3 对 package-manager 入口执行 canonical path 比较，packed-consumer 门禁会在 Docker/ECS 交付前真实执行全局 HTTP bin。'
+lastReviewedNote: '针对 Issue #68 完成复核：远程 HTTP 仅支持 OAuth 2.1 broker，旧 API-key/Cognito 模式与配置已删除。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -54,11 +54,7 @@ GLAD_API_BASE_URL=https://www.globallcadataaccess.org/api/v1
 
 服务采用 token broker：host 只拿到短期不透明 MCP token；服务端把另一套 Supabase access/refresh session 加密存入 Upstash。只有 Supabase access token 会访问 Edge 或 PostgREST。首个版本只支持运维预注册的固定 host client，不开放 Dynamic Client Registration。
 
-`MCP_AUTH_MODE` 控制迁移状态：
-
-- `broker_compat`：接受 broker token，并临时兼容旧的编码用户 API key，同时只输出无标识迁移遥测；
-- `broker`：只接受 broker token；
-- `legacy`：仅用于回滚的旧认证模式。
+`MCP_AUTH_MODE=broker` 是远程 HTTP 唯一支持的认证模式。非 broker bearer 会直接收到标准 OAuth challenge，不会触发密码交换、Cognito 校验或旧 Redis 查询。
 
 服务不再提供 OAuth demo 或显示 authorization code 的页面。运维需把精确回调 `${MCP_PUBLIC_ORIGIN}/oauth/callback` 注册为 Supabase confidential client，并把 client secret 与 `MCP_OAUTH_SESSION_ENCRYPTION_KEY` 存入批准的 secret store。
 
@@ -77,17 +73,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.3 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.4 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.3
+docker pull linancn/tiangong-lca-mcp-server:0.1.4
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.3
+    linancn/tiangong-lca-mcp-server:0.1.4
 ```
 
 ### 本地测试

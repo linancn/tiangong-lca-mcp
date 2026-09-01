@@ -23,9 +23,6 @@ importers:
       '@upstash/redis':
         specifier: 1.38.3
         version: 1.38.3
-      aws-jwt-verify:
-        specifier: 5.2.1
-        version: 5.2.1
       express:
         specifier: 5.2.1
         version: 5.2.1(supports-color@10.2.2)
@@ -875,10 +872,6 @@ packages:
   auto-bind@5.0.1:
     resolution: {integrity: sha512-ooviqdwwgfIfNmDwo94wlshcdzfO64XV0Cg6oDsDYBJfITDz1EngD2z7DkbvCWn+XIMsIqW27sEVF6qcpJrRcg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
-
-  aws-jwt-verify@5.2.1:
-    resolution: {integrity: sha512-J+buA4M+qvQDk58WXFBLkDodkEX3DDL1ac5XFQPW3opxAsaLXYu5hYnlSHsaBRDBUXBAn695kE/cw/mdyJKwJg==}
-    engines: {node: '>=18.0.0'}
 
   body-parser@2.3.0:
     resolution: {integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==}
@@ -2308,8 +2301,6 @@ snapshots:
       when-exit: 2.1.5
 
   auto-bind@5.0.1: {}
-
-  aws-jwt-verify@5.2.1: {}
 
   body-parser@2.3.0(supports-color@10.2.2):
     dependencies:

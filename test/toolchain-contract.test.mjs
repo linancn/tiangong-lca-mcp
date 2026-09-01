@@ -111,7 +111,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       `corepack install --global pnpm@${expectedPnpmVersion}`,
     );
     const versionIndex = dockerfile.indexOf('pnpm --version');
-    const addIndex = dockerfile.indexOf('pnpm add --global @tiangong-lca/mcp-server@0.1.3');
+    const addIndex = dockerfile.indexOf('pnpm add --global @tiangong-lca/mcp-server@0.1.4');
 
     assert.match(dockerfile, /ENV PATH="\$PNPM_HOME\/bin:\$PNPM_HOME:\$PATH"/u);
     assert.ok(osUpgradeIndex >= 0);
@@ -122,19 +122,19 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.ok(addIndex > versionIndex);
   });
 
-  it('binds the 0.1.3 release across package, Docker, and active docs', () => {
-    assert.equal(packageJson.version, '0.1.3');
+  it('binds the 0.1.4 release across package, Docker, and active docs', () => {
+    assert.equal(packageJson.version, '0.1.4');
     const surfaces = ['Dockerfile', 'README.md', 'README_CN.md', 'DEV_EN.md', 'DEV_CN.md'];
     for (const surface of surfaces) {
       const text = readText(surface);
-      assert.match(text, /0\.1\.3/u, surface);
+      assert.match(text, /0\.1\.4/u, surface);
       assert.doesNotMatch(
         text,
-        /(?:mcp-server|tiangong-lca-mcp):(?!(?:0\.1\.3)\b)\d+\.\d+\.\d+/u,
+        /(?:mcp-server|tiangong-lca-mcp):(?!(?:0\.1\.4)\b)\d+\.\d+\.\d+/u,
         surface,
       );
     }
-    assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.3/u);
+    assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.4/u);
     for (const maintainerDoc of ['DEV_EN.md', 'DEV_CN.md']) {
       const text = readText(maintainerDoc);
       const scanGateIndex = text.indexOf('if [ "${scan_gate}" != "${expected_scan_gate}" ]; then');
@@ -146,7 +146,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       const waitScanIndex = text.indexOf('aws ecr wait image-scan-complete');
       const scanNotFoundIndex = text.indexOf('*ScanNotFoundException*)');
       const probeFailureIndex = text.indexOf('ECR scan probe failed: %s');
-      assert.match(text, /image_tag="oauth-\$\(git rev-parse --short=12 HEAD\)-v0\.1\.3"/u);
+      assert.match(text, /image_tag="oauth-\$\(git rev-parse --short=12 HEAD\)-v0\.1\.4"/u);
       assert.match(text, /docker build --no-cache --provenance=false --platform linux\/arm64/u);
       assert.match(text, /imageManifestMediaType/u);
       assert.match(text, /aws ecr start-image-scan/u);
