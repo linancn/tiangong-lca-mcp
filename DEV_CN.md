@@ -22,8 +22,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-09-01
-lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: '针对 Issue #68 完成复核：broker-only runtime 删除旧 API-key/Cognito 模式，同时保留完整 OAuth 与 packed-bin 资格验证。'
+lastReviewedCommit: a349c4ad3068dc76a7b43417fa5ead2ee6e0e6d3
+lastReviewedNote: '针对 Issue #72 完成复核：direct Supabase OAuth JWT 删除全部服务端授权状态依赖，同时保留完整 package 与 image 资格验证。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -53,17 +53,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.4 .
+docker build -t linancn/tiangong-lca-mcp-server:0.2.0 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.4
+docker pull linancn/tiangong-lca-mcp-server:0.2.0
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.4
+    linancn/tiangong-lca-mcp-server:0.2.0
 ```
 
 ## 开发
@@ -81,29 +81,27 @@ corepack install --global pnpm@11.24.0
 pnpm install --frozen-lockfile
 ```
 
-### OAuth Broker 配置
+### Supabase OAuth Resource Server 配置
 
-远程 HTTP 入口按 `.env.example` 配置。workspace 本地测试时，把非敏感 Supabase broker 配置放进私有 env 文件，并从 `tiangong-lca-edge-functions/.env` 读取 Edge/MCP 共用的 Redis 值；两个 runtime 都使用 `UPSTASH_REDIS_REST_URL` 与 `UPSTASH_REDIS_REST_TOKEN`。不要替换成 Portal 单独保留的 `UPSTASH_REDIS_URL`/`UPSTASH_REDIS_TOKEN`。
+远程 HTTP 入口按 `.env.example` 配置。它只需要 MCP public origin、Supabase project origin/publishable key、精确允许的 public OAuth client ID、可选浏览器 Origin 和 GLAD 配置；没有 OAuth datastore、confidential client secret 或 session encryption 输入。
 
 Dev 必须具备以下精确控制面事实：
 
 1. 启用 Supabase OAuth Server，关闭 Dynamic Client Registration，authorization path 为 `/oauth/consent`。
-2. 注册固定的 Supabase confidential client，回调精确为 `http://localhost:9278/oauth/callback`。
-3. 在 `MCP_OAUTH_HOST_CLIENTS_JSON` 中至少配置一个固定 public MCP host client；MCP Inspector CLI/TUI 通常使用 `http://127.0.0.1:6276/oauth/callback`。
-4. 使用随机 32 字节 `MCP_OAUTH_SESSION_ENCRYPTION_KEY`，并把它、Supabase client secret 与 Redis REST token 保存在 Git 之外。
+2. 为目标 host 注册精确的 public Supabase OAuth client。Claude Code 支持显式 client ID 与固定 callback port；Codex 支持显式 client ID 以及每 server callback URL/port；Inspector 使用其精确 loopback callback。
+3. 每个 OAuth client UUID 都必须出现在 `MCP_OAUTH_ALLOWED_CLIENT_IDS_JSON`，并通过数据库 capability facade 只授予需要的读写 capability。
+4. 生产 Supabase 使用 ES256、发布匹配 JWKS，并签发包含 `aud=authenticated`、`role=authenticated`、UUID `sub`/`session_id` 与已允许 `client_id` 的 access token。
 
-设置 `MCP_AUTH_MODE=broker`；它是远程 HTTP 唯一支持的认证模式。旧 API-key 与 Cognito fallback 模式已删除。
+Dynamic Client Registration 保持关闭。refresh token 只保存在 MCP client；server 只验证每次请求携带的 access JWT。API-key 与 Cognito fallback 模式不存在。
 
-authorization server 暴露 `/authorize`、`/token` 与 `/revoke`；上游回调是 `/oauth/callback`。live flow 前先检查发现文档：
+MCP origin 只暴露 protected-resource metadata；Supabase 暴露 authorization、token、JWKS、grant 与 revoke 操作。live flow 前先检查发现文档：
 
 ```bash
 curl --fail http://localhost:9278/.well-known/oauth-protected-resource/mcp
-curl --fail http://localhost:9278/.well-known/oauth-authorization-server
+curl --fail https://your-project-ref.supabase.co/.well-known/oauth-authorization-server/auth/v1
 ```
 
-Dev live proof 必须记录 PKCE、refresh 轮换、重放失败、本地 revoke、数据库 actor/client 行为以及入站/下游 token 不相等；不得打印 token 或 secret。离线测试使用假的 Supabase endpoint，不能替代该证明。
-
-离线 qualification 还会并发调用内存 raw store 的两次 `take()`，并要求准确一个 winner；这与生产 Upstash `GETDEL` 一致。一次性 OAuth state、code 或 refresh handle 禁止恢复为 `get()` / `await` / `delete()` 序列。
+Dev live proof 必须记录 PKCE、client 本地 refresh 轮换、重放失败、logout/revoke、精确 JWT claims、数据库 actor/client 行为以及 Edge/PostgREST 再验证；不得打印 token 或 secret。离线测试只注入 claims，不能替代该证明。
 
 `Database_CRUD_Tool` 的读取继续使用绑定 actor 的 PostgREST。普通 create/save/delete 调用三条 `app_dataset_*` Edge 命令，并要求 `DB-CORE-WRITE-01`；LifecycleModel 的 create/save/delete 调用既有 save/delete bundle endpoint，并要求 `EDGE-BUNDLE-01`。固定 MCP OAuth client 还需要 `DB-CORE-READ-01`。禁止授予直接 table DML，也不要用 service-role 写入替代这些命令。
 
@@ -133,7 +131,7 @@ pnpm prepush:gate
 
 ### 发布
 
-本次 broker-only 任务在变更合并后执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.4` 对应 `v0.1.4`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 broker store/runtime、Supabase broker 与 HTTP app，且已删除的 legacy 模块不存在。同一门禁还必须真实执行全局 HTTP bin 并收到 `/health`；仅 import 证明不足。
+本次 direct-OAuth 任务在变更合并后执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.2.0` 对应 `v0.2.0`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 OAuth runtime、Supabase JWT verifier 与 HTTP app，且所有已删除的 stateful-auth 模块不存在。同一门禁还必须真实执行全局 HTTP bin 并收到 `/health`；仅 import 证明不足。
 
 ### 测试脚手架
 
@@ -146,7 +144,7 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```bash
 set -euo pipefail
 
-image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.4"
+image_tag="direct-oauth-$(git rev-parse --short=12 HEAD)-v0.2.0"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
 docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .

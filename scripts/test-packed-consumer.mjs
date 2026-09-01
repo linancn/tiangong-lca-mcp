@@ -84,23 +84,11 @@ async function assertPackedHttpBinStarts(globalBinDirectory, globalEnvironment) 
     env: {
       ...globalEnvironment,
       HOST: '127.0.0.1',
-      MCP_AUTH_MODE: 'broker',
-      MCP_OAUTH_HOST_CLIENTS_JSON: JSON.stringify([
-        {
-          client_id: 'packed-consumer-client',
-          redirect_uris: ['http://127.0.0.1:6276/oauth/callback'],
-          scope: 'mcp:tools',
-        },
-      ]),
-      MCP_OAUTH_SESSION_ENCRYPTION_KEY: Buffer.alloc(32, 9).toString('base64url'),
+      MCP_OAUTH_ALLOWED_CLIENT_IDS_JSON: JSON.stringify(['11111111-1111-4111-8111-111111111111']),
       MCP_PUBLIC_ORIGIN: `http://127.0.0.1:${port}`,
       PORT: String(port),
       SUPABASE_BASE_URL: 'https://packed-consumer.supabase.co',
-      SUPABASE_OAUTH_CLIENT_ID: 'packed-consumer-broker-client',
-      SUPABASE_OAUTH_CLIENT_SECRET: 'packed-consumer-secret',
-      SUPABASE_OAUTH_REDIRECT_URI: `http://127.0.0.1:${port}/oauth/callback`,
-      UPSTASH_REDIS_REST_TOKEN: 'packed-consumer-token',
-      UPSTASH_REDIS_REST_URL: 'https://packed-consumer.upstash.io',
+      SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -181,17 +169,20 @@ try {
   const packageRoot = join(temporaryRoot, 'node_modules', '@tiangong-lca', 'mcp-server');
   const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
   assert.equal(packageJson.name, '@tiangong-lca/mcp-server');
-  assert.equal(packageJson.version, '0.1.4');
+  assert.equal(packageJson.version, '0.2.0');
   assert.equal(packageJson.dependencies['@tiangong-lca/tidas-sdk'], '0.2.0');
   for (const runtimeFile of [
-    'dist/src/_shared/oauth_broker_store.js',
     'dist/src/_shared/oauth_runtime.js',
-    'dist/src/_shared/supabase_oauth_broker.js',
+    'dist/src/_shared/supabase_jwt_verifier.js',
     'dist/src/http_app.js',
   ]) {
     assert.equal(existsSync(join(packageRoot, runtimeFile)), true, runtimeFile);
   }
   for (const removedRuntimeFile of [
+    'dist/src/auth_app.js',
+    'dist/src/_shared/oauth_broker_store.js',
+    'dist/src/_shared/supabase_oauth_broker.js',
+    'dist/src/_shared/supabase_session.js',
     'dist/src/_shared/auth_middleware.js',
     'dist/src/_shared/cognito_auth.js',
     'dist/src/_shared/decode_api_key.js',

@@ -8,8 +8,6 @@ import {
   supabase_publishable_key,
   x_region,
 } from '../_shared/config.js';
-import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
-import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
 import { TidasValidationError } from '../_shared/tidas_validation.js';
 import { prepareLifecycleModelFile } from './life_cycle_model_file_tools.js';
 
@@ -400,7 +398,7 @@ async function prepareWritePayload(
   jsonOrdered: JsonValue,
   inputId: string | undefined,
   inputVersion: string | undefined,
-  bearerKey?: string | SupabaseSessionLike,
+  bearerKey?: string,
 ): Promise<PreparedWritePayload> {
   if (table !== 'lifecyclemodels') {
     await validateJsonOrdered(table, jsonOrdered);
@@ -446,39 +444,28 @@ async function prepareWritePayload(
 }
 
 async function createSupabaseClient(
-  bearerKey?: string | SupabaseSessionLike,
+  bearerKey?: string,
 ): Promise<{ supabase: SupabaseClient; accessToken?: string }> {
-  const { session: normalizedSession, accessToken: bearerToken } =
-    resolveSupabaseAccessToken(bearerKey);
+  const accessToken = bearerKey?.trim() || undefined;
 
   const supabase = createClient(supabase_base_url, supabase_publishable_key, {
     auth: {
       persistSession: false,
-      autoRefreshToken: Boolean(normalizedSession?.refresh_token),
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
-    ...(bearerToken
+    ...(accessToken
       ? {
           global: {
             headers: {
-              Authorization: `Bearer ${bearerToken}`,
+              Authorization: `Bearer ${accessToken}`,
             },
           },
         }
       : {}),
   });
 
-  if (normalizedSession?.refresh_token) {
-    const { error: setSessionError } = await supabase.auth.setSession({
-      access_token: normalizedSession.access_token,
-      refresh_token: normalizedSession.refresh_token,
-    });
-
-    if (setSessionError) {
-      console.warn('DATABASE_CRUD_SESSION_FAILED', { category: 'supabase_session' });
-    }
-  }
-
-  return { supabase, accessToken: normalizedSession?.access_token ?? bearerToken };
+  return { supabase, accessToken };
 }
 
 async function handleSelect(supabase: SupabaseClient, input: SelectInput): Promise<string> {
@@ -691,7 +678,7 @@ async function handleDelete(accessToken: string | undefined, input: DeleteInput)
 
 async function performCrud(
   input: CrudOperationInput,
-  bearerKey?: string | SupabaseSessionLike,
+  bearerKey?: string,
   dependencies: CrudToolDependencies = {},
 ): Promise<string> {
   try {
@@ -712,8 +699,7 @@ async function performCrud(
           input.version,
           bearerKey,
         );
-        const { accessToken } = resolveSupabaseAccessToken(bearerKey);
-        return handleInsert(accessToken, input, preparedWrite);
+        return handleInsert(bearerKey, input, preparedWrite);
       }
 
       case 'update': {
@@ -727,13 +713,11 @@ async function performCrud(
           input.version,
           bearerKey,
         );
-        const { accessToken } = resolveSupabaseAccessToken(bearerKey);
-        return handleUpdate(accessToken, input, preparedWrite);
+        return handleUpdate(bearerKey, input, preparedWrite);
       }
 
       case 'delete': {
-        const { accessToken } = resolveSupabaseAccessToken(bearerKey);
-        return handleDelete(accessToken, input);
+        return handleDelete(bearerKey, input);
       }
 
       default: {
@@ -752,7 +736,7 @@ async function performCrud(
 
 export function regCrudTool(
   server: McpServer,
-  bearerKey?: string | SupabaseSessionLike,
+  bearerKey?: string,
   dependencies: CrudToolDependencies = {},
 ): void {
   server.tool(

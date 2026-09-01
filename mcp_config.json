@@ -1,8 +1,8 @@
 {
   "tiangong_lca": {
     "oauth": {
-      "clientId": "tiangong-mcp-inspector-dev",
-      "scopes": "mcp:tools"
+      "clientId": "your-public-supabase-oauth-client-id",
+      "scopes": "openid email profile offline_access"
     },
     "transport": "streamable_http",
     "url": "http://host.docker.internal:9278/mcp"

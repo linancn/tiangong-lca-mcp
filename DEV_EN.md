@@ -23,8 +23,8 @@ checkPaths:
   - test/**
   - scripts/**
 lastReviewedAt: 2026-09-01
-lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: 'Reviewed for Issue #68: broker-only runtime setup removes legacy API-key/Cognito modes while retaining complete OAuth and packed-bin qualification.'
+lastReviewedCommit: a349c4ad3068dc76a7b43417fa5ead2ee6e0e6d3
+lastReviewedNote: 'Reviewed for Issue #72: direct Supabase OAuth JWT setup removes every server-side authorization state dependency while retaining complete package and image qualification.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -54,17 +54,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.1.4 .
+docker build -t linancn/tiangong-lca-mcp-server:0.2.0 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.1.4
+docker pull linancn/tiangong-lca-mcp-server:0.2.0
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.4
+    linancn/tiangong-lca-mcp-server:0.2.0
 ```
 
 ## Development
@@ -82,29 +82,27 @@ corepack install --global pnpm@11.24.0
 pnpm install --frozen-lockfile
 ```
 
-### OAuth Broker Setup
+### Supabase OAuth Resource Server Setup
 
-The remote HTTP entry is configured from `.env.example`. For local workspace testing, copy the non-secret Supabase broker settings into a private env file and load the Edge/MCP Redis values from `tiangong-lca-edge-functions/.env`; both runtimes use `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Never substitute Portal's separate `UPSTASH_REDIS_URL`/`UPSTASH_REDIS_TOKEN` pair.
+The remote HTTP entry is configured from `.env.example`. It needs only the MCP public origin, Supabase project origin/publishable key, exact admitted public OAuth client IDs, optional browser origins, and GLAD configuration. It has no OAuth datastore, confidential client secret, or session-encryption input.
 
 Dev requires these exact control-plane facts:
 
 1. Supabase OAuth Server enabled with Dynamic Client Registration disabled and authorization path `/oauth/consent`.
-2. A fixed confidential Supabase client whose redirect is `http://localhost:9278/oauth/callback`.
-3. At least one fixed public MCP host client in `MCP_OAUTH_HOST_CLIENTS_JSON`; MCP Inspector CLI/TUI normally uses `http://127.0.0.1:6276/oauth/callback`.
-4. A 32-byte random `MCP_OAUTH_SESSION_ENCRYPTION_KEY`, the Supabase client secret, and Redis REST token held outside Git.
+2. Exact public Supabase OAuth clients for the intended hosts. Claude Code supports an explicit client ID and fixed callback port; Codex supports an explicit client ID plus per-server callback URL/port; Inspector uses its exact loopback callback.
+3. Every OAuth client UUID present in `MCP_OAUTH_ALLOWED_CLIENT_IDS_JSON` and configured through the database capability facade with only the required read/write capabilities.
+4. Production Supabase uses ES256, publishes the matching JWKS, and issues access tokens containing `aud=authenticated`, `role=authenticated`, UUID `sub`/`session_id`, and the admitted `client_id`.
 
-Set `MCP_AUTH_MODE=broker`; it is the only supported remote HTTP authentication mode. Legacy API-key and Cognito fallback modes no longer exist.
+Dynamic Client Registration remains disabled. Refresh tokens stay in the MCP client; the server validates only the access JWT presented on each request. API-key and Cognito fallback modes do not exist.
 
-The authorization server exposes `/authorize`, `/token`, and `/revoke`; its upstream callback is `/oauth/callback`. Verify discovery before a live flow:
+The MCP origin exposes only protected-resource metadata; Supabase exposes authorization, token, JWKS, grant, and revocation operations. Verify discovery before a live flow:
 
 ```bash
 curl --fail http://localhost:9278/.well-known/oauth-protected-resource/mcp
-curl --fail http://localhost:9278/.well-known/oauth-authorization-server
+curl --fail https://your-project-ref.supabase.co/.well-known/oauth-authorization-server/auth/v1
 ```
 
-The live Dev proof must record PKCE, refresh rotation, replay failure, local revoke, database actor/client behavior, and inbound/downstream token inequality without printing any token or secret. Offline tests use a fake Supabase endpoint and do not replace that proof.
-
-Offline qualification also calls the in-memory raw store with two concurrent `take()` operations and requires exactly one winner. This mirrors production Upstash `GETDEL`; do not reintroduce a `get()`/`await`/`delete()` sequence for one-time OAuth state, code, or refresh handles.
+The live Dev proof must record PKCE, client-local refresh rotation, replay failure, logout/revoke, exact JWT claims, database actor/client behavior, and Edge/PostgREST re-verification without printing any token or secret. Offline tests inject claims and do not replace that proof.
 
 `Database_CRUD_Tool` keeps selects on actor-bound PostgREST. Ordinary create/save/delete calls the three `app_dataset_*` Edge commands and requires `DB-CORE-WRITE-01`; LifecycleModel create/save/delete calls the existing save/delete bundle endpoints and requires `EDGE-BUNDLE-01`. The fixed MCP OAuth client also needs `DB-CORE-READ-01`. Do not grant direct table DML or replace these commands with service-role writes.
 
@@ -141,7 +139,7 @@ This runs read-only lint/typecheck, offline behavior tests, packed-consumer vali
 
 ### Publishing
 
-Publishing is handled by this tracked broker-only task after the change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.4` maps to `v0.1.4`. Before building the ECS image, read back registry integrity and verify that the archive contains the broker store/runtime, Supabase broker, and HTTP app while removed legacy modules are absent. The same gate must execute the globally installed HTTP bin and receive `/health`; import-only proof is insufficient.
+Publishing is handled by the tracked direct-OAuth task after the change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.2.0` maps to `v0.2.0`. Before building the ECS image, read back registry integrity and verify that the archive contains the OAuth runtime, Supabase JWT verifier, and HTTP app while every removed stateful-auth module is absent. The same gate must execute the globally installed HTTP bin and receive `/health`; import-only proof is insufficient.
 
 ### scaffold
 
@@ -154,7 +152,7 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```bash
 set -euo pipefail
 
-image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.4"
+image_tag="direct-oauth-$(git rev-parse --short=12 HEAD)-v0.2.0"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
 docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .

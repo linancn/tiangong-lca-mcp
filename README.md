@@ -22,8 +22,8 @@ checkPaths:
   - src/http_app.ts
   - src/http_app_local.ts
 lastReviewedAt: 2026-09-01
-lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: 'Reviewed for Issue #68: remote HTTP supports only the OAuth 2.1 broker; legacy API-key/Cognito modes and setup are removed.'
+lastReviewedCommit: a349c4ad3068dc76a7b43417fa5ead2ee6e0e6d3
+lastReviewedNote: 'Reviewed for Issue #72: remote HTTP accepts direct Supabase OAuth access JWTs and keeps all server-side authorization state and compatibility modes removed.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -39,7 +39,7 @@ TianGong LCA Model Context Protocol (MCP) Server supports STDIO and Streamable H
 
 ## Environment
 
-Copy `.env.example` and populate its Supabase, Redis, and MCP broker values. The remote server uses `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`, intentionally not Portal's separately retained `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` pair.
+Copy `.env.example` and populate its Supabase issuer, publishable key, exact admitted public OAuth client IDs, and allowed browser origins. OAuth authentication requires no Redis, confidential client secret, or server-side session encryption key.
 
 GLAD dataset search tools additionally require a GLAD API key:
 
@@ -50,13 +50,13 @@ GLAD_API_BASE_URL=https://www.globallcadataaccess.org/api/v1
 
 ## Remote OAuth
 
-Remote Streamable HTTP is an OAuth 2.1 protected resource. A compatible MCP host discovers `/.well-known/oauth-protected-resource/mcp`, opens the user's browser, and completes Authorization Code with S256 PKCE. The user signs in and consents in Next; usernames and passwords are never entered into the AI or MCP host.
+Remote Streamable HTTP is an OAuth 2.1 protected resource. A compatible MCP host discovers `/.well-known/oauth-protected-resource/mcp`, follows its Supabase Auth authorization server, opens the user's browser, and completes Authorization Code with S256 PKCE. The user signs in and consents in Next; usernames and passwords are never entered into the AI or MCP host.
 
-The service is a token broker: the host receives a short-lived opaque MCP token, while the server keeps a distinct Supabase access/refresh session encrypted in Upstash. Only that Supabase access token reaches Edge or PostgREST. The first release uses operator-configured fixed host clients and does not expose Dynamic Client Registration.
+Supabase issues the access and rotating refresh tokens directly to the public MCP client. The client stores its refresh token locally and sends the short-lived Supabase ES256 access JWT on every MCP request. The server verifies signature, issuer, audience, expiry, role/session, and exact `client_id`; Edge/PostgREST then re-verify the same user/client context and enforce RLS capabilities.
 
-`MCP_AUTH_MODE=broker` is the only supported remote HTTP authentication mode. Non-broker bearers fail the canonical OAuth challenge without password exchange, Cognito verification, or legacy Redis lookup.
+Dynamic Client Registration remains disabled. Operators register exact public clients and loopback callbacks in Supabase, then list those UUID client IDs in `MCP_OAUTH_ALLOWED_CLIENT_IDS_JSON`. Unknown, malformed, expired, Cognito, and password/API-key bearers fail the canonical OAuth challenge without fallback I/O.
 
-There is no OAuth demo or authorization-code display page. Operators register the exact broker callback `${MCP_PUBLIC_ORIGIN}/oauth/callback` as a confidential Supabase client and keep its secret plus `MCP_OAUTH_SESSION_ENCRYPTION_KEY` in an approved secret store.
+The MCP origin exposes no authorization, token, refresh, revoke, callback, registration, demo, or authorization-code display endpoint. Supabase Auth owns those protocol operations and Next owns `/oauth/consent`.
 
 ## Starting MCP Server
 
@@ -73,17 +73,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.1.4 .
+docker build -t linancn/tiangong-lca-mcp-server:0.2.0 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.1.4
+docker pull linancn/tiangong-lca-mcp-server:0.2.0
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.4
+    linancn/tiangong-lca-mcp-server:0.2.0
 ```
 
 ## Local Testing

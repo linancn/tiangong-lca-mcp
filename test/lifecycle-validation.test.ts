@@ -67,7 +67,7 @@ describe('LifecycleModel SDK 0.2 fail-closed validation', () => {
     }
   });
 
-  it('validates insert and update before a refresh-token session can perform auth or REST requests', async () => {
+  it('validates insert and update before a direct access token can perform REST requests', async () => {
     const originalFetch = globalThis.fetch;
     const originalConsoleError = console.error;
     const logs: string[] = [];
@@ -92,11 +92,7 @@ describe('LifecycleModel SDK 0.2 fail-closed validation', () => {
       Buffer.from('fake-signature').toString('base64url'),
     ].join('.');
     const server = new McpServer({ name: 'invalid-lifecycle-write-test', version: '1.0.0' });
-    regCrudTool(server, {
-      access_token: accessToken,
-      refresh_token: 'fake-refresh-token',
-      expires_at: Math.floor(Date.now() / 1000) + 3_600,
-    });
+    regCrudTool(server, accessToken);
     const connection = await connectInMemory(server);
 
     try {

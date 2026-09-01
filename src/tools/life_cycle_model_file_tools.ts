@@ -6,8 +6,6 @@ import {
   type NormalizedValidationIssue,
 } from '@tiangong-lca/tidas-sdk/core';
 import { supabase_base_url, supabase_publishable_key } from '../_shared/config.js';
-import type { SupabaseSessionLike } from '../_shared/supabase_session.js';
-import { resolveSupabaseAccessToken } from '../_shared/supabase_session.js';
 import { TidasValidationError } from '../_shared/tidas_validation.js';
 
 type JsonPrimitive = string | number | boolean | null;
@@ -367,38 +365,25 @@ function modelEdgesFromConnections(processInstances: Array<JsonRecord>): ModelEd
   return edges;
 }
 
-async function createSupabaseClient(
-  bearerKey?: string | SupabaseSessionLike,
-): Promise<{ supabase: SupabaseClient }> {
-  const { session: normalizedSession, accessToken: bearerToken } =
-    resolveSupabaseAccessToken(bearerKey);
+async function createSupabaseClient(bearerKey?: string): Promise<{ supabase: SupabaseClient }> {
+  const accessToken = bearerKey?.trim() || undefined;
 
   const supabase = createClient(supabase_base_url, supabase_publishable_key, {
     auth: {
       persistSession: false,
-      autoRefreshToken: Boolean(normalizedSession?.refresh_token),
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
-    ...(bearerToken
+    ...(accessToken
       ? {
           global: {
             headers: {
-              Authorization: `Bearer ${bearerToken}`,
+              Authorization: `Bearer ${accessToken}`,
             },
           },
         }
       : {}),
   });
-
-  if (normalizedSession?.refresh_token) {
-    const { error } = await supabase.auth.setSession({
-      access_token: normalizedSession.access_token,
-      refresh_token: normalizedSession.refresh_token,
-    });
-
-    if (error) {
-      console.warn('Failed to set Supabase session for lifecycle model file tools:', error.message);
-    }
-  }
 
   return { supabase };
 }
@@ -1134,7 +1119,7 @@ type PrepareLifecycleModelFileInput = {
 
 export async function prepareLifecycleModelFile(
   input: PrepareLifecycleModelFileInput,
-  bearerKey?: string | SupabaseSessionLike,
+  bearerKey?: string,
 ): Promise<PreparedLifecycleModelFile> {
   const preferProvidedJsonTg = input.preferProvidedJsonTg ?? false;
   const normalized = normalizeLifecycleModelPayload(input.payload);
