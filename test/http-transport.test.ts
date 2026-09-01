@@ -20,13 +20,11 @@ function validTokenVerifier(): OAuthTokenVerifier {
     verifyAccessToken: async (token) => ({
       token,
       clientId: 'test-oauth-client',
-      scopes: ['mcp:tools'],
+      scopes: ['openid', 'email'],
       expiresAt: Math.floor(Date.now() / 1_000) + 300,
       resource: new URL('http://localhost/mcp'),
       extra: {
-        authMethod: 'supabase_oauth_broker',
-        downstreamAccessToken: 'test-supabase-access-token',
-        supabaseSession: { access_token: 'test-supabase-access-token' },
+        authMethod: 'supabase_oauth_jwt',
       },
     }),
   };
@@ -195,6 +193,10 @@ describe('authenticated HTTP boundary', () => {
       const missing = await fetch(`${baseUrl}/mcp`, request);
       assert.equal(missing.status, 401);
       assert.equal((await parseJson(missing)).error, 'invalid_token');
+      assert.match(
+        missing.headers.get('www-authenticate') ?? '',
+        /resource_metadata="http:\/\/localhost\/\.well-known\/oauth-protected-resource\/mcp"/u,
+      );
 
       const denied = await fetch(`${baseUrl}/mcp`, {
         ...request,
@@ -205,6 +207,35 @@ describe('authenticated HTTP boundary', () => {
       assert.equal(deniedBody.error, 'invalid_token');
       assert.equal(verifyCalls, 1);
       assert.equal(serverCalls, 0);
+    });
+  });
+
+  it('passes only the verified inbound Supabase token and auth context to tools', async () => {
+    let seenToken: string | undefined;
+    let seenClientId: string | undefined;
+    const app = createHttpApp({
+      resourceMetadataUrl,
+      tokenVerifier: validTokenVerifier(),
+      serverFactory: (accessToken, authInfo) => {
+        seenToken = accessToken;
+        seenClientId = authInfo?.clientId;
+        return new McpServer({ name: 'direct-token-test', version: '1.0.0' });
+      },
+    });
+
+    await withHttpServer(app, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/mcp`, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json, text/event-stream',
+          authorization: 'Bearer direct-supabase-token',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      assert.equal(response.status, 400);
+      assert.equal(seenToken, 'direct-supabase-token');
+      assert.equal(seenClientId, 'test-oauth-client');
     });
   });
 

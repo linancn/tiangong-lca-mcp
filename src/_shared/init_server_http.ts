@@ -4,12 +4,8 @@ import { regFlowSearchTool } from '../tools/flow_hybrid_search.js';
 import { regGladDatasetTools } from '../tools/glad_dataset_search.js';
 import { regLifecycleModelSearchTool } from '../tools/life_cycle_model_hybrid_search.js';
 import { regProcessSearchTool } from '../tools/process_hybrid_search.js';
-import type { SupabaseSessionPayload } from './supabase_session.js';
 
-export function initializeServer(
-  bearerKey?: string,
-  supabaseSession?: SupabaseSessionPayload,
-): McpServer {
+export function initializeServer(bearerKey?: string): McpServer {
   const server = new McpServer({
     name: 'TianGong-LCA-MCP-Server',
     version: '1.0.0',
@@ -19,11 +15,11 @@ export function initializeServer(
   regProcessSearchTool(server, bearerKey);
   regLifecycleModelSearchTool(server, bearerKey);
   regGladDatasetTools(server);
-  regCrudTool(server, supabaseSession ?? bearerKey);
+  regCrudTool(server, bearerKey);
 
   return server;
 }
 
-export function getServer(bearerKey?: string, supabaseSession?: SupabaseSessionPayload): McpServer {
-  return initializeServer(bearerKey, supabaseSession);
+export function getServer(bearerKey?: string): McpServer {
+  return initializeServer(bearerKey);
 }

@@ -22,8 +22,8 @@ checkPaths:
   - src/http_app.ts
   - src/http_app_local.ts
 lastReviewedAt: 2026-09-01
-lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: '针对 Issue #68 完成复核：远程 HTTP 仅支持 OAuth 2.1 broker，旧 API-key/Cognito 模式与配置已删除。'
+lastReviewedCommit: a349c4ad3068dc76a7b43417fa5ead2ee6e0e6d3
+lastReviewedNote: '针对 Issue #72 完成复核：远程 HTTP 直接验证 Supabase OAuth access JWT，服务端授权状态与兼容模式全部保持删除。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -39,7 +39,7 @@ TianGong LCA Model Context Protocol (MCP) Server 支持 STDIO 和 Streamable Htt
 
 ## 环境变量
 
-复制 `.env.example` 并填写 Supabase、Redis 和 MCP broker 配置。远程服务使用 `UPSTASH_REDIS_REST_URL` 与 `UPSTASH_REDIS_REST_TOKEN`；它们有意区别于 Portal 单独保留的 `UPSTASH_REDIS_URL` 与 `UPSTASH_REDIS_TOKEN`。
+复制 `.env.example` 并填写 Supabase issuer、publishable key、精确允许的 public OAuth client ID 和浏览器 Origin。OAuth 认证不再需要 Redis、confidential client secret 或服务端 session encryption key。
 
 GLAD 数据集查询工具还需要配置 GLAD API key：
 
@@ -50,13 +50,13 @@ GLAD_API_BASE_URL=https://www.globallcadataaccess.org/api/v1
 
 ## 远程 OAuth
 
-远程 Streamable HTTP 是 OAuth 2.1 protected resource。兼容的 MCP host 会发现 `/.well-known/oauth-protected-resource/mcp`，打开用户浏览器，并通过 Authorization Code + S256 PKCE 完成授权。用户在 Next 中登录和确认授权；用户名、密码不会交给 AI 或 MCP host。
+远程 Streamable HTTP 是 OAuth 2.1 protected resource。兼容的 MCP host 会发现 `/.well-known/oauth-protected-resource/mcp`，转到其中声明的 Supabase Auth authorization server，打开用户浏览器，并通过 Authorization Code + S256 PKCE 完成授权。用户在 Next 中登录和确认授权；用户名、密码不会交给 AI 或 MCP host。
 
-服务采用 token broker：host 只拿到短期不透明 MCP token；服务端把另一套 Supabase access/refresh session 加密存入 Upstash。只有 Supabase access token 会访问 Edge 或 PostgREST。首个版本只支持运维预注册的固定 host client，不开放 Dynamic Client Registration。
+Supabase 直接向 public MCP client 签发 access token 和轮换 refresh token。client 在本机保存 refresh token，并在每个 MCP 请求上发送短期 Supabase ES256 access JWT。服务验证签名、issuer、audience、expiry、role/session 和精确 `client_id`；Edge/PostgREST 随后再次验证同一 user/client 上下文并执行 RLS capability。
 
-`MCP_AUTH_MODE=broker` 是远程 HTTP 唯一支持的认证模式。非 broker bearer 会直接收到标准 OAuth challenge，不会触发密码交换、Cognito 校验或旧 Redis 查询。
+Dynamic Client Registration 保持关闭。运维在 Supabase 注册精确的 public client 与 loopback callback，并把这些 UUID client ID 写入 `MCP_OAUTH_ALLOWED_CLIENT_IDS_JSON`。未知、畸形、过期、Cognito 和密码/API-key bearer 都会收到标准 OAuth challenge，且不会触发 fallback I/O。
 
-服务不再提供 OAuth demo 或显示 authorization code 的页面。运维需把精确回调 `${MCP_PUBLIC_ORIGIN}/oauth/callback` 注册为 Supabase confidential client，并把 client secret 与 `MCP_OAUTH_SESSION_ENCRYPTION_KEY` 存入批准的 secret store。
+MCP origin 不暴露 authorization、token、refresh、revoke、callback、registration、demo 或显示 authorization code 的 endpoint。Supabase Auth 负责这些协议操作，Next 负责 `/oauth/consent`。
 
 ## 启动 MCP 服务器
 
@@ -73,17 +73,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.4 .
+docker build -t linancn/tiangong-lca-mcp-server:0.2.0 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.4
+docker pull linancn/tiangong-lca-mcp-server:0.2.0
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.4
+    linancn/tiangong-lca-mcp-server:0.2.0
 ```
 
 ### 本地测试

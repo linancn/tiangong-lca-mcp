@@ -7,7 +7,7 @@ authoritative: true
 owner: mcp
 language: en
 whenToUse:
-  - when a task may change MCP transports, auth surfaces, tool registration, OAuth broker behavior, or lifecycle-model preprocessing in tiangong-lca-mcp
+  - when a task may change MCP transports, auth surfaces, tool registration, Supabase JWT verification, or lifecycle-model preprocessing in tiangong-lca-mcp
   - when routing work from the workspace root into tiangong-lca-mcp
   - when deciding whether a change belongs here, in tiangong-lca-edge-functions, in tiangong-lca-next, or in tidas-tools
 whenToUpdate:
@@ -44,8 +44,8 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-09-01
-lastReviewedCommit: a0ef9c9389726734730282488c952cda80e6a0ca
-lastReviewedNote: 'Reviewed for Issue #68: remote HTTP authentication is broker-only; legacy API-key/Cognito modes and fallback code are removed while OAuth state, token isolation, and package proof remain mandatory.'
+lastReviewedCommit: a349c4ad3068dc76a7b43417fa5ead2ee6e0e6d3
+lastReviewedNote: 'Reviewed for Issue #72: remote HTTP is a stateless Supabase OAuth resource server; direct ES256 access JWTs replace all server-side authorization state while API-key/Cognito paths remain absent.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -86,10 +86,10 @@ Preferred docpact commands:
 This repo owns:
 
 - MCP transports under `src/index.ts`, `src/index_server.ts`, and `src/index_server_local.ts`
-- broker verification, config, and OAuth helpers under `src/_shared/**` and `src/auth_app.ts`
+- Supabase JWT verification, protected-resource metadata, and auth configuration under `src/_shared/**` and `src/http_app.ts`
 - MCP tool registration and tool wrappers under `src/tools/**`
 - MCP prompts and resources under `src/prompts/**` and `src/resources/**`
-- the fixed-client OAuth 2.1 broker, discovery, callback, token, refresh, and revocation routes
+- the fixed-client Supabase OAuth 2.1 protected-resource discovery and bearer-verification boundary
 - the checked-in client example in `mcp_config.json`
 
 This repo does not own:
@@ -112,19 +112,18 @@ Route those tasks to:
 - The only supported package-management path is pnpm `11.24.0`, selected by `packageManager`; installs use the root `pnpm-lock.yaml` with `--frozen-lockfile`.
 - Runtime and compiler baselines are Node `24.19.0`, TypeScript `7.0.2`, and `@tiangong-lca/tidas-sdk` `0.2.0`; TypeScript 5/6 and compiler-API formatting plugins are not allowed in the direct or recursive graph.
 - `pnpm lint` is read-only: type-aware Oxlint, Prettier check, and TypeScript typecheck run without rewriting source. Use `pnpm format` for explicit formatting writes.
-- `pnpm test` runs real Node assertions for tool registration, every declared TIDAS dataset validation boundary, CRUD/search guards, LifecycleModel `validationIssues`, authenticated/local Streamable HTTP envelopes, cancellation, OAuth discovery/PKCE/resource binding, token separation, encrypted state, refresh races, revocation, and Origin rejection.
+- `pnpm test` runs real Node assertions for tool registration, every declared TIDAS dataset validation boundary, CRUD/search guards, LifecycleModel `validationIssues`, authenticated/local Streamable HTTP envelopes, cancellation, Supabase JWT claims, protected-resource discovery, client admission, Origin rejection, and removed-state absence.
 - SDK validation uses `validateEnhanced()` exactly once per entity and consumes normalized `validationIssues`. Insert/update prepares and validates once before transport. Reads use actor-bound PostgREST; ordinary create/save/delete uses `app_dataset_create`, `app_dataset_save_draft`, and `app_dataset_delete` (`DB-CORE-WRITE-01`), while LifecycleModels use `save_lifecycle_model_bundle` and `delete_lifecycle_model_bundle` (`EDGE-BUNDLE-01`). No MCP write uses raw table DML. Strict-invalid LifecycleModels therefore perform zero auth/REST/process-lookup requests and can never reach a write; their stable error envelope exposes normalized code/path/severity without raw Zod parsing.
 - `pnpm prepush:gate` is the canonical gate. It also proves the packed runtime consumer, a clean arbitrary-path worktree, build, audit, and pack contract.
 - Nested package tests resolve and verify the exact native `pnpm`/`pnpm.exe` executable first with `shell: false`; Corepack JavaScript is only a fallback. Do not assume `COREPACK_ROOT` exists in `pnpm/setup` runners.
 - `.github/workflows/quality-gate.yml` runs the canonical gate on Linux x64, Windows x64, macOS arm64, and Linux arm64.
-- The in-memory qualification store implements one-time `take()` without an await gap: it reads and deletes synchronously, then returns the live value. Concurrent state/code/refresh consumers therefore have exactly one winner, matching Upstash `GETDEL`; expired or missing handles fail closed.
 - Published binaries:
   - `tiangong-lca-mcp-stdio`
   - `tiangong-lca-mcp-http`
   - `tiangong-lca-mcp-http-local`
 - Direct dependencies must use the latest stable versions compatible with Node `24.19.0` and the reviewed MCP v1 transport. Keep `@types/node` on the latest Node 24 line instead of importing Node 26 types, and require `pnpm peers check` because Inspector 2.4 needs a React 19-compatible development peer graph. Development-only Inspector/React packages must remain absent from the packed production install.
 - `@tiangong-lca/tidas-sdk` stays exact at npm latest `0.2.0`; dependency refreshes must still run all declared TIDAS types and the strict-invalid LifecycleModel zero-fetch boundary.
-- `Dockerfile` must install the exact version in `package.json`. The packed-consumer gate must find the broker store, OAuth runtime, Supabase broker, and HTTP app in that package, prove the removed legacy modules are absent, then execute the globally installed HTTP bin through its package-manager shim and receive `/health` before a registry release or ECS image can claim the reviewed source.
+- `Dockerfile` must install the exact version in `package.json`. The packed-consumer gate must find the OAuth runtime, Supabase JWT verifier, and HTTP app in that package, prove every removed stateful-auth module is absent, then execute the globally installed HTTP bin through its package-manager shim and receive `/health` before a registry release or ECS image can claim the reviewed source.
 - The Docker runtime must run `corepack enable pnpm` before exact global activation, keep both `/pnpm/bin` and `/pnpm` on OCI `PATH`, and pass a real no-cache Linux ARM64 build; a source-only regex check is not image evidence.
 - The same no-cache build must run `apk upgrade --no-cache` before package-manager setup, read back the patched OpenSSL package, and reach a COMPLETE ECR scan with zero CRITICAL/HIGH findings before ECS may use the digest.
 - The ECR qualification build must use `--provenance=false` and resolve to one scan-compatible ARM64 image manifest. Probe for an existing scan first so scan-on-push results are reused; start a scan only for an explicit `ScanNotFoundException`, and preserve every other probe failure. The deployment script must exit before `docker run` unless ECR reports COMPLETE with exactly zero CRITICAL and HIGH findings. An OCI index rejected by ECR basic scanning is evidence only and cannot be pushed again, run, or registered in ECS.
@@ -132,8 +131,8 @@ Route those tasks to:
 - Manual `v*` tag pushes and `workflow_dispatch` runs for an existing release tag whose target commit is already on `main` remain supported for recovery/backfill releases
 - HTTP entry modules are side-effect free when imported. `src/http_app.ts` and `src/http_app_local.ts` own app construction; the executable entry files only listen when they are the process entrypoint.
 - Authenticated and local request-scoped MCP server factory failures share the generic JSON-RPC 500 boundary; internal exception messages and stacks must never fall through to Express HTML responses or logs. Failure logs contain only stable redacted code/category fields.
-- `MCP_AUTH_MODE=broker` is the only remote HTTP auth mode. It uses OAuth-standard `401 invalid_token` and `403 insufficient_scope` responses with the canonical `resource_metadata` challenge. Provider details, tokens, secrets, and stacks never enter responses or logs; Cognito, direct Supabase bearers, and password-encoded user API keys are rejected without fallback I/O.
-- OAuth state and upstream Supabase sessions are AES-256-GCM encrypted before storage. Redis keys contain only SHA-256 handle digests under `auth:mcp-oauth:v1:*`; the old email-derived `lca_` key is forbidden.
+- Remote HTTP accepts only direct Supabase OAuth access JWTs from the configured ES256 issuer and exact public-client allow-list. It verifies signature, issuer, `aud=authenticated`, expiry, issued-at, subject, role, session, and `client_id`, then returns OAuth-standard `401 invalid_token` with the canonical `resource_metadata` challenge. Provider details, tokens, secrets, and stacks never enter responses or logs; Cognito and password-encoded user API keys remain absent.
+- The remote service owns no authorization code, access/refresh grant, login session, refresh lock, or revocation store. Clients retain rotating refresh tokens locally; Supabase Auth owns authorization and revocation state.
 
 ## Hard Boundaries
 

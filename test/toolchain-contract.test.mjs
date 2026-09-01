@@ -8,6 +8,7 @@ const readText = (path) => readFileSync(new URL(path, repoRoot), 'utf8');
 const pathExists = (path) => existsSync(fileURLToPath(new URL(path, repoRoot)));
 const packageJson = JSON.parse(readText('package.json'));
 const expectedPnpmVersion = '11.24.0';
+const expectedPackageVersion = '0.2.0';
 
 describe('pnpm and TypeScript 7 toolchain contract', () => {
   it('pins the workspace runtime and package manager', () => {
@@ -33,7 +34,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
   it('pins the latest compatible dependency graph and runtime-clean TIDAS SDK', () => {
     assert.equal(packageJson.devDependencies?.typescript, '7.0.2');
     assert.equal(packageJson.dependencies?.['@tiangong-lca/tidas-sdk'], '0.2.0');
-    assert.equal(packageJson.dependencies?.['@upstash/redis'], '1.38.3');
+    assert.equal(packageJson.dependencies?.['@upstash/redis'], undefined);
     assert.equal(packageJson.dependencies?.zod, '4.5.4');
     assert.equal(packageJson.devDependencies?.['@modelcontextprotocol/inspector'], '2.4.0');
     assert.equal(packageJson.devDependencies?.['@types/node'], '24.13.3');
@@ -44,6 +45,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.equal(packageJson.devDependencies?.['prettier-plugin-organize-imports'], undefined);
 
     const lockfile = readText('pnpm-lock.yaml');
+    assert.doesNotMatch(lockfile, /@upstash\/redis/u);
     assert.doesNotMatch(lockfile, /(?:^|\s)typescript@(?:5|6)\./mu);
     assert.doesNotMatch(lockfile, /(?:^|\s)ts-to-zod@/mu);
     const compilerVersions = new Set(
@@ -111,7 +113,9 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       `corepack install --global pnpm@${expectedPnpmVersion}`,
     );
     const versionIndex = dockerfile.indexOf('pnpm --version');
-    const addIndex = dockerfile.indexOf('pnpm add --global @tiangong-lca/mcp-server@0.1.4');
+    const addIndex = dockerfile.indexOf(
+      `pnpm add --global @tiangong-lca/mcp-server@${expectedPackageVersion}`,
+    );
 
     assert.match(dockerfile, /ENV PATH="\$PNPM_HOME\/bin:\$PNPM_HOME:\$PATH"/u);
     assert.ok(osUpgradeIndex >= 0);
@@ -122,19 +126,19 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.ok(addIndex > versionIndex);
   });
 
-  it('binds the 0.1.4 release across package, Docker, and active docs', () => {
-    assert.equal(packageJson.version, '0.1.4');
+  it('binds the 0.2.0 release across package, Docker, and active docs', () => {
+    assert.equal(packageJson.version, expectedPackageVersion);
     const surfaces = ['Dockerfile', 'README.md', 'README_CN.md', 'DEV_EN.md', 'DEV_CN.md'];
     for (const surface of surfaces) {
       const text = readText(surface);
-      assert.match(text, /0\.1\.4/u, surface);
+      assert.match(text, /0\.2\.0/u, surface);
       assert.doesNotMatch(
         text,
-        /(?:mcp-server|tiangong-lca-mcp):(?!(?:0\.1\.4)\b)\d+\.\d+\.\d+/u,
+        /(?:mcp-server|tiangong-lca-mcp):(?!(?:0\.2\.0)\b)\d+\.\d+\.\d+/u,
         surface,
       );
     }
-    assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.1\.4/u);
+    assert.match(readText('Dockerfile'), /pnpm add --global @tiangong-lca\/mcp-server@0\.2\.0/u);
     for (const maintainerDoc of ['DEV_EN.md', 'DEV_CN.md']) {
       const text = readText(maintainerDoc);
       const scanGateIndex = text.indexOf('if [ "${scan_gate}" != "${expected_scan_gate}" ]; then');
@@ -146,7 +150,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
       const waitScanIndex = text.indexOf('aws ecr wait image-scan-complete');
       const scanNotFoundIndex = text.indexOf('*ScanNotFoundException*)');
       const probeFailureIndex = text.indexOf('ECR scan probe failed: %s');
-      assert.match(text, /image_tag="oauth-\$\(git rev-parse --short=12 HEAD\)-v0\.1\.4"/u);
+      assert.match(text, /image_tag="direct-oauth-\$\(git rev-parse --short=12 HEAD\)-v0\.2\.0"/u);
       assert.match(text, /docker build --no-cache --provenance=false --platform linux\/arm64/u);
       assert.match(text, /imageManifestMediaType/u);
       assert.match(text, /aws ecr start-image-scan/u);

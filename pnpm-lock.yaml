@@ -20,9 +20,6 @@ importers:
       '@tiangong-lca/tidas-sdk':
         specifier: 0.2.0
         version: 0.2.0
-      '@upstash/redis':
-        specifier: 1.38.3
-        version: 1.38.3
       express:
         specifier: 5.2.1
         version: 5.2.1(supports-color@10.2.2)
@@ -816,9 +813,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@upstash/redis@1.38.3':
-    resolution: {integrity: sha512-vtS0BonQHU6kDSWvHTISh+LOuLIEk+jeMXebv20CDJ/aHGOG085SGa8OpI+I+Ow8WgPFhqH23XG8kQ2LXXRnag==}
-
   '@vitejs/plugin-react@6.1.0':
     resolution: {integrity: sha512-qd2BzUBehkov86WFhg0JkEFEYyCLG9uPCe6qWTY/kRlss9OvJrOF2UbIWT7p+8IzZHkEu0DNGHc4HSv+JdDLsw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -1608,9 +1602,6 @@ packages:
     engines: {node: '>=16.20.0'}
     hasBin: true
 
-  uncrypto@0.1.3:
-    resolution: {integrity: sha512-Ql87qFHB3s/De2ClA9e0gsnS6zXG27SkTiSJwjCc9MebbfapQfuPzumMIUMi38ezPZVNFcHI9sUIepeQfw8J8Q==}
-
   undici-types@7.18.2:
     resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
 
@@ -2259,10 +2250,6 @@ snapshots:
 
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
-
-  '@upstash/redis@1.38.3':
-    dependencies:
-      uncrypto: 0.1.3
 
   '@vitejs/plugin-react@6.1.0(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.0))':
     dependencies:
@@ -3075,8 +3062,6 @@ snapshots:
       '@typescript/typescript-sunos-x64': 7.0.2
       '@typescript/typescript-win32-arm64': 7.0.2
       '@typescript/typescript-win32-x64': 7.0.2
-
-  uncrypto@0.1.3: {}
 
   undici-types@7.18.2: {}
 
