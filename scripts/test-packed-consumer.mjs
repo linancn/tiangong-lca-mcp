@@ -110,7 +110,10 @@ async function assertPackedHttpBinStarts(globalBinDirectory, globalEnvironment) 
         );
       }
       try {
-        response = await fetch(`http://127.0.0.1:${port}/health`);
+        const requestTimeout = Math.max(1, Math.min(1_000, deadline - Date.now()));
+        response = await fetch(`http://127.0.0.1:${port}/health`, {
+          signal: AbortSignal.timeout(requestTimeout),
+        });
         if (response.ok) {
           break;
         }
