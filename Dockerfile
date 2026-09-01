@@ -8,7 +8,7 @@ RUN apk upgrade --no-cache \
     && corepack enable pnpm \
     && corepack install --global pnpm@11.24.0 \
     && pnpm --version \
-    && pnpm add --global @tiangong-lca/mcp-server@0.1.2
+    && pnpm add --global @tiangong-lca/mcp-server@0.1.3
 
 EXPOSE 80
 

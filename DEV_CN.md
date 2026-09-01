@@ -21,9 +21,9 @@ checkPaths:
   - src/**
   - test/**
   - scripts/**
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
-lastReviewedNote: '针对 Issue #64 完成复核：MCP 0.1.2 更新全部 Node 24 兼容直接依赖、保留 TIDAS SDK 0.2.0，并在发布前校验 Inspector 2.4 的 React peer graph。'
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
+lastReviewedNote: '针对 Issue #66 完成复核：MCP 0.1.3 修复 package-manager realpath 入口判定，并要求发布包/镜像前执行全局 HTTP bin health probe。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -53,17 +53,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.2 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.3 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.2
+docker pull linancn/tiangong-lca-mcp-server:0.1.3
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.2
+    linancn/tiangong-lca-mcp-server:0.1.3
 ```
 
 ## 开发
@@ -133,7 +133,7 @@ pnpm prepush:gate
 
 ### 发布
 
-本次依赖发布任务在变更合并后执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.2` 对应 `v0.1.2`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 packed-consumer 门禁证明过的 broker store/runtime、Supabase broker、auth middleware 与 HTTP app。
+本次生产启动修复任务在变更合并后执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.3` 对应 `v0.1.3`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 packed-consumer 门禁证明过的 broker store/runtime、Supabase broker、auth middleware 与 HTTP app。同一门禁还必须真实执行全局安装的 HTTP bin 并收到成功的 `/health`；仅 import 证明不足。
 
 ### 测试脚手架
 
@@ -146,7 +146,7 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```bash
 set -euo pipefail
 
-image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.2"
+image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.3"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
 docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .

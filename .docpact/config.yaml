@@ -1,8 +1,8 @@
 version: 1
 layout: repo
-lastReviewedAt: '2026-08-31'
-lastReviewedCommit: 'bf999606dd8fc2c976b004b72873adc09d70e6b7'
-lastReviewedNote: 'Reviewed for Issue #64: package, lock, test, Docker, README, and maintainer routing covers MCP 0.1.2, latest Node 24-compatible dependencies, TIDAS SDK 0.2.0, and the peer-dependency gate.'
+lastReviewedAt: '2026-09-01'
+lastReviewedCommit: 'f2da1fed5fc1d2cdeb7821650b2619874819bd2d'
+lastReviewedNote: 'Reviewed for Issue #66: package, executable-entry, packed global-bin health, Docker, README, and maintainer routing covers the MCP 0.1.3 Production startup repair.'
 
 catalog:
   repos:

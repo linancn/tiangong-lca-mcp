@@ -21,9 +21,9 @@ checkPaths:
   - src/index_server_local.ts
   - src/http_app.ts
   - src/http_app_local.ts
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
-lastReviewedNote: 'Reviewed for Issue #64: user setup and Docker examples now select MCP 0.1.2 with the latest Node 24-compatible direct dependencies, TIDAS SDK 0.2, and the merged OAuth broker.'
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
+lastReviewedNote: 'Reviewed for Issue #66: MCP 0.1.3 canonicalizes package-manager entry paths and the packed-consumer gate now executes the real global HTTP bin before Docker/ECS delivery.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -77,17 +77,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.1.2 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.3 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.1.2
+docker pull linancn/tiangong-lca-mcp-server:0.1.3
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.2
+    linancn/tiangong-lca-mcp-server:0.1.3
 ```
 
 ## Local Testing

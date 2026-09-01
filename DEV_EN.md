@@ -22,9 +22,9 @@ checkPaths:
   - src/**
   - test/**
   - scripts/**
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
-lastReviewedNote: 'Reviewed for Issue #64: MCP 0.1.2 refreshes all Node 24-compatible direct dependencies, retains TIDAS SDK 0.2.0, and gates the Inspector 2.4 React peer graph before release.'
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
+lastReviewedNote: 'Reviewed for Issue #66: MCP 0.1.3 fixes package-manager realpath entry detection and requires a packed global-bin health probe before package/image release.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -54,17 +54,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.1.2 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.3 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.1.2
+docker pull linancn/tiangong-lca-mcp-server:0.1.3
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.2
+    linancn/tiangong-lca-mcp-server:0.1.3
 ```
 
 ## Development
@@ -141,7 +141,7 @@ This runs read-only lint/typecheck, offline behavior tests, packed-consumer vali
 
 ### Publishing
 
-Publishing is handled by this tracked dependency-release task after the change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.2` maps to `v0.1.2`. Before building the ECS image, read back the registry integrity and verify that the published archive contains the broker store/runtime, Supabase broker, auth middleware, and HTTP app proved by the packed-consumer gate.
+Publishing is handled by this tracked production-startup repair task after the change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.3` maps to `v0.1.3`. Before building the ECS image, read back the registry integrity and verify that the published archive contains the broker store/runtime, Supabase broker, auth middleware, and HTTP app proved by the packed-consumer gate. The same gate must execute the globally installed HTTP bin and receive a successful `/health` response; import-only proof is insufficient.
 
 ### scaffold
 
@@ -154,7 +154,7 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```bash
 set -euo pipefail
 
-image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.2"
+image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.3"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
 docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .

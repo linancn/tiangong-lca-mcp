@@ -21,9 +21,9 @@ checkPaths:
   - src/index_server_local.ts
   - src/http_app.ts
   - src/http_app_local.ts
-lastReviewedAt: 2026-08-31
-lastReviewedCommit: bf999606dd8fc2c976b004b72873adc09d70e6b7
-lastReviewedNote: '针对 Issue #64 完成复核：用户安装与 Docker 示例改为 MCP 0.1.2，包含 Node 24 最新兼容直接依赖、TIDAS SDK 0.2 与已合并 OAuth broker。'
+lastReviewedAt: 2026-09-01
+lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
+lastReviewedNote: '针对 Issue #66 完成复核：MCP 0.1.3 对 package-manager 入口执行 canonical path 比较，packed-consumer 门禁会在 Docker/ECS 交付前真实执行全局 HTTP bin。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -77,17 +77,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.2 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.3 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.2
+docker pull linancn/tiangong-lca-mcp-server:0.1.3
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.2
+    linancn/tiangong-lca-mcp-server:0.1.3
 ```
 
 ### 本地测试
