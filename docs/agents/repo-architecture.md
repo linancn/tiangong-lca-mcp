@@ -34,7 +34,7 @@ checkPaths:
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-09-01
-lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
+lastReviewedCommit: a0ef9c9389726734730282488c952cda80e6a0ca
 lastReviewedNote: 'Reviewed for Issue #68: remote HTTP is broker-only and all legacy API-key/Cognito classifiers are removed without changing token isolation, tools, or transport ownership.'
 related:
   - ../../AGENTS.md
