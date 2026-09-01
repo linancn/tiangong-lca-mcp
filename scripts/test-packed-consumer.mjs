@@ -52,7 +52,7 @@ async function stopChild(child) {
       );
     }
     if (child.exitCode === null && child.signalCode === null) {
-      await once(child, 'exit');
+      await Promise.race([once(child, 'exit'), delay(5_000)]);
     }
     return;
   }
