@@ -1,5 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { InvalidTokenError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
+import type { OAuthTokenVerifier } from '@modelcontextprotocol/sdk/server/auth/provider.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -10,6 +12,25 @@ import { withHttpServer } from './helpers/http-server.js';
 
 const parseJson = async (response: Response): Promise<Record<string, unknown>> =>
   (await response.json()) as Record<string, unknown>;
+
+const resourceMetadataUrl = 'http://localhost/.well-known/oauth-protected-resource/mcp';
+
+function validTokenVerifier(): OAuthTokenVerifier {
+  return {
+    verifyAccessToken: async (token) => ({
+      token,
+      clientId: 'test-oauth-client',
+      scopes: ['mcp:tools'],
+      expiresAt: Math.floor(Date.now() / 1_000) + 300,
+      resource: new URL('http://localhost/mcp'),
+      extra: {
+        authMethod: 'supabase_oauth_broker',
+        downstreamAccessToken: 'test-supabase-access-token',
+        supabaseSession: { access_token: 'test-supabase-access-token' },
+      },
+    }),
+  };
+}
 
 describe('Streamable HTTP transport', () => {
   it('serves health and stable method-not-allowed envelopes without starting on import', async () => {
@@ -145,12 +166,15 @@ describe('Streamable HTTP transport', () => {
 
 describe('authenticated HTTP boundary', () => {
   it('rejects missing and invalid bearer credentials before server creation', async () => {
-    let authCalls = 0;
+    let verifyCalls = 0;
     let serverCalls = 0;
     const app = createHttpApp({
-      authenticator: async () => {
-        authCalls += 1;
-        return { isAuthenticated: false, response: 'denied by test' };
+      resourceMetadataUrl,
+      tokenVerifier: {
+        verifyAccessToken: async () => {
+          verifyCalls += 1;
+          throw new InvalidTokenError('Access token is invalid');
+        },
       },
       serverFactory: () => {
         serverCalls += 1;
@@ -170,29 +194,32 @@ describe('authenticated HTTP boundary', () => {
 
       const missing = await fetch(`${baseUrl}/mcp`, request);
       assert.equal(missing.status, 401);
-      assert.equal((await parseJson(missing)).error instanceof Object, true);
+      assert.equal((await parseJson(missing)).error, 'invalid_token');
 
       const denied = await fetch(`${baseUrl}/mcp`, {
         ...request,
         headers: { ...request.headers, authorization: 'Bearer denied-token' },
       });
-      assert.equal(denied.status, 403);
+      assert.equal(denied.status, 401);
       const deniedBody = await parseJson(denied);
-      assert.deepEqual(deniedBody.error, { code: -32002, message: 'Forbidden' });
-      assert.equal(authCalls, 1);
+      assert.equal(deniedBody.error, 'invalid_token');
+      assert.equal(verifyCalls, 1);
       assert.equal(serverCalls, 0);
     });
   });
 
-  it('normalizes authenticator failures into a JSON-RPC internal error', async () => {
+  it('converts unexpected verifier failures into a redacted OAuth denial', async () => {
     const originalConsoleError = console.error;
     const logs: string[] = [];
     console.error = (...values) => {
       logs.push(format(...values));
     };
     const app = createHttpApp({
-      authenticator: async () => {
-        throw new Error('secret authenticator detail');
+      resourceMetadataUrl,
+      tokenVerifier: {
+        verifyAccessToken: async () => {
+          throw new Error('secret verifier detail');
+        },
       },
       serverFactory: () => {
         throw new Error('server must not be created after auth failure');
@@ -211,15 +238,13 @@ describe('authenticated HTTP boundary', () => {
           body: JSON.stringify({}),
         });
 
-        assert.equal(response.status, 500);
-        assert.deepEqual(await parseJson(response), {
-          jsonrpc: '2.0',
-          error: { code: -32603, message: 'Internal server error' },
-          id: null,
-        });
-        assert.doesNotMatch(logs.join('\n'), /secret authenticator detail/u);
+        assert.equal(response.status, 401);
+        const body = await parseJson(response);
+        assert.equal(body.error, 'invalid_token');
+        assert.doesNotMatch(JSON.stringify(body), /secret verifier detail/u);
+        assert.doesNotMatch(logs.join('\n'), /secret verifier detail/u);
         assert.match(logs.join('\n'), /MCP_AUTHENTICATION_FAILED/u);
-        assert.match(logs.join('\n'), /authenticator/u);
+        assert.match(logs.join('\n'), /verifier/u);
       });
     } finally {
       console.error = originalConsoleError;
@@ -251,7 +276,8 @@ describe('request-scoped MCP server factory failures', () => {
         {
           name: 'authenticated',
           app: createHttpApp({
-            authenticator: async () => ({ isAuthenticated: true }),
+            resourceMetadataUrl,
+            tokenVerifier: validTokenVerifier(),
             serverFactory: () => {
               throw new Error(sentinel);
             },

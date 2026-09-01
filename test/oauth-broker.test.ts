@@ -9,6 +9,7 @@ import {
   MemoryOAuthBrokerRawStore,
   createPkcePair,
 } from '../src/_shared/oauth_broker_store.js';
+import { createOAuthBrokerRuntimeFromEnv } from '../src/_shared/oauth_runtime.js';
 import { SupabaseOAuthBrokerProvider } from '../src/_shared/supabase_oauth_broker.js';
 import { createHttpApp } from '../src/http_app.js';
 import { withHttpServer } from './helpers/http-server.js';
@@ -204,21 +205,38 @@ describe('Supabase-backed MCP OAuth broker', () => {
     assert.equal(await store.take('missing'), undefined);
   });
 
-  it('pins Edge/MCP Redis names and removes credential-display pages', () => {
+  it('pins broker Redis names and removes every legacy auth module and credential page', () => {
     const environment = readFileSync('.env.example', 'utf8');
     const clientExample = readFileSync('mcp_config.json', 'utf8');
-    const runtimeConfig = readFileSync('src/_shared/config.ts', 'utf8');
-    const legacyAuth = readFileSync('src/_shared/auth_middleware.ts', 'utf8');
+    const oauthRuntime = readFileSync('src/_shared/oauth_runtime.ts', 'utf8');
     assert.match(environment, /^UPSTASH_REDIS_REST_URL=/mu);
     assert.match(environment, /^UPSTASH_REDIS_REST_TOKEN=/mu);
     assert.doesNotMatch(environment, /^UPSTASH_REDIS_(?:URL|TOKEN)=/mu);
-    assert.match(runtimeConfig, /process\.env\.UPSTASH_REDIS_REST_URL/u);
-    assert.match(runtimeConfig, /process\.env\.UPSTASH_REDIS_REST_TOKEN/u);
-    assert.match(legacyAuth, /auth:legacy-user-api-key:v2:/u);
-    assert.doesNotMatch(legacyAuth, /['"]lca_['"]\s*\+/u);
+    assert.match(oauthRuntime, /requireEnv\('UPSTASH_REDIS_REST_URL'\)/u);
+    assert.match(oauthRuntime, /requireEnv\('UPSTASH_REDIS_REST_TOKEN'\)/u);
+    assert.doesNotMatch(environment, /COGNITO_|broker_compat|MCP_AUTH_MODE=legacy/u);
+    assert.equal(existsSync('src/_shared/auth_middleware.ts'), false);
+    assert.equal(existsSync('src/_shared/cognito_auth.ts'), false);
+    assert.equal(existsSync('src/_shared/decode_api_key.ts'), false);
     assert.doesNotMatch(clientExample, /Authorization|YOUR_TOKEN/u);
     assert.equal(existsSync('public/oauth-demo.html'), false);
     assert.equal(existsSync('public/oauth-index.html'), false);
+  });
+
+  it('rejects removed compatibility modes before reading broker configuration', () => {
+    const previous = process.env.MCP_AUTH_MODE;
+    try {
+      for (const removedMode of ['broker_compat', 'legacy']) {
+        process.env.MCP_AUTH_MODE = removedMode;
+        assert.throws(() => createOAuthBrokerRuntimeFromEnv(), /MCP_AUTH_MODE must be broker/u);
+      }
+    } finally {
+      if (previous === undefined) {
+        delete process.env.MCP_AUTH_MODE;
+      } else {
+        process.env.MCP_AUTH_MODE = previous;
+      }
+    }
   });
 
   it('publishes fixed-client discovery and a standards-compliant challenge', async () => {

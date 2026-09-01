@@ -23,7 +23,7 @@ checkPaths:
   - src/http_app_local.ts
 lastReviewedAt: 2026-09-01
 lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: 'Reviewed for Issue #66: MCP 0.1.3 canonicalizes package-manager entry paths and the packed-consumer gate now executes the real global HTTP bin before Docker/ECS delivery.'
+lastReviewedNote: 'Reviewed for Issue #68: remote HTTP supports only the OAuth 2.1 broker; legacy API-key/Cognito modes and setup are removed.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -54,11 +54,7 @@ Remote Streamable HTTP is an OAuth 2.1 protected resource. A compatible MCP host
 
 The service is a token broker: the host receives a short-lived opaque MCP token, while the server keeps a distinct Supabase access/refresh session encrypted in Upstash. Only that Supabase access token reaches Edge or PostgREST. The first release uses operator-configured fixed host clients and does not expose Dynamic Client Registration.
 
-`MCP_AUTH_MODE` controls migration:
-
-- `broker_compat`: broker tokens plus the legacy encoded user API key, with identifier-free transition telemetry;
-- `broker`: broker tokens only;
-- `legacy`: rollback-only pre-migration authentication.
+`MCP_AUTH_MODE=broker` is the only supported remote HTTP authentication mode. Non-broker bearers fail the canonical OAuth challenge without password exchange, Cognito verification, or legacy Redis lookup.
 
 There is no OAuth demo or authorization-code display page. Operators register the exact broker callback `${MCP_PUBLIC_ORIGIN}/oauth/callback` as a confidential Supabase client and keep its secret plus `MCP_OAUTH_SESSION_ENCRYPTION_KEY` in an approved secret store.
 
@@ -77,17 +73,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.1.3 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.4 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.1.3
+docker pull linancn/tiangong-lca-mcp-server:0.1.4
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.3
+    linancn/tiangong-lca-mcp-server:0.1.4
 ```
 
 ## Local Testing

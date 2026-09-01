@@ -35,7 +35,7 @@ checkPaths:
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-09-01
 lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: 'Reviewed for Issue #66: MCP 0.1.3 resolves package-manager entry paths canonically and validates the packed global HTTP bin with a live health probe.'
+lastReviewedNote: 'Reviewed for Issue #68: remote HTTP is broker-only and all legacy API-key/Cognito classifiers are removed without changing token isolation, tools, or transport ownership.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -58,15 +58,9 @@ The executable HTTP entries delegate app construction to `src/http_app.ts` and `
 
 ## Auth Decision Tree
 
-The authenticated HTTP path has three explicit modes:
+The authenticated HTTP path has one mode: `broker`. It accepts only audience-bound MCP access tokens issued by this service. `src/_shared/oauth_runtime.ts` verifies an opaque MCP access token through `SupabaseOAuthBrokerProvider`, attaches the SDK `AuthInfo` to the request, and gives tool wrappers only the separate upstream Supabase access token from encrypted server-side state. Direct Supabase/Cognito bearer tokens and password-encoded user API keys are rejected without fallback I/O.
 
-1. `broker`: accept only audience-bound MCP access tokens issued by this service.
-2. `broker_compat`: accept broker tokens plus the bounded base64 `{ email, password }` migration key. The migration key is exchanged for a distinct Supabase session and is never forwarded.
-3. `legacy`: retain the pre-migration classifier only as an operator rollback surface.
-
-`src/_shared/oauth_runtime.ts` composes the configured mode. The production path verifies an opaque MCP access token through `SupabaseOAuthBrokerProvider`, attaches the SDK `AuthInfo` to the request, and gives tool wrappers only the separate upstream Supabase access token from encrypted server-side state. Direct Supabase and Cognito bearer tokens are not accepted in broker modes.
-
-Broker access/refresh tokens, authorization codes, and states are random handles. Redis keys contain SHA-256 handle digests; values are AES-256-GCM envelopes whose additional authenticated data binds each value to its logical key. Refresh handles are consumed atomically, so one request wins a rotation race and replay fails closed. Upstash uses `GETDEL`; the in-memory qualification store performs map read/delete synchronously before returning its Promise, so it cannot yield between observation and consumption. `broker_compat` constructs Redis only after the bearer decodes as an eligible legacy API key and uses `auth:legacy-user-api-key:v2:<sha256>` rather than email-derived keys.
+Broker access/refresh tokens, authorization codes, and states are random handles. Redis keys contain SHA-256 handle digests under `auth:mcp-oauth:v1:*`; values are AES-256-GCM envelopes whose additional authenticated data binds each value to its logical key. Refresh handles are consumed atomically, so one request wins a rotation race and replay fails closed. Upstash uses `GETDEL`; the in-memory qualification store performs map read/delete synchronously before returning its Promise, so it cannot yield between observation and consumption. No legacy API-key cache namespace is part of the runtime.
 
 ## OAuth Surface
 
@@ -133,13 +127,13 @@ The active local OpenLCA integration uses `olca-ipc`. The `openlca_grpc.ts` file
 
 `main` pushes whose `package.json` version changes create the matching `v<version>` tag, install with pnpm's frozen lock, run the canonical pre-push gate, and publish `@tiangong-lca/mcp-server` through pnpm. Manual `v*` tag pushes and workflow-dispatch runs for existing tags remain recovery/backfill paths.
 
-The Docker runtime installs that same exact package version. Packed-consumer proof must import all three entrypoints without side effects, assert that the production archive contains auth middleware, OAuth broker store/runtime, the Supabase broker, and the HTTP app, then execute the globally installed HTTP bin through the generated package-manager shim and receive `/health`. A registry tarball published before those modules or executable proof existed is not an eligible image input even when the repository Dockerfile itself comes from a newer commit.
+The Docker runtime installs that same exact package version. Packed-consumer proof must import all three entrypoints without side effects, assert that the production archive contains the OAuth broker store/runtime, Supabase broker, and HTTP app while removed legacy modules are absent, then execute the globally installed HTTP bin through the generated package-manager shim and receive `/health`. A registry tarball published before those modules or executable proof existed is not an eligible image input even when the repository Dockerfile itself comes from a newer commit.
 
 On Node Alpine, Corepack activation and pnpm global installation are separate boundaries: `corepack enable pnpm` creates the executable shim, exact global install activates `11.24.0`, and `/pnpm/bin` must remain in the final OCI `PATH` so the packaged MCP bins are the default container command. A real no-cache Linux ARM64 build is the required proof for this path.
 
 The build upgrades Alpine packages before package-manager setup and records the installed OpenSSL version. The ECR qualification command disables provenance so the tag resolves to one scan-compatible ARM64 image manifest instead of an OCI index. The tag is commit-bearing and must be absent before push. Qualification reuses scan-on-push, starts only for `ScanNotFoundException`, preserves every other probe error, and exits before run unless the result is COMPLETE with exactly zero CRITICAL and HIGH findings. A vulnerable or unscannable image remains evidence only and is never an ECS task input.
 
-The MCP `0.1.3` package graph is single-track Node `24.19.0`, pnpm `11.24.0`, TypeScript `7.0.2`, TIDAS SDK `0.2.0`, Upstash Redis `1.38.3`, and Zod `4.5.4`. Inspector `2.4.0`, React DOM `19.2.8`, and tsx `4.23.13` are development-only; React DOM supplies Inspector's React 19 peer without entering the production archive. The packed-consumer proof imports all three packaged entry modules from an arbitrary path, verifies that compiler, lint, test, and Inspector/React tooling is absent from the production install, and proves that canonical realpath comparison still treats the generated global shim target as the executable entrypoint.
+The MCP `0.1.4` package graph is single-track Node `24.19.0`, pnpm `11.24.0`, TypeScript `7.0.2`, TIDAS SDK `0.2.0`, Upstash Redis `1.38.3`, and Zod `4.5.4`. Inspector `2.4.0`, React DOM `19.2.8`, and tsx `4.23.13` are development-only; React DOM supplies Inspector's React 19 peer without entering the production archive. The packed-consumer proof imports all three packaged entry modules from an arbitrary path, verifies that compiler, lint, test, and Inspector/React tooling is absent from the production install, and proves that canonical realpath comparison still treats the generated global shim target as the executable entrypoint.
 
 Nested consumer and clean-worktree commands cannot assume Corepack environment variables: they scan `PATH` for the official native `pnpm` or `pnpm.exe`, verify exact version `11.24.0`, and execute with argv plus `shell: false`. A verified `COREPACK_ROOT/dist/pnpm.js` invocation remains a fallback for local Corepack shells.
 

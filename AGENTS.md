@@ -45,7 +45,7 @@ checkPaths:
   - scripts/install-git-hooks.sh
 lastReviewedAt: 2026-09-01
 lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: 'Reviewed for Issue #66: MCP 0.1.3 canonicalizes executable entry paths and extends packed-consumer proof to run the globally installed HTTP bin through `/health`.'
+lastReviewedNote: 'Reviewed for Issue #68: remote HTTP authentication is broker-only; legacy API-key/Cognito modes and fallback code are removed while OAuth state, token isolation, and package proof remain mandatory.'
 related:
   - .docpact/config.yaml
   - docs/agents/repo-validation.md
@@ -86,7 +86,7 @@ Preferred docpact commands:
 This repo owns:
 
 - MCP transports under `src/index.ts`, `src/index_server.ts`, and `src/index_server_local.ts`
-- auth middleware, config, and OAuth helpers under `src/_shared/**` and `src/auth_app.ts`
+- broker verification, config, and OAuth helpers under `src/_shared/**` and `src/auth_app.ts`
 - MCP tool registration and tool wrappers under `src/tools/**`
 - MCP prompts and resources under `src/prompts/**` and `src/resources/**`
 - the fixed-client OAuth 2.1 broker, discovery, callback, token, refresh, and revocation routes
@@ -124,7 +124,7 @@ Route those tasks to:
   - `tiangong-lca-mcp-http-local`
 - Direct dependencies must use the latest stable versions compatible with Node `24.19.0` and the reviewed MCP v1 transport. Keep `@types/node` on the latest Node 24 line instead of importing Node 26 types, and require `pnpm peers check` because Inspector 2.4 needs a React 19-compatible development peer graph. Development-only Inspector/React packages must remain absent from the packed production install.
 - `@tiangong-lca/tidas-sdk` stays exact at npm latest `0.2.0`; dependency refreshes must still run all declared TIDAS types and the strict-invalid LifecycleModel zero-fetch boundary.
-- `Dockerfile` must install the exact version in `package.json`. The packed-consumer gate must find the broker store, OAuth runtime, Supabase broker, auth middleware, and HTTP app in that package, then execute the globally installed HTTP bin through its package-manager shim and receive `/health` before a registry release or ECS image can claim the reviewed source.
+- `Dockerfile` must install the exact version in `package.json`. The packed-consumer gate must find the broker store, OAuth runtime, Supabase broker, and HTTP app in that package, prove the removed legacy modules are absent, then execute the globally installed HTTP bin through its package-manager shim and receive `/health` before a registry release or ECS image can claim the reviewed source.
 - The Docker runtime must run `corepack enable pnpm` before exact global activation, keep both `/pnpm/bin` and `/pnpm` on OCI `PATH`, and pass a real no-cache Linux ARM64 build; a source-only regex check is not image evidence.
 - The same no-cache build must run `apk upgrade --no-cache` before package-manager setup, read back the patched OpenSSL package, and reach a COMPLETE ECR scan with zero CRITICAL/HIGH findings before ECS may use the digest.
 - The ECR qualification build must use `--provenance=false` and resolve to one scan-compatible ARM64 image manifest. Probe for an existing scan first so scan-on-push results are reused; start a scan only for an explicit `ScanNotFoundException`, and preserve every other probe failure. The deployment script must exit before `docker run` unless ECR reports COMPLETE with exactly zero CRITICAL and HIGH findings. An OCI index rejected by ECR basic scanning is evidence only and cannot be pushed again, run, or registered in ECS.
@@ -132,8 +132,7 @@ Route those tasks to:
 - Manual `v*` tag pushes and `workflow_dispatch` runs for an existing release tag whose target commit is already on `main` remain supported for recovery/backfill releases
 - HTTP entry modules are side-effect free when imported. `src/http_app.ts` and `src/http_app_local.ts` own app construction; the executable entry files only listen when they are the process entrypoint.
 - Authenticated and local request-scoped MCP server factory failures share the generic JSON-RPC 500 boundary; internal exception messages and stacks must never fall through to Express HTML responses or logs. Failure logs contain only stable redacted code/category fields.
-- Broker mode uses OAuth-standard `401 invalid_token` and `403 insufficient_scope` responses with the canonical `resource_metadata` challenge. Provider details, tokens, secrets, and stacks never enter responses or logs. Legacy mode keeps the older generic denial boundary; broker modes do not accept Cognito or a direct Supabase bearer.
-- `MCP_AUTH_MODE=broker_compat` accepts only the transition base64 user API key in addition to broker tokens, exchanges it for a distinct Supabase session, and emits identifier-free telemetry. `broker` removes that path; `legacy` is rollback-only.
+- `MCP_AUTH_MODE=broker` is the only remote HTTP auth mode. It uses OAuth-standard `401 invalid_token` and `403 insufficient_scope` responses with the canonical `resource_metadata` challenge. Provider details, tokens, secrets, and stacks never enter responses or logs; Cognito, direct Supabase bearers, and password-encoded user API keys are rejected without fallback I/O.
 - OAuth state and upstream Supabase sessions are AES-256-GCM encrypted before storage. Redis keys contain only SHA-256 handle digests under `auth:mcp-oauth:v1:*`; the old email-derived `lca_` key is forbidden.
 
 ## Hard Boundaries

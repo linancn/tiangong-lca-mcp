@@ -1,11 +1,9 @@
-import { InvalidTokenError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import type { OAuthTokenVerifier } from '@modelcontextprotocol/sdk/server/auth/provider.js';
 import { z } from 'zod';
 import { createOAuthBrokerApp } from '../auth_app.js';
 import type { Express } from 'express';
-import { authenticateLegacyApiKeyRequest } from './auth_middleware.js';
 import { EncryptedOAuthBrokerStore, UpstashOAuthBrokerRawStore } from './oauth_broker_store.js';
-import { SupabaseOAuthBrokerProvider, isMcpBrokerAccessToken } from './supabase_oauth_broker.js';
+import { SupabaseOAuthBrokerProvider } from './supabase_oauth_broker.js';
 
 const HostClientsSchema = z
   .array(
@@ -18,25 +16,22 @@ const HostClientsSchema = z
   )
   .min(1);
 
-export type McpAuthMode = 'broker' | 'broker_compat' | 'legacy';
+export type McpAuthMode = 'broker';
 
 export type OAuthBrokerRuntime = {
   allowedOrigins: string[];
   app: Express;
-  mode: Exclude<McpAuthMode, 'legacy'>;
+  mode: McpAuthMode;
   provider: SupabaseOAuthBrokerProvider;
   resourceMetadataUrl: string;
   verifier: OAuthTokenVerifier;
 };
 
 function parseAuthMode(value: string | undefined): McpAuthMode {
-  if (!value || value === 'legacy') {
-    return 'legacy';
+  if (!value || value === 'broker') {
+    return 'broker';
   }
-  if (value === 'broker' || value === 'broker_compat') {
-    return value;
-  }
-  throw new Error('MCP_AUTH_MODE must be legacy, broker_compat, or broker');
+  throw new Error('MCP_AUTH_MODE must be broker');
 }
 
 function parseBoundedInteger(
@@ -56,7 +51,7 @@ function parseBoundedInteger(
 function requireEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
-    throw new Error(`${name} is required when MCP_AUTH_MODE enables the OAuth broker`);
+    throw new Error(`${name} is required by the OAuth broker`);
   }
   return value;
 }
@@ -75,59 +70,8 @@ function normalizedOrigin(value: string): URL {
   return url;
 }
 
-function createVerifier(
-  provider: SupabaseOAuthBrokerProvider,
-  mode: Exclude<McpAuthMode, 'legacy'>,
-): OAuthTokenVerifier {
-  return {
-    verifyAccessToken: async (token) => {
-      try {
-        return await provider.verifyAccessToken(token);
-      } catch (error) {
-        if (
-          mode !== 'broker_compat' ||
-          isMcpBrokerAccessToken(token) ||
-          !(error instanceof InvalidTokenError)
-        ) {
-          throw error;
-        }
-      }
-
-      const legacy = await authenticateLegacyApiKeyRequest(token);
-      const session = legacy.supabaseSession;
-      const expiresAt = session?.expires_at;
-      if (
-        !legacy.isAuthenticated ||
-        !legacy.userId ||
-        !session?.access_token ||
-        typeof expiresAt !== 'number'
-      ) {
-        throw new InvalidTokenError('Access token is invalid');
-      }
-      console.warn('MCP_LEGACY_AUTH_ACCEPTED', { category: 'api_key' });
-      return {
-        token,
-        clientId: 'legacy-user-api-key-transition',
-        scopes: provider.supportedScopes,
-        expiresAt,
-        resource: provider.resourceUrl,
-        extra: {
-          authMethod: 'legacy_user_api_key',
-          downstreamAccessToken: session.access_token,
-          email: legacy.email,
-          subject: legacy.userId,
-          supabaseSession: session,
-        },
-      };
-    },
-  };
-}
-
-export function createOAuthBrokerRuntimeFromEnv(): OAuthBrokerRuntime | undefined {
+export function createOAuthBrokerRuntimeFromEnv(): OAuthBrokerRuntime {
   const mode = parseAuthMode(process.env.MCP_AUTH_MODE);
-  if (mode === 'legacy') {
-    return undefined;
-  }
 
   const publicOrigin = normalizedOrigin(requireEnv('MCP_PUBLIC_ORIGIN'));
   const resourceUrl = new URL('/mcp', publicOrigin);
@@ -191,6 +135,6 @@ export function createOAuthBrokerRuntimeFromEnv(): OAuthBrokerRuntime | undefine
     mode,
     provider,
     resourceMetadataUrl: new URL('/.well-known/oauth-protected-resource/mcp', publicOrigin).href,
-    verifier: createVerifier(provider, mode),
+    verifier: provider satisfies OAuthTokenVerifier,
   };
 }

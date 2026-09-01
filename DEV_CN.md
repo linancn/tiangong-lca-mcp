@@ -23,7 +23,7 @@ checkPaths:
   - scripts/**
 lastReviewedAt: 2026-09-01
 lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: '针对 Issue #66 完成复核：MCP 0.1.3 修复 package-manager realpath 入口判定，并要求发布包/镜像前执行全局 HTTP bin health probe。'
+lastReviewedNote: '针对 Issue #68 完成复核：broker-only runtime 删除旧 API-key/Cognito 模式，同时保留完整 OAuth 与 packed-bin 资格验证。'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -53,17 +53,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # 使用 Dockerfile 构建 MCP 服务器镜像（可选）
-docker build -t linancn/tiangong-lca-mcp-server:0.1.3 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.4 .
 
 # 拉取 MCP 服务器镜像
-docker pull linancn/tiangong-lca-mcp-server:0.1.3
+docker pull linancn/tiangong-lca-mcp-server:0.1.4
 
 # 使用 Docker 启动 MCP 服务器
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.3
+    linancn/tiangong-lca-mcp-server:0.1.4
 ```
 
 ## 开发
@@ -92,7 +92,7 @@ Dev 必须具备以下精确控制面事实：
 3. 在 `MCP_OAUTH_HOST_CLIENTS_JSON` 中至少配置一个固定 public MCP host client；MCP Inspector CLI/TUI 通常使用 `http://127.0.0.1:6276/oauth/callback`。
 4. 使用随机 32 字节 `MCP_OAUTH_SESSION_ENCRYPTION_KEY`，并把它、Supabase client secret 与 Redis REST token 保存在 Git 之外。
 
-资格验证期设置 `MCP_AUTH_MODE=broker_compat`；旧 API key 退役门禁通过后改为 `broker`。`legacy` 是显式回滚配置，不是常规本地或生产模式。
+设置 `MCP_AUTH_MODE=broker`；它是远程 HTTP 唯一支持的认证模式。旧 API-key 与 Cognito fallback 模式已删除。
 
 authorization server 暴露 `/authorize`、`/token` 与 `/revoke`；上游回调是 `/oauth/callback`。live flow 前先检查发现文档：
 
@@ -133,7 +133,7 @@ pnpm prepush:gate
 
 ### 发布
 
-本次生产启动修复任务在变更合并后执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.3` 对应 `v0.1.3`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 packed-consumer 门禁证明过的 broker store/runtime、Supabase broker、auth middleware 与 HTTP app。同一门禁还必须真实执行全局安装的 HTTP bin 并收到成功的 `/health`；仅 import 证明不足。
+本次 broker-only 任务在变更合并后执行发布。Trusted publishing workflow 使用 pnpm frozen lock 安装并运行标准门禁；Tag 继续使用本单包仓库的 `v<package.version>` 格式，本次 `0.1.4` 对应 `v0.1.4`。构建 ECS 镜像前必须读回 registry integrity，并确认发布包包含 broker store/runtime、Supabase broker 与 HTTP app，且已删除的 legacy 模块不存在。同一门禁还必须真实执行全局 HTTP bin 并收到 `/health`；仅 import 证明不足。
 
 ### 测试脚手架
 
@@ -146,7 +146,7 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```bash
 set -euo pipefail
 
-image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.3"
+image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.4"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
 docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .

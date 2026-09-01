@@ -24,7 +24,7 @@ checkPaths:
   - scripts/**
 lastReviewedAt: 2026-09-01
 lastReviewedCommit: f2da1fed5fc1d2cdeb7821650b2619874819bd2d
-lastReviewedNote: 'Reviewed for Issue #66: MCP 0.1.3 fixes package-manager realpath entry detection and requires a packed global-bin health probe before package/image release.'
+lastReviewedNote: 'Reviewed for Issue #68: broker-only runtime setup removes legacy API-key/Cognito modes while retaining complete OAuth and packed-bin qualification.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
@@ -54,17 +54,17 @@ pnpm dlx dotenv-cli -e .env -- tiangong-lca-mcp-stdio
 
 ```bash
 # Build MCP server image using Dockerfile (optional)
-docker build -t linancn/tiangong-lca-mcp-server:0.1.3 .
+docker build -t linancn/tiangong-lca-mcp-server:0.1.4 .
 
 # Pull MCP server image
-docker pull linancn/tiangong-lca-mcp-server:0.1.3
+docker pull linancn/tiangong-lca-mcp-server:0.1.4
 
 # Start MCP server using Docker
 docker run -d \
     --name tiangong-lca-mcp-server \
     --publish 9278:9278 \
     --env-file .env \
-    linancn/tiangong-lca-mcp-server:0.1.3
+    linancn/tiangong-lca-mcp-server:0.1.4
 ```
 
 ## Development
@@ -93,7 +93,7 @@ Dev requires these exact control-plane facts:
 3. At least one fixed public MCP host client in `MCP_OAUTH_HOST_CLIENTS_JSON`; MCP Inspector CLI/TUI normally uses `http://127.0.0.1:6276/oauth/callback`.
 4. A 32-byte random `MCP_OAUTH_SESSION_ENCRYPTION_KEY`, the Supabase client secret, and Redis REST token held outside Git.
 
-Set `MCP_AUTH_MODE=broker_compat` for qualification, then `broker` after the legacy API-key retirement gate. `legacy` is an explicit rollback setting, not the normal local or production mode.
+Set `MCP_AUTH_MODE=broker`; it is the only supported remote HTTP authentication mode. Legacy API-key and Cognito fallback modes no longer exist.
 
 The authorization server exposes `/authorize`, `/token`, and `/revoke`; its upstream callback is `/oauth/callback`. Verify discovery before a live flow:
 
@@ -141,7 +141,7 @@ This runs read-only lint/typecheck, offline behavior tests, packed-consumer vali
 
 ### Publishing
 
-Publishing is handled by this tracked production-startup repair task after the change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.3` maps to `v0.1.3`. Before building the ECS image, read back the registry integrity and verify that the published archive contains the broker store/runtime, Supabase broker, auth middleware, and HTTP app proved by the packed-consumer gate. The same gate must execute the globally installed HTTP bin and receive a successful `/health` response; import-only proof is insufficient.
+Publishing is handled by this tracked broker-only task after the change merges. The trusted-publishing workflow installs with pnpm's frozen lock, runs the canonical gate, and keeps the existing single-package tag format `v<package.version>`; release `0.1.4` maps to `v0.1.4`. Before building the ECS image, read back registry integrity and verify that the archive contains the broker store/runtime, Supabase broker, and HTTP app while removed legacy modules are absent. The same gate must execute the globally installed HTTP bin and receive `/health`; import-only proof is insufficient.
 
 ### scaffold
 
@@ -154,7 +154,7 @@ pnpm exec tsx scripts/openlca-ipc-smoke.ts
 ```bash
 set -euo pipefail
 
-image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.3"
+image_tag="oauth-$(git rev-parse --short=12 HEAD)-v0.1.4"
 image_uri="339712838008.dkr.ecr.us-east-1.amazonaws.com/tiangong-lca-mcp"
 
 docker build --no-cache --provenance=false --platform linux/arm64 -t "${image_uri}:${image_tag}" .
