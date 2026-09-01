@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import {
   existsSync,
@@ -40,6 +40,22 @@ async function reserveLoopbackPort() {
 }
 
 async function stopChild(child) {
+  if (process.platform === 'win32' && child.pid !== undefined) {
+    const result = spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+      encoding: 'utf8',
+      shell: false,
+      stdio: 'pipe',
+    });
+    if (result.status !== 0 && child.exitCode === null && child.signalCode === null) {
+      throw new Error(
+        `Unable to stop packed HTTP process tree (status=${result.status}, stderr=${result.stderr.trim() || '<empty>'}).`,
+      );
+    }
+    if (child.exitCode === null && child.signalCode === null) {
+      await once(child, 'exit');
+    }
+    return;
+  }
   if (child.exitCode !== null || child.signalCode !== null) {
     return;
   }
@@ -175,5 +191,5 @@ try {
   await import(pathToFileURL(join(packageRoot, 'dist', 'src', 'index_server_local.js')).href);
   await assertPackedHttpBinStarts(globalBinDirectory, globalEnvironment);
 } finally {
-  rmSync(temporaryRoot, { recursive: true, force: true });
+  rmSync(temporaryRoot, { force: true, maxRetries: 10, recursive: true, retryDelay: 100 });
 }
