@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import {
   existsSync,
   mkdirSync,
@@ -10,14 +12,106 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { runPnpm } from './lib/run-pnpm.mjs';
 
 const repoRoot = dirname(fileURLToPath(new URL('../package.json', import.meta.url)));
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'tiangong mcp packed consumer '));
 const packDirectory = join(temporaryRoot, 'package archive');
+
+async function reserveLoopbackPort() {
+  const server = createServer();
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const address = server.address();
+  assert.notEqual(address, null);
+  assert.equal(typeof address, 'object');
+  const port = address.port;
+  await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  return port;
+}
+
+async function stopChild(child) {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return;
+  }
+  child.kill('SIGTERM');
+  await Promise.race([
+    once(child, 'exit'),
+    delay(5_000).then(() => {
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill('SIGKILL');
+      }
+    }),
+  ]);
+}
+
+async function assertPackedHttpBinStarts(globalBinDirectory, globalEnvironment) {
+  const port = await reserveLoopbackPort();
+  const binPath = join(
+    globalBinDirectory,
+    process.platform === 'win32' ? 'tiangong-lca-mcp-http.CMD' : 'tiangong-lca-mcp-http',
+  );
+  const command = process.platform === 'win32' ? (process.env.ComSpec ?? 'cmd.exe') : binPath;
+  const args = process.platform === 'win32' ? ['/d', '/s', '/c', `"${binPath}"`] : [];
+  const child = spawn(command, args, {
+    cwd: temporaryRoot,
+    env: {
+      ...globalEnvironment,
+      HOST: '127.0.0.1',
+      MCP_AUTH_MODE: 'legacy',
+      PORT: String(port),
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let stdout = '';
+  let stderr = '';
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => {
+    stdout += chunk;
+  });
+  child.stderr.on('data', (chunk) => {
+    stderr += chunk;
+  });
+
+  try {
+    const deadline = Date.now() + 10_000;
+    let response;
+    while (Date.now() < deadline) {
+      if (child.exitCode !== null || child.signalCode !== null) {
+        throw new Error(
+          `Packed HTTP bin exited before health check (code=${child.exitCode}, signal=${child.signalCode}, stdout=${stdout.trim() || '<empty>'}, stderr=${stderr.trim() || '<empty>'}).`,
+        );
+      }
+      try {
+        response = await fetch(`http://127.0.0.1:${port}/health`);
+        if (response.ok) {
+          break;
+        }
+      } catch {
+        // The process may still be binding the loopback socket.
+      }
+      await delay(100);
+    }
+
+    assert.notEqual(response, undefined, 'Packed HTTP bin did not answer /health in time.');
+    assert.equal(response.status, 200);
+    const health = await response.json();
+    assert.equal(health.status, 'ok');
+    assert.equal(typeof health.timestamp, 'string');
+    assert.match(health.timestamp, /^\d{4}-\d{2}-\d{2}T/u);
+    assert.equal(child.exitCode, null);
+  } finally {
+    await stopChild(child);
+  }
+}
 
 try {
   mkdirSync(packDirectory, { recursive: true });
@@ -28,12 +122,24 @@ try {
   const tarballs = readdirSync(packDirectory).filter((entry) => entry.endsWith('.tgz'));
   assert.equal(tarballs.length, 1);
   const tarball = join(packDirectory, tarballs[0]);
+  const globalPnpmHome = join(temporaryRoot, 'global pnpm home');
+  const globalBinDirectory = join(globalPnpmHome, 'bin');
+  const globalEnvironment = {
+    ...process.env,
+    PATH: `${globalBinDirectory}${delimiter}${process.env.PATH ?? ''}`,
+    PNPM_HOME: globalPnpmHome,
+  };
 
   writeFileSync(
     join(temporaryRoot, 'package.json'),
     JSON.stringify({ name: 'mcp-packed-consumer-test', private: true, type: 'module' }),
   );
   runPnpm(['add', '--prod', tarball], { cwd: temporaryRoot, stdio: 'pipe' });
+  runPnpm(['add', '--global', '--prod', tarball], {
+    cwd: temporaryRoot,
+    env: globalEnvironment,
+    stdio: 'pipe',
+  });
 
   const packageRoot = join(temporaryRoot, 'node_modules', '@tiangong-lca', 'mcp-server');
   const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
@@ -64,6 +170,7 @@ try {
   await import(pathToFileURL(join(packageRoot, 'dist', 'src', 'index.js')).href);
   await import(pathToFileURL(join(packageRoot, 'dist', 'src', 'index_server.js')).href);
   await import(pathToFileURL(join(packageRoot, 'dist', 'src', 'index_server_local.js')).href);
+  await assertPackedHttpBinStarts(globalBinDirectory, globalEnvironment);
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
 }
