@@ -60,8 +60,9 @@ async function assertPackedHttpBinStarts(globalBinDirectory, globalEnvironment) 
     globalBinDirectory,
     process.platform === 'win32' ? 'tiangong-lca-mcp-http.CMD' : 'tiangong-lca-mcp-http',
   );
+  assert.equal(existsSync(binPath), true, binPath);
   const command = process.platform === 'win32' ? (process.env.ComSpec ?? 'cmd.exe') : binPath;
-  const args = process.platform === 'win32' ? ['/d', '/s', '/c', `"${binPath}"`] : [];
+  const args = process.platform === 'win32' ? ['/d', '/s', '/c', 'call', binPath] : [];
   const child = spawn(command, args, {
     cwd: temporaryRoot,
     env: {
