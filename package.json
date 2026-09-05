@@ -40,7 +40,7 @@
     "lint:oxlint": "pnpm exec oxlint --type-aware --format=stylish --deny-warnings ./src ./test ./scripts",
     "lint:prettier": "pnpm exec prettier --check \"{src,test,docs,scripts}/**/*.{js,cjs,mjs,jsx,tsx,ts,md,json}\" \"*.{js,cjs,mjs,jsx,tsx,ts,md,json}\"",
     "format": "pnpm exec prettier --write \"{src,test,docs,scripts}/**/*.{js,cjs,mjs,jsx,tsx,ts,md,json}\" \"*.{js,cjs,mjs,jsx,tsx,ts,md,json}\"",
-    "prepush:gate": "pnpm lint && pnpm peers:check && pnpm test && pnpm test:consumer && pnpm build && pnpm test:toolchain && pnpm audit && pnpm test:pack && pnpm test:clean-worktree",
+    "prepush:gate": "pnpm lint && pnpm peers:check && pnpm test && pnpm test:consumer && pnpm build && pnpm test:toolchain && pnpm run audit && pnpm test:pack && pnpm test:clean-worktree",
     "prepack": "pnpm build",
     "prepublishOnly": "pnpm prepush:gate"
   },

@@ -38,9 +38,9 @@ checkPaths:
   - scripts/docpact
   - scripts/docpact-gate.sh
   - scripts/install-git-hooks.sh
-lastReviewedAt: 2026-09-01
-lastReviewedCommit: a349c4ad3068dc76a7b43417fa5ead2ee6e0e6d3
-lastReviewedNote: 'Reviewed for Issue #72: direct Supabase JWT validation replaces every stateful OAuth path while preserving transport, package, and global-bin proof.'
+lastReviewedAt: 2026-09-06
+lastReviewedCommit: 0f3e788fbe6dab4f759b8de4ac1355b6abe436bc
+lastReviewedNote: 'Reviewed for #74 / workspace #980 W11: retire the owned Intel Oxlint age exception and invoke the existing high-severity audit script explicitly. Frozen dependencies, supported-platform entries, runtime/auth contracts and release behavior are unchanged.'
 related:
   - ../../AGENTS.md
   - ../../.docpact/config.yaml
@@ -65,7 +65,7 @@ The gate is intentionally non-mutating and includes:
 - type-aware Oxlint with warnings denied, Prettier check, and TypeScript 7 typecheck
 - offline Node assertions for tool, TIDAS, LifecycleModel, CRUD/search, auth, HTTP, error, and cancellation contracts
 - packed runtime-consumer validation in a path containing spaces, including a real global-bin `/health` probe through the package-manager shim
-- build, exact toolchain assertion, high-severity dependency audit, and dry-run pack
+- build, exact toolchain assertion, the declared high-severity `pnpm run audit` script, and dry-run pack
 - a frozen install plus lint/test/build/toolchain/pack rerun in a clean arbitrary-path worktree
 
 ## Validation Matrix

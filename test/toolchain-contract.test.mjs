@@ -28,6 +28,7 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.match(workspace, /^packages:\s*\[\]\s*$/mu);
     assert.match(workspace, /^minimumReleaseAge:\s*1440\s*$/mu);
     assert.match(workspace, /^minimumReleaseAgeStrict:\s*true\s*$/mu);
+    assert.doesNotMatch(workspace, /^\s*-\s*['"]?@oxlint\/binding-darwin-x64@/mu);
     assert.equal(readText('.gitattributes').trim(), '* text=auto eol=lf');
   });
 
@@ -61,6 +62,8 @@ describe('pnpm and TypeScript 7 toolchain contract', () => {
     assert.match(packageJson.scripts?.lint ?? '', /lint:prettier/u);
     assert.equal(packageJson.scripts?.['peers:check'], 'pnpm peers check');
     assert.match(packageJson.scripts?.['prepush:gate'] ?? '', /pnpm peers:check/u);
+    assert.match(packageJson.scripts?.['prepush:gate'] ?? '', /pnpm run audit(?:\s|$)/u);
+    assert.equal(packageJson.scripts?.audit, 'pnpm audit --audit-level high');
     assert.doesNotMatch(packageJson.scripts?.lint ?? '', /--write/u);
     assert.match(packageJson.scripts?.format ?? '', /prettier --write/u);
     assert.doesNotMatch(packageJson.scripts?.['test:pack'] ?? '', />\s*\/dev\/null/u);

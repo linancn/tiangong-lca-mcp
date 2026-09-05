@@ -22,9 +22,9 @@ checkPaths:
   - src/**
   - test/**
   - scripts/**
-lastReviewedAt: 2026-09-01
-lastReviewedCommit: a349c4ad3068dc76a7b43417fa5ead2ee6e0e6d3
-lastReviewedNote: 'Reviewed for Issue #72: direct Supabase OAuth JWT setup removes every server-side authorization state dependency while retaining complete package and image qualification.'
+lastReviewedAt: 2026-09-06
+lastReviewedCommit: 0f3e788fbe6dab4f759b8de4ac1355b6abe436bc
+lastReviewedNote: 'Reviewed for #74 / workspace #980 W11: retire the owned Intel Oxlint age exception and invoke the existing high-severity audit script explicitly. Frozen dependencies, supported-platform entries, runtime/auth contracts and release behavior are unchanged.'
 related:
   - AGENTS.md
   - .docpact/config.yaml
